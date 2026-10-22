@@ -123,6 +123,13 @@ it, the test checks the mocks — test the logic underneath instead, or skip it.
    databases, singletons) without isolating it; shared state is how suites
    that pass alone flake together.
 
+**Every test belongs to exactly one shard, from the first test on.** A shard
+is a group of tests the runner can select on its own: a test target or a
+folder. Start with four, one per shared build slot (two on this Mac, two on
+the mule; `~/.claude/scripts/capacity status`), and keep their run times
+roughly equal, so the full suite can run as four parallel jobs instead of
+one long one. Splitting the suite later means moving every test at once.
+
 **Flaky tests are quarantined, not ignored.** A test that fails and then
 passes on a rerun — at pre-push or anywhere else — is skipped in the same PR
 that hit it, with a dated reason and a Linear issue. Rerunning until
