@@ -77,7 +77,9 @@ is_product_path() {
   return 1
 }
 
-OUTPUT_FORMAT=$(cat <<'EOF'
+# Not $(cat <<EOF): bash 3.2, macOS's /bin/bash, matches quotes inside a
+# heredoc in $( ), so an apostrophe in the text breaks the whole script.
+IFS= read -r -d '' OUTPUT_FORMAT <<'EOF'
 Output format (a script parses this; follow it exactly):
 - One line per finding: SEVERITY | path:line | one sentence naming the defect and the smallest fix.
 - SEVERITY is exactly HIGH, MEDIUM, or LOW.
@@ -87,7 +89,6 @@ Output format (a script parses this; follow it exactly):
 - If there are no findings, output the single line: NO FINDINGS
 - Lines starting with anything else are shown to a human and never counted; add them only when your instructions above ask for them.
 EOF
-)
 # ---------------------------------------------------------------------------
 
 
