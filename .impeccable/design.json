@@ -1,0 +1,426 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-22T23:06:40+00:00",
+  "title": "Design System: Fluidity",
+  "extensions": {
+    "colorMeta": {
+      "pill-body": {
+        "role": "neutral",
+        "displayName": "Pill body",
+        "canonical": "#0E0F13",
+        "tonalRamp": [
+          "#0A0B0F",
+          "#232428",
+          "#3E3F44",
+          "#5C5D63",
+          "#7E8085",
+          "#A3A4AA",
+          "#C9CAD0",
+          "#ECEEF4"
+        ]
+      },
+      "words-ivory": {
+        "role": "neutral",
+        "displayName": "Words",
+        "canonical": "#F4EFE6",
+        "tonalRamp": [
+          "#0E0B06",
+          "#27241D",
+          "#433F38",
+          "#615D55",
+          "#848078",
+          "#A9A49C",
+          "#CFCAC1",
+          "#F3EEE5"
+        ]
+      },
+      "ivory-warm": {
+        "role": "primary",
+        "displayName": "Ivory light, warm",
+        "canonical": "#FFE4B8",
+        "tonalRamp": [
+          "#180600",
+          "#341F00",
+          "#513B12",
+          "#715A31",
+          "#957C53",
+          "#BAA177",
+          "#E1C79B",
+          "#FFEBBE"
+        ]
+      },
+      "ivory-white": {
+        "role": "primary",
+        "displayName": "Ivory light, white",
+        "canonical": "#FFF6EA",
+        "tonalRamp": [
+          "#100A04",
+          "#29231A",
+          "#463F35",
+          "#645C52",
+          "#877F74",
+          "#ACA398",
+          "#D2C9BE",
+          "#F6EDE1"
+        ]
+      },
+      "ivory-apricot": {
+        "role": "primary",
+        "displayName": "Ivory light, apricot",
+        "canonical": "#FFCFA0",
+        "tonalRamp": [
+          "#200000",
+          "#3D1900",
+          "#5C3501",
+          "#7D5327",
+          "#A2764A",
+          "#C89B6D",
+          "#F0C092",
+          "#FFE4B5"
+        ]
+      },
+      "ivory-cream": {
+        "role": "primary",
+        "displayName": "Ivory light, cream",
+        "canonical": "#FFEBD2",
+        "tonalRamp": [
+          "#150800",
+          "#30210D",
+          "#4D3D28",
+          "#6B5A45",
+          "#8F7D66",
+          "#B4A18A",
+          "#DBC7AF",
+          "#FFEBD2"
+        ]
+      },
+      "pasted-mint": {
+        "role": "secondary",
+        "displayName": "Pasted, mint",
+        "canonical": "#3EDC8A",
+        "tonalRamp": [
+          "#001600",
+          "#003304",
+          "#005709",
+          "#00782D",
+          "#009D50",
+          "#0AC373",
+          "#52EB98",
+          "#7DFFBB"
+        ]
+      },
+      "pasted-pale-mint": {
+        "role": "secondary",
+        "displayName": "Pasted, pale mint",
+        "canonical": "#9CEFB2",
+        "tonalRamp": [
+          "#001500",
+          "#003200",
+          "#00501C",
+          "#16703A",
+          "#42945C",
+          "#68BA7F",
+          "#8EE1A4",
+          "#B2FFC8"
+        ]
+      },
+      "pasted-sea": {
+        "role": "secondary",
+        "displayName": "Pasted, sea green",
+        "canonical": "#79EFCF",
+        "tonalRamp": [
+          "#001707",
+          "#00341F",
+          "#00523A",
+          "#007258",
+          "#00967A",
+          "#41BC9E",
+          "#6DE4C4",
+          "#93FFE8"
+        ]
+      },
+      "pasted-lime": {
+        "role": "secondary",
+        "displayName": "Pasted, lime",
+        "canonical": "#B4EE62",
+        "tonalRamp": [
+          "#001100",
+          "#112D00",
+          "#204E00",
+          "#3D6E00",
+          "#5F9300",
+          "#82B920",
+          "#A7E053",
+          "#CAFF7A"
+        ]
+      },
+      "problem-amber": {
+        "role": "tertiary",
+        "displayName": "Problem, amber",
+        "canonical": "#FFB020",
+        "tonalRamp": [
+          "#240000",
+          "#431300",
+          "#6E2800",
+          "#914900",
+          "#B86D00",
+          "#DF9200",
+          "#FFB930",
+          "#FFDD5E"
+        ]
+      },
+      "problem-gold": {
+        "role": "tertiary",
+        "displayName": "Problem, gold",
+        "canonical": "#FFCF6A",
+        "tonalRamp": [
+          "#200000",
+          "#3E1900",
+          "#5F3500",
+          "#805400",
+          "#A57800",
+          "#CB9D32",
+          "#F3C35E",
+          "#FFE782"
+        ]
+      },
+      "problem-orange": {
+        "role": "tertiary",
+        "displayName": "Problem, orange",
+        "canonical": "#FF8A00",
+        "tonalRamp": [
+          "#2A0000",
+          "#4A0600",
+          "#7E0500",
+          "#A33400",
+          "#CC5B00",
+          "#F58100",
+          "#FFA83D",
+          "#FFCD67"
+        ]
+      },
+      "problem-honey": {
+        "role": "tertiary",
+        "displayName": "Problem, honey",
+        "canonical": "#FFC24D",
+        "tonalRamp": [
+          "#220000",
+          "#401700",
+          "#663000",
+          "#875000",
+          "#AD7400",
+          "#D4990B",
+          "#FCBF4A",
+          "#FFE371"
+        ]
+      },
+      "retry-failed-orange": {
+        "role": "tertiary",
+        "displayName": "Retry failed, orange",
+        "canonical": "#FF9A5C",
+        "tonalRamp": [
+          "#2B0000",
+          "#4C0100",
+          "#761B00",
+          "#9A3E00",
+          "#C1621E",
+          "#EA8749",
+          "#FFAE70",
+          "#FFD293"
+        ]
+      },
+      "retry-failed-peach": {
+        "role": "tertiary",
+        "displayName": "Retry failed, peach",
+        "canonical": "#FFB27E",
+        "tonalRamp": [
+          "#290000",
+          "#490800",
+          "#6A2A00",
+          "#8D490E",
+          "#B36C39",
+          "#DB915D",
+          "#FFB782",
+          "#FFDAA5"
+        ]
+      },
+      "retry-failed-coral": {
+        "role": "tertiary",
+        "displayName": "Retry failed, coral",
+        "canonical": "#FF8B57",
+        "tonalRamp": [
+          "#2C0000",
+          "#4E0000",
+          "#7C0A00",
+          "#A13500",
+          "#C95B23",
+          "#F3804C",
+          "#FFA772",
+          "#FFCB96"
+        ]
+      },
+      "retry-failed-apricot": {
+        "role": "tertiary",
+        "displayName": "Retry failed, apricot",
+        "canonical": "#FFC196",
+        "tonalRamp": [
+          "#240000",
+          "#431200",
+          "#633000",
+          "#844F25",
+          "#AA7148",
+          "#D1966C",
+          "#F9BB91",
+          "#FFDFB3"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "pill-words": {
+        "displayName": "Pill words",
+        "purpose": "Live words inside the pill; one line by default, two by setting."
+      },
+      "bubble-words": {
+        "displayName": "Bubble words",
+        "purpose": "Live words in the bubble above the pill, up to six lines."
+      }
+    },
+    "shadows": [
+      {
+        "name": "rim-light",
+        "value": "1.2pt line of ivory light, halo reaching 2.6pt; drawn by a shader, not a shadow",
+        "purpose": "The pill's only depth. Rim never over 1.5pt, halo never over 3pt."
+      },
+      {
+        "name": "word-glow",
+        "value": "0 0 5px rgba(255, 238, 214, 0.6)",
+        "purpose": "Brief glow on new (0.6) or revised (0.21) words."
+      },
+      {
+        "name": "waveform-glow",
+        "value": "0 0 3px rgba(255, 222, 184, 0.55)",
+        "purpose": "Glow around the waveform in the pill."
+      }
+    ],
+    "motion": [
+      {
+        "name": "size-change",
+        "value": "spring damping 0.816, response 0.512s",
+        "purpose": "Pill growing with words, shrinking after cleanup."
+      },
+      {
+        "name": "words-slide",
+        "value": "spring damping 0.78, response 0.4s",
+        "purpose": "Words moving to their cleaned-up place."
+      },
+      {
+        "name": "leave",
+        "value": "spring damping 0.816, response 0.45s",
+        "purpose": "Removed words leaving; bubble merging back."
+      },
+      {
+        "name": "recombine",
+        "value": "spring damping 0.6, response 0.222s",
+        "purpose": "Bubble sliding back into the pill."
+      },
+      {
+        "name": "split",
+        "value": "spring damping 0.141, response 0.222s, 130ms head start",
+        "purpose": "Retry bubble splitting off the pill."
+      },
+      {
+        "name": "press",
+        "value": "scale 1.015 x 1.03, spring damping 0.694, response 0.85s",
+        "purpose": "Press bump on the retry bubble."
+      },
+      {
+        "name": "release-light",
+        "value": "150ms",
+        "purpose": "Rim light travelling inward to the centre line."
+      },
+      {
+        "name": "green-hold",
+        "value": "260ms",
+        "purpose": "Mint line holding before the collapse."
+      },
+      {
+        "name": "collapse",
+        "value": "340ms, swell 1.08 first, height leads width by 80ms, fade from 120ms",
+        "purpose": "Pill disappearing after a paste."
+      },
+      {
+        "name": "reduce-motion-fade",
+        "value": "0.2s",
+        "purpose": "Bubbles fade in place when Reduce Motion is on."
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Pill, listening",
+      "kind": "custom",
+      "refersTo": "pill",
+      "description": "The pill while you talk: near-black capsule, ivory rim light, live words.",
+      "html": "<div class=\"ds-pill\"><span class=\"ds-pill-words\">so the build is green now and <span class=\"ds-tentative\">I think</span></span></div>",
+      "css": ".ds-pill { display: inline-flex; align-items: center; height: 28px; min-width: 120px; max-width: 360px; padding: 0 13px; border-radius: 14px; background: #0E0F13; box-shadow: 0 0 0 1.2px #FFE4B8, 0 0 2.6px 1px rgba(255,228,184,0.55); transition: box-shadow 0.2s; } .ds-pill:hover { box-shadow: 0 0 0 1.5px #FFF6EA, 0 0 3px 1px rgba(255,238,214,0.7); } .ds-pill-words { font: 400 13px/17px -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif; color: #F4EFE6; opacity: 0.94; white-space: nowrap; overflow: hidden; } .ds-tentative { opacity: 0.53; }"
+    },
+    {
+      "name": "Pill, processing",
+      "kind": "custom",
+      "refersTo": "pill",
+      "description": "After release: the light has become one line through the centre, half the pill's width.",
+      "html": "<div class=\"ds-pill-think\"><span class=\"ds-think-line\"></span></div>",
+      "css": ".ds-pill-think { display: inline-flex; align-items: center; justify-content: center; width: 160px; height: 28px; border-radius: 14px; background: #0E0F13; box-shadow: 0 0 0 1.2px rgba(255,228,184,0.6); } .ds-think-line { width: 50%; height: 1px; border-radius: 1px; background: linear-gradient(90deg, rgba(255,228,184,0), #FFF6EA 30%, #FFCFA0 70%, rgba(255,228,184,0)); box-shadow: 0 0 2px rgba(255,238,214,0.5); }"
+    },
+    {
+      "name": "Pill, pasted",
+      "kind": "custom",
+      "refersTo": "pill",
+      "description": "The paste landed: the line turns mint and holds 260 ms before the pill collapses.",
+      "html": "<div class=\"ds-pill-think\"><span class=\"ds-done-line\"></span></div>",
+      "css": ".ds-pill-think { display: inline-flex; align-items: center; justify-content: center; width: 160px; height: 28px; border-radius: 14px; background: #0E0F13; } .ds-done-line { width: 50%; height: 1px; border-radius: 1px; background: linear-gradient(90deg, rgba(62,220,138,0), #3EDC8A 30%, #9CEFB2 70%, rgba(62,220,138,0)); box-shadow: 0 0 2px rgba(62,220,138,0.6); }"
+    },
+    {
+      "name": "Bubble above",
+      "kind": "card",
+      "refersTo": "bubble-above",
+      "description": "Live words in their own bubble, 6 pt above the pill, up to six lines.",
+      "html": "<div class=\"ds-stack\"><div class=\"ds-bubble\">um so the build is green now and I think we can ship it tomorrow</div><div class=\"ds-pill-small\"></div></div>",
+      "css": ".ds-stack { display: inline-flex; flex-direction: column; align-items: center; gap: 6px; } .ds-bubble { max-width: 300px; padding: 7px 10px; border-radius: 14px; background: #0E0F13; color: #F4EFE6; font: 400 11px/14.5px -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif; box-shadow: 0 0 0 1.2px rgba(255,228,184,0.6); } .ds-pill-small { width: 120px; height: 28px; border-radius: 14px; background: #0E0F13; box-shadow: 0 0 0 1.2px #FFE4B8, 0 0 2.6px 1px rgba(255,228,184,0.55); }"
+    },
+    {
+      "name": "Retry bubble",
+      "kind": "button",
+      "refersTo": "retry-bubble",
+      "description": "A failed paste waits here, 8 pt right of the pill. Hover shows a send arrow; click retries; a second failure flashes soft orange.",
+      "html": "<div class=\"ds-row\"><div class=\"ds-pill-small\"></div><button class=\"ds-retry\" aria-label=\"Retry paste\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 12 12\" fill=\"none\"><path d=\"M6 10V2M2.5 5.5 6 2l3.5 3.5\" stroke=\"#F4EFE6\" stroke-width=\"1.4\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg></button></div>",
+      "css": ".ds-row { display: inline-flex; align-items: center; gap: 8px; } .ds-pill-small { width: 120px; height: 28px; border-radius: 14px; background: #0E0F13; box-shadow: 0 0 0 1.2px #FFE4B8, 0 0 2.6px 1px rgba(255,228,184,0.55); } .ds-retry { width: 28px; height: 28px; border: 0; border-radius: 50%; background: #0E0F13; box-shadow: 0 0 0 1.2px #FFE4B8; display: grid; place-items: center; cursor: pointer; transition: box-shadow 0.16s, transform 0.2s; } .ds-retry svg { opacity: 0; transition: opacity 0.16s; } .ds-retry:hover, .ds-retry:focus-visible { box-shadow: 0 0 0 1.5px #FFF6EA, 0 0 3px 1px rgba(255,238,214,0.7); outline: none; } .ds-retry:hover svg, .ds-retry:focus-visible svg { opacity: 1; } .ds-retry:active { transform: scale(1.015, 1.03); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "Bright future",
+    "overview": "Fluidity shows one thing on screen: a small near-black pill, docked 12 pt above the bottom edge of the screen, that appears only while you dictate. Its edge is a thin ring of ivory light that brightens, drifts and blooms with your voice. Your words appear inside the pill, or in a bubble that splits off above it. When you let go, the light travels inward and becomes one line through the centre while the text is cleaned up. When the paste lands, the line turns mint green, holds for 260 ms, and the pill collapses and is gone.\n\nThe shape and motion come from the iPhone's Dynamic Island. The pill's sizes and springs, and the way the bubble splits off and merges back, all use values read from SpringBoard, so it moves like a system part of the Mac rather than an app's window. The body stays the same near-black on any background, and the light is the only colour.",
+    "keyCharacteristics": [
+      "One near-black capsule; colour comes only from the light around its edge.",
+      "Ivory light by default; mint for a paste that landed, amber for a problem, soft orange for a retry that failed again.",
+      "Dynamic Island sizes, springs and splitting, not app-style easing.",
+      "On screen only while dictating, then it collapses and disappears."
+    ],
+    "rules": [],
+    "dos": [
+      "**Do** keep the pill and every bubble `pill-body` on every background; colour lives only in the light.",
+      "**Do** use the Dynamic Island springs above for every size, position and merge change.",
+      "**Do** switch from ivory to mint at once when a paste lands, and hold green for 260 ms.",
+      "**Do** scale any distance taken from the Dynamic Island by the pill's height ÷ 36.67.",
+      "**Do** honour Reduce Motion exactly as described above."
+    ],
+    "donts": [
+      "**Don't** use the Ember, Rose quartz or Tide rim colours; Ivory is the only rim colour set.",
+      "**Don't** add a drop shadow, a border or a fill colour to the pill.",
+      "**Don't** let the rim exceed 1.5 pt or its halo 3 pt.",
+      "**Don't** scale or bounce the pill to say it can't hear you; pulse the light instead.",
+      "**Don't** keep the pill on screen when the user isn't dictating.",
+      "**Don't** fade between the ivory and a state colour; it passes through grey."
+    ]
+  }
+}
