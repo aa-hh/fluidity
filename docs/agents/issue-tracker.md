@@ -1,34 +1,34 @@
-# Issue tracker: Local Markdown
+# Issue tracker: Linear
 
-Issues and specs for this repo live as markdown files in `.scratch/`.
+Ideas, work, status and milestones for this repo live in Linear: team **Aa-hh**, project **Fluidity** (https://linear.app/aa-hh/project/fluidity-452000c40416). Nothing is tracked in repo files. Record it in Linear first, then do the work (see the Linear-first rule in `AGENTS.md`).
 
 ## Conventions
 
-- One feature per directory: `.scratch/<feature-slug>/`
-- The spec is `.scratch/<feature-slug>/spec.md`
-- Implementation issues are one file per ticket at `.scratch/<feature-slug>/issues/<NN>-<slug>.md`, numbered from `01`, never a single combined tickets file
-- Triage state is recorded as a `Status:` line near the top of each issue file (see `triage-labels.md` for the role strings)
-- Comments and conversation history append to the bottom of the file under a `## Comments` heading
+- One Linear issue per ticket, in the Fluidity project.
+- A larger piece of work is a parent issue, with its tickets as sub-issues.
+- Milestones are Linear project milestones.
+- Status is the issue's Linear workflow state, never a line in a file.
+- Triage roles map to Linear labels (see `triage-labels.md`).
+- Comments and conversation history go in the issue's comments.
+- Supporting detail too long for an issue (research write-ups, specs) may live in a repo file. The Linear issue links to it, and the file never holds status.
 
 ## When a skill says "publish to the issue tracker"
 
-Create a new file under `.scratch/<feature-slug>/` (creating the directory if needed).
+Create a Linear issue in the Fluidity project.
 
 ## When a skill says "fetch the relevant ticket"
 
-Read the file at the referenced path. The user will normally pass the path or the issue number directly.
+Read the Linear issue. The user will normally pass its identifier (for example `AA-272`) or URL.
 
 ## Wayfinding operations
 
-Used by `/wayfinder`. The **map** is a file with one **child** file per ticket.
+Used by `/wayfinder`.
 
-- **Map**: `.scratch/<effort>/map.md` (the Notes / Decisions-so-far / Fog body).
-- **Child ticket**: `.scratch/<effort>/issues/NN-<slug>.md`, numbered from `01`, with the question in the body. A `Type:` line records the ticket type (`research`/`prototype`/`grilling`/`task`); a `Status:` line records `claimed`/`resolved`.
-- **Blocking**: a `Blocked by: NN, NN` line near the top. A ticket is unblocked when every file it lists is `resolved`.
-- **Frontier**: scan `.scratch/<effort>/issues/` for files that are open, unblocked, and unclaimed; first by number wins.
-- **Claim**: set `Status: claimed` and save before any work.
-- **Resolve**: append the answer under an `## Answer` heading, set `Status: resolved`, then append a context pointer (gist + link) to the map's Decisions-so-far in `map.md`.
-
-## Repo note
-
-`.scratch/` is committed with the branch (not gitignored): tickets written in one worktree must be visible to other worktrees and background agents.
+- **Map**: a Linear issue in the Fluidity project, labelled `wayfinder:map`. Its description holds the Destination, Notes, Decisions-so-far, Not-yet-specified and Out-of-scope sections.
+- **Child ticket**: a sub-issue of the map, labelled with its type (`wayfinder:research`, `wayfinder:prototype`, `wayfinder:grilling` or `wayfinder:task`), with the question in the description.
+- **Blocking**: Linear's own "blocked by" relation between sub-issues.
+- **Frontier**: the map's sub-issues that are not Done or Canceled, have no assignee, and whose blockers are all Done.
+- **Claim**: assign the ticket to the dev driving the map before any work.
+- **Resolve**: post the answer as a comment, move the issue to Done, then add a line (name, link, gist) to the map's Decisions-so-far.
+- **Research findings**: committed as a file on a `research/<name>` branch, with a comment on the ticket pointing to the branch and file.
+- **Out of scope**: move the ticket to Canceled and add one line to the map's Out-of-scope section.

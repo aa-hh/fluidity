@@ -47,10 +47,15 @@ symbol you cannot find in source, believe the source and fix the doc.
 - `scripts/` → the only sanctioned way to build, test, review and land.
 - `.githooks/` → commit and push guards; settings in `project.conf`.
 - `docs/review/` → instructions for each branch-review pass.
-- `.scratch/` → local issue tracker (`docs/agents/issue-tracker.md`).
+- `.scratch/` → research write-ups and notes linked from Linear issues; never tickets or status.
 
 ## Rules (all targets)
 
+- **Linear first (HARD RULE).** Every idea, piece of work, status change and
+  milestone goes into Linear (team Aa-hh, project Fluidity) before the work
+  starts, and Linear stays the only record of status. Repo files may hold
+  supporting detail linked from an issue, never tickets or status.
+  Conventions: `docs/agents/issue-tracker.md`.
 - **Build and test only through `scripts/build.sh` and `scripts/test.sh`.**
   They are the one place that knows how this repo builds; a Claude hook denies
   the bare commands.
@@ -120,7 +125,7 @@ it, the test checks the mocks — test the logic underneath instead, or skip it.
 
 **Flaky tests are quarantined, not ignored.** A test that fails and then
 passes on a rerun — at pre-push or anywhere else — is skipped in the same PR
-that hit it, with a dated reason and a ticket in `.scratch/`. Rerunning until
+that hit it, with a dated reason and a Linear issue. Rerunning until
 green is not a fix.
 - **A change inside a review risk path is scoped before it is built.** The
   paths are `is_risk_path` at the top of `scripts/review-branch.sh`. State
