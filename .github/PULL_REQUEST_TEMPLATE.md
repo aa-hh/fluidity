@@ -4,7 +4,7 @@
 
 ## Why
 
-<!-- Link the ticket in .scratch/ if there is one. If not, say what prompted it. -->
+<!-- Link the Linear issue. If there is none, create it first (Linear-first rule in AGENTS.md). -->
 
 ## How it was tested
 

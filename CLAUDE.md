@@ -49,8 +49,8 @@ There is **no CI**. The pre-push hook is the full-suite gate, and
 
 ## Agent skills
 
-- **Issue tracker:** local markdown under `.scratch/<feature-slug>/` — see
-  `docs/agents/issue-tracker.md`.
+- **Issue tracker:** Linear, project Fluidity. Record ideas, work, status and
+  milestones there first — see `docs/agents/issue-tracker.md`.
 - **Triage labels:** `docs/agents/triage-labels.md`.
 - **Domain docs:** `CONTEXT.md` plus `docs/adr/` — see `docs/agents/domain.md`.
 - **`/pr-review`:** manual adversarial PR review (`.claude/skills/pr-review/`).
