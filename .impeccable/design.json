@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-22T23:06:40+00:00",
+  "generatedAt": "2026-10-23T03:34:46+00:00",
   "title": "Design System: Fluidity",
   "extensions": {
     "colorMeta": {
@@ -273,6 +273,546 @@
           "#F9BB91",
           "#FFDFB3"
         ]
+      },
+      "app-window-light": {
+        "role": "neutral",
+        "displayName": "Window, Light (surface/window)",
+        "canonical": "rgba(255, 255, 255, 0.72)",
+        "tonalRamp": [
+          "#0B0B0B",
+          "#242424",
+          "#404040",
+          "#5D5D5D",
+          "#808080",
+          "#A4A4A4",
+          "#CACACA",
+          "#EEEEEE"
+        ]
+      },
+      "app-window-dark": {
+        "role": "neutral",
+        "displayName": "Window, Dark (surface/window)",
+        "canonical": "rgba(14, 15, 19, 0.72)",
+        "tonalRamp": [
+          "#0A0B0F",
+          "#232428",
+          "#3E3F44",
+          "#5C5D63",
+          "#7E8085",
+          "#A3A4AA",
+          "#C9CAD0",
+          "#ECEEF4"
+        ]
+      },
+      "app-sidebar-light": {
+        "role": "neutral",
+        "displayName": "Sidebar, Light (surface/sidebar)",
+        "canonical": "rgba(255, 255, 255, 0.4)",
+        "tonalRamp": [
+          "#0B0B0B",
+          "#242424",
+          "#404040",
+          "#5D5D5D",
+          "#808080",
+          "#A4A4A4",
+          "#CACACA",
+          "#EEEEEE"
+        ]
+      },
+      "app-sidebar-dark": {
+        "role": "neutral",
+        "displayName": "Sidebar, Dark (surface/sidebar)",
+        "canonical": "rgba(10, 11, 14, 0.5)",
+        "tonalRamp": [
+          "#0A0B0E",
+          "#232427",
+          "#3E4043",
+          "#5C5D61",
+          "#7F8084",
+          "#A3A4A9",
+          "#C9CACF",
+          "#EDEEF3"
+        ]
+      },
+      "app-raised-light": {
+        "role": "neutral",
+        "displayName": "Raised panel, Light (surface/raised)",
+        "canonical": "rgba(255, 255, 255, 0.85)",
+        "tonalRamp": [
+          "#0B0B0B",
+          "#242424",
+          "#404040",
+          "#5D5D5D",
+          "#808080",
+          "#A4A4A4",
+          "#CACACA",
+          "#EEEEEE"
+        ]
+      },
+      "app-raised-dark": {
+        "role": "neutral",
+        "displayName": "Raised panel, Dark (surface/raised)",
+        "canonical": "rgba(255, 255, 255, 0.06)",
+        "tonalRamp": [
+          "#0B0B0B",
+          "#242424",
+          "#404040",
+          "#5D5D5D",
+          "#808080",
+          "#A4A4A4",
+          "#CACACA",
+          "#EEEEEE"
+        ]
+      },
+      "app-selected-light": {
+        "role": "neutral",
+        "displayName": "Selected, Light (surface/selected)",
+        "canonical": "rgba(20, 21, 25, 0.08)",
+        "tonalRamp": [
+          "#0A0B0F",
+          "#232428",
+          "#3E3F44",
+          "#5C5D62",
+          "#7F8085",
+          "#A3A4AA",
+          "#C9CAD0",
+          "#EDEEF4"
+        ]
+      },
+      "app-selected-dark": {
+        "role": "neutral",
+        "displayName": "Selected, Dark (surface/selected)",
+        "canonical": "rgba(255, 255, 255, 0.12)",
+        "tonalRamp": [
+          "#0B0B0B",
+          "#242424",
+          "#404040",
+          "#5D5D5D",
+          "#808080",
+          "#A4A4A4",
+          "#CACACA",
+          "#EEEEEE"
+        ]
+      },
+      "app-hover-light": {
+        "role": "neutral",
+        "displayName": "Hover, Light (surface/hover)",
+        "canonical": "rgba(20, 21, 25, 0.04)",
+        "tonalRamp": [
+          "#0A0B0F",
+          "#232428",
+          "#3E3F44",
+          "#5C5D62",
+          "#7F8085",
+          "#A3A4AA",
+          "#C9CAD0",
+          "#EDEEF4"
+        ]
+      },
+      "app-hover-dark": {
+        "role": "neutral",
+        "displayName": "Hover, Dark (surface/hover)",
+        "canonical": "rgba(255, 255, 255, 0.06)",
+        "tonalRamp": [
+          "#0B0B0B",
+          "#242424",
+          "#404040",
+          "#5D5D5D",
+          "#808080",
+          "#A4A4A4",
+          "#CACACA",
+          "#EEEEEE"
+        ]
+      },
+      "app-line-rule-light": {
+        "role": "neutral",
+        "displayName": "Rule line, Light (line/rule)",
+        "canonical": "rgba(20, 21, 25, 0.1)",
+        "tonalRamp": [
+          "#0A0B0F",
+          "#232428",
+          "#3E3F44",
+          "#5C5D62",
+          "#7F8085",
+          "#A3A4AA",
+          "#C9CAD0",
+          "#EDEEF4"
+        ]
+      },
+      "app-line-rule-dark": {
+        "role": "neutral",
+        "displayName": "Rule line, Dark (line/rule)",
+        "canonical": "rgba(255, 255, 255, 0.1)",
+        "tonalRamp": [
+          "#0B0B0B",
+          "#242424",
+          "#404040",
+          "#5D5D5D",
+          "#808080",
+          "#A4A4A4",
+          "#CACACA",
+          "#EEEEEE"
+        ]
+      },
+      "app-line-strong-light": {
+        "role": "neutral",
+        "displayName": "Strong line, Light (line/strong)",
+        "canonical": "rgba(20, 21, 25, 0.22)",
+        "tonalRamp": [
+          "#0A0B0F",
+          "#232428",
+          "#3E3F44",
+          "#5C5D62",
+          "#7F8085",
+          "#A3A4AA",
+          "#C9CAD0",
+          "#EDEEF4"
+        ]
+      },
+      "app-line-strong-dark": {
+        "role": "neutral",
+        "displayName": "Strong line, Dark (line/strong)",
+        "canonical": "rgba(255, 255, 255, 0.22)",
+        "tonalRamp": [
+          "#0B0B0B",
+          "#242424",
+          "#404040",
+          "#5D5D5D",
+          "#808080",
+          "#A4A4A4",
+          "#CACACA",
+          "#EEEEEE"
+        ]
+      },
+      "app-text-primary-light": {
+        "role": "neutral",
+        "displayName": "Primary text, Light (text/primary)",
+        "canonical": "#1C1C1E",
+        "tonalRamp": [
+          "#0B0B0D",
+          "#242426",
+          "#3F3F42",
+          "#5D5D60",
+          "#808082",
+          "#A4A4A7",
+          "#CACACD",
+          "#EEEEF1"
+        ]
+      },
+      "app-text-primary-dark": {
+        "role": "neutral",
+        "displayName": "Primary text, Dark (text/primary)",
+        "canonical": "#F4EFE6",
+        "tonalRamp": [
+          "#0E0B06",
+          "#27241D",
+          "#433F38",
+          "#615D55",
+          "#848078",
+          "#A9A49C",
+          "#CFCAC1",
+          "#F3EEE5"
+        ]
+      },
+      "app-text-secondary-light": {
+        "role": "neutral",
+        "displayName": "Secondary text, Light (text/secondary)",
+        "canonical": "#6F6A62",
+        "tonalRamp": [
+          "#0E0B05",
+          "#28231D",
+          "#443F38",
+          "#625D55",
+          "#857F77",
+          "#A9A49B",
+          "#CFCAC1",
+          "#F3EEE4"
+        ]
+      },
+      "app-text-secondary-dark": {
+        "role": "neutral",
+        "displayName": "Secondary text, Dark (text/secondary)",
+        "canonical": "#A8A49C",
+        "tonalRamp": [
+          "#0E0B06",
+          "#27241D",
+          "#433F38",
+          "#615D56",
+          "#848078",
+          "#A8A49C",
+          "#CECAC2",
+          "#F2EEE5"
+        ]
+      },
+      "app-action-primary-light": {
+        "role": "neutral",
+        "displayName": "Primary button, Light (action/primary)",
+        "canonical": "#1C1C1E",
+        "tonalRamp": [
+          "#0B0B0D",
+          "#242426",
+          "#3F3F42",
+          "#5D5D60",
+          "#808082",
+          "#A4A4A7",
+          "#CACACD",
+          "#EEEEF1"
+        ]
+      },
+      "app-action-primary-dark": {
+        "role": "neutral",
+        "displayName": "Primary button, Dark (action/primary)",
+        "canonical": "#FFF6EA",
+        "tonalRamp": [
+          "#100A04",
+          "#29231A",
+          "#463F35",
+          "#645C52",
+          "#877F74",
+          "#ACA398",
+          "#D2C9BE",
+          "#F6EDE1"
+        ]
+      },
+      "app-action-on-primary-light": {
+        "role": "neutral",
+        "displayName": "Text on primary button, Light (action/on-primary)",
+        "canonical": "#FFFFFF",
+        "tonalRamp": [
+          "#0B0B0B",
+          "#242424",
+          "#404040",
+          "#5D5D5D",
+          "#808080",
+          "#A4A4A4",
+          "#CACACA",
+          "#EEEEEE"
+        ]
+      },
+      "app-action-on-primary-dark": {
+        "role": "neutral",
+        "displayName": "Text on primary button, Dark (action/on-primary)",
+        "canonical": "#0E0F13",
+        "tonalRamp": [
+          "#0A0B0F",
+          "#232428",
+          "#3E3F44",
+          "#5C5D63",
+          "#7E8085",
+          "#A3A4AA",
+          "#C9CAD0",
+          "#ECEEF4"
+        ]
+      },
+      "app-state-done-light": {
+        "role": "secondary",
+        "displayName": "Done, Light (state/done)",
+        "canonical": "#1A8A52",
+        "tonalRamp": [
+          "#001600",
+          "#003300",
+          "#00521E",
+          "#00723C",
+          "#2C965D",
+          "#58BC81",
+          "#80E4A6",
+          "#A4FFC9"
+        ]
+      },
+      "app-state-done-dark": {
+        "role": "secondary",
+        "displayName": "Done, Dark (state/done)",
+        "canonical": "#3EDC8A",
+        "tonalRamp": [
+          "#001900",
+          "#003700",
+          "#005709",
+          "#00782D",
+          "#009D50",
+          "#0AC373",
+          "#52EB98",
+          "#7DFFBB"
+        ]
+      },
+      "app-state-attention-light": {
+        "role": "tertiary",
+        "displayName": "Attention, Light (state/attention)",
+        "canonical": "#9A5B00",
+        "tonalRamp": [
+          "#270000",
+          "#470C00",
+          "#682D00",
+          "#8A4C00",
+          "#B06F24",
+          "#D8944D",
+          "#FFBA74",
+          "#FFDE97"
+        ]
+      },
+      "app-state-attention-dark": {
+        "role": "tertiary",
+        "displayName": "Attention, Dark (state/attention)",
+        "canonical": "#FFB020",
+        "tonalRamp": [
+          "#2C0000",
+          "#4D0100",
+          "#6E2800",
+          "#914900",
+          "#B86D00",
+          "#DF9200",
+          "#FFB930",
+          "#FFDD5E"
+        ]
+      },
+      "app-state-retry-light": {
+        "role": "tertiary",
+        "displayName": "Retry, Light (state/retry)",
+        "canonical": "#B5531B",
+        "tonalRamp": [
+          "#310000",
+          "#540000",
+          "#771700",
+          "#9B3B00",
+          "#C3602B",
+          "#EC8552",
+          "#FFAB78",
+          "#FFCF9B"
+        ]
+      },
+      "app-state-retry-dark": {
+        "role": "tertiary",
+        "displayName": "Retry, Dark (state/retry)",
+        "canonical": "#FF9A5C",
+        "tonalRamp": [
+          "#300000",
+          "#530000",
+          "#761B00",
+          "#9A3E00",
+          "#C1621E",
+          "#EA8749",
+          "#FFAE70",
+          "#FFD293"
+        ]
+      },
+      "app-state-destructive-light": {
+        "role": "tertiary",
+        "displayName": "Destructive, Light (state/destructive)",
+        "canonical": "#C83230",
+        "tonalRamp": [
+          "#3C0000",
+          "#620000",
+          "#880000",
+          "#AF1119",
+          "#D9443F",
+          "#FF6C63",
+          "#FF9487",
+          "#FFB8AA"
+        ]
+      },
+      "app-state-destructive-dark": {
+        "role": "tertiary",
+        "displayName": "Destructive, Dark (state/destructive)",
+        "canonical": "#FF6B66",
+        "tonalRamp": [
+          "#3B0000",
+          "#610000",
+          "#870000",
+          "#AD1722",
+          "#D74645",
+          "#FF6E69",
+          "#FF958D",
+          "#FFBAB0"
+        ]
+      },
+      "app-live-light": {
+        "role": "primary",
+        "displayName": "Live, Light (live)",
+        "canonical": "#FFE4B8",
+        "tonalRamp": [
+          "#180600",
+          "#341F00",
+          "#513B12",
+          "#715A31",
+          "#957C53",
+          "#BAA177",
+          "#E1C79B",
+          "#FFEBBE"
+        ]
+      },
+      "app-live-dark": {
+        "role": "primary",
+        "displayName": "Live, Dark (live)",
+        "canonical": "#FFE4B8",
+        "tonalRamp": [
+          "#180600",
+          "#341F00",
+          "#513B12",
+          "#715A31",
+          "#957C53",
+          "#BAA177",
+          "#E1C79B",
+          "#FFEBBE"
+        ]
+      },
+      "app-control-knob-light": {
+        "role": "neutral",
+        "displayName": "Toggle knob, Light (control/knob)",
+        "canonical": "#FFFFFF",
+        "tonalRamp": [
+          "#0B0B0B",
+          "#242424",
+          "#404040",
+          "#5D5D5D",
+          "#808080",
+          "#A4A4A4",
+          "#CACACA",
+          "#EEEEEE"
+        ]
+      },
+      "app-control-knob-dark": {
+        "role": "neutral",
+        "displayName": "Toggle knob, Dark (control/knob)",
+        "canonical": "#D9D4CB",
+        "tonalRamp": [
+          "#0E0B05",
+          "#27231D",
+          "#433F38",
+          "#615D55",
+          "#848077",
+          "#A9A49B",
+          "#CFCAC1",
+          "#F3EEE5"
+        ]
+      },
+      "app-focus-ring-light": {
+        "role": "neutral",
+        "displayName": "Focus ring, Light (focus/ring)",
+        "canonical": "rgba(28, 28, 30, 0.6)",
+        "tonalRamp": [
+          "#0B0B0D",
+          "#242426",
+          "#3F3F42",
+          "#5D5D60",
+          "#808082",
+          "#A4A4A7",
+          "#CACACD",
+          "#EEEEF1"
+        ]
+      },
+      "app-focus-ring-dark": {
+        "role": "neutral",
+        "displayName": "Focus ring, Dark (focus/ring)",
+        "canonical": "rgba(255, 228, 184, 0.85)",
+        "tonalRamp": [
+          "#180600",
+          "#341F00",
+          "#513B12",
+          "#715A31",
+          "#957C53",
+          "#BAA177",
+          "#E1C79B",
+          "#FFEBBE"
+        ]
       }
     },
     "typographyMeta": {
@@ -283,6 +823,30 @@
       "bubble-words": {
         "displayName": "Bubble words",
         "purpose": "Live words in the bubble above the pill, up to six lines."
+      },
+      "app-title": {
+        "displayName": "Title (Glass/Title)",
+        "purpose": "Pane titles in the settings window."
+      },
+      "app-section": {
+        "displayName": "Section (Glass/Section)",
+        "purpose": "Group headings above each raised panel."
+      },
+      "app-label": {
+        "displayName": "Label (Glass/Label)",
+        "purpose": "Sidebar items, control labels, row titles, button text."
+      },
+      "app-body": {
+        "displayName": "Body (Glass/Body)",
+        "purpose": "Running text and text field values."
+      },
+      "app-detail": {
+        "displayName": "Detail (Glass/Detail)",
+        "purpose": "Row descriptions, helper text, error messages."
+      },
+      "app-small": {
+        "displayName": "Small (Glass/Small)",
+        "purpose": "Captions and keyboard shortcuts."
       }
     },
     "shadows": [
@@ -300,6 +864,51 @@
         "name": "waveform-glow",
         "value": "0 0 3px rgba(255, 222, 184, 0.55)",
         "purpose": "Glow around the waveform in the pill."
+      },
+      {
+        "name": "elevation-float",
+        "value": "0 8px 24px rgba(0,0,0,0.16)",
+        "purpose": "Figma style Elevation/Float. Under the settings window, the menu bar popover and an open pop-up menu. Not used on the pill."
+      },
+      {
+        "name": "window-material",
+        "value": "background rgba(255,255,255,0.72) Light / rgba(14,15,19,0.72) Dark; backdrop-filter: blur(40px); 1px inside outline in line/rule",
+        "purpose": "The one shell material for the window, popover and open pop-up menu. In Figma the outer frame carries the shadow and the inner frame the fill, blur, outline and lit top edge."
+      },
+      {
+        "name": "lit-edge-resting",
+        "value": "1px line on the top edge: linear-gradient(90deg, rgba(255,246,234,0), #FFF6EA 50%, rgba(255,246,234,0))",
+        "purpose": "Lit top edge on every floating panel: window, popover, open pop-up menu, focused text field or shortcut recorder."
+      },
+      {
+        "name": "lit-edge-live-rim",
+        "value": "1.2px line on the top edge: linear-gradient(90deg) repeating #FFE4B8, #FFF6EA, #FFCFA0, #FFEBD2 three times, stops every 8.33%",
+        "purpose": "The lit top edge while the mic is live; same four tones as the pill's rim."
+      },
+      {
+        "name": "lit-edge-live-halo",
+        "value": "2.6px band on the top edge, same gradient as the live rim, opacity 0.7, filter: blur(4px)",
+        "purpose": "The halo under the live rim."
+      },
+      {
+        "name": "focus-ring",
+        "value": "0 0 0 2px rgba(28,28,30,0.6) Light / 0 0 0 2px rgba(255,228,184,0.85) Dark",
+        "purpose": "Keyboard focus on any control: a 2 pt solid ring outside it, no blur."
+      },
+      {
+        "name": "toggle-knob",
+        "value": "0 1px 2px rgba(0,0,0,0.22)",
+        "purpose": "Shadow under the toggle knob."
+      },
+      {
+        "name": "segment-selected",
+        "value": "0 1px 2px rgba(0,0,0,0.12)",
+        "purpose": "Shadow under the selected segment of a segmented control."
+      },
+      {
+        "name": "status-live-glow",
+        "value": "0 0 6px #FFE4B8",
+        "purpose": "Glow around the popover's status dot while listening."
       }
     ],
     "motion": [
@@ -352,6 +961,46 @@
         "name": "reduce-motion-fade",
         "value": "0.2s",
         "purpose": "Bubbles fade in place when Reduce Motion is on."
+      },
+      {
+        "name": "duration/snap",
+        "value": "130ms",
+        "purpose": "App: hover, press, toggle."
+      },
+      {
+        "name": "duration/enter",
+        "value": "180ms",
+        "purpose": "App: opening, revealing."
+      },
+      {
+        "name": "duration/exit",
+        "value": "150ms",
+        "purpose": "App: closing, removing."
+      },
+      {
+        "name": "duration/hold",
+        "value": "260ms",
+        "purpose": "App: a success mark holds."
+      },
+      {
+        "name": "duration/collapse",
+        "value": "340ms",
+        "purpose": "App: dismiss to nothing."
+      },
+      {
+        "name": "spring/size",
+        "value": "spring damping 0.816, response 0.512s",
+        "purpose": "App: layout changes."
+      },
+      {
+        "name": "spring/collapse",
+        "value": "spring damping 0.816, response 0.45s",
+        "purpose": "App: sheets and popovers closing."
+      },
+      {
+        "name": "duration/reduce-crossfade",
+        "value": "130ms",
+        "purpose": "App: the cross-fade that replaces every move under Reduce Motion."
       }
     ]
   },
@@ -395,11 +1044,67 @@
       "description": "A failed paste waits here, 8 pt right of the pill. Hover shows a send arrow; click retries; a second failure flashes soft orange.",
       "html": "<div class=\"ds-row\"><div class=\"ds-pill-small\"></div><button class=\"ds-retry\" aria-label=\"Retry paste\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 12 12\" fill=\"none\"><path d=\"M6 10V2M2.5 5.5 6 2l3.5 3.5\" stroke=\"#F4EFE6\" stroke-width=\"1.4\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg></button></div>",
       "css": ".ds-row { display: inline-flex; align-items: center; gap: 8px; } .ds-pill-small { width: 120px; height: 28px; border-radius: 14px; background: #0E0F13; box-shadow: 0 0 0 1.2px #FFE4B8, 0 0 2.6px 1px rgba(255,228,184,0.55); } .ds-retry { width: 28px; height: 28px; border: 0; border-radius: 50%; background: #0E0F13; box-shadow: 0 0 0 1.2px #FFE4B8; display: grid; place-items: center; cursor: pointer; transition: box-shadow 0.16s, transform 0.2s; } .ds-retry svg { opacity: 0; transition: opacity 0.16s; } .ds-retry:hover, .ds-retry:focus-visible { box-shadow: 0 0 0 1.5px #FFF6EA, 0 0 3px 1px rgba(255,238,214,0.7); outline: none; } .ds-retry:hover svg, .ds-retry:focus-visible svg { opacity: 1; } .ds-retry:active { transform: scale(1.015, 1.03); }"
+    },
+    {
+      "name": "Primary button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The one filled capsule on a pane, bottom right of its section. Light shown; Dark fills #FFF6EA with #0E0F13 text.",
+      "html": "<button class=\"ds-btn-primary\">Test Microphone</button>",
+      "css": ".ds-btn-primary { height: 28px; padding: 0 16px; border: 0; border-radius: 999px; background: #1C1C1E; color: #FFFFFF; font: 500 13px/16px -apple-system, BlinkMacSystemFont, 'SF Pro Rounded', ui-rounded, system-ui, sans-serif; cursor: pointer; } .ds-btn-primary:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(28,28,30,0.6); } .ds-btn-primary:disabled { opacity: 0.4; }"
+    },
+    {
+      "name": "Secondary button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Raised capsule with a strong outline; hover and pressed lay a tint on top.",
+      "html": "<button class=\"ds-btn-secondary\">Open System Settings</button>",
+      "css": ".ds-btn-secondary { height: 28px; padding: 0 16px; border: 0; border-radius: 999px; background: rgba(255,255,255,0.85); box-shadow: inset 0 0 0 1px rgba(20,21,25,0.22); color: #1C1C1E; font: 500 13px/16px -apple-system, BlinkMacSystemFont, 'SF Pro Rounded', ui-rounded, system-ui, sans-serif; cursor: pointer; transition: background-image 0.13s; } .ds-btn-secondary:hover { background-image: linear-gradient(rgba(20,21,25,0.04), rgba(20,21,25,0.04)); } .ds-btn-secondary:active { background-image: linear-gradient(rgba(20,21,25,0.08), rgba(20,21,25,0.08)); } .ds-btn-secondary:focus-visible { outline: none; box-shadow: inset 0 0 0 1px rgba(20,21,25,0.22), 0 0 0 2px rgba(28,28,30,0.6); } .ds-btn-secondary:disabled { opacity: 0.4; }"
+    },
+    {
+      "name": "Quiet button",
+      "kind": "button",
+      "refersTo": "button-quiet",
+      "description": "No fill or outline at rest; hover and pressed tints only.",
+      "html": "<button class=\"ds-btn-quiet\">Reset</button>",
+      "css": ".ds-btn-quiet { height: 28px; padding: 0 16px; border: 0; border-radius: 999px; background: transparent; color: #1C1C1E; font: 500 13px/16px -apple-system, BlinkMacSystemFont, 'SF Pro Rounded', ui-rounded, system-ui, sans-serif; cursor: pointer; transition: background 0.13s; } .ds-btn-quiet:hover { background: rgba(20,21,25,0.04); } .ds-btn-quiet:active { background: rgba(20,21,25,0.08); } .ds-btn-quiet:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(28,28,30,0.6); }"
+    },
+    {
+      "name": "Text field",
+      "kind": "input",
+      "refersTo": "text-field",
+      "description": "Capsule field. Focus: strong outline, 2 pt focus ring and a resting lit top edge. Error: destructive outline and message 6 pt below.",
+      "html": "<label class=\"ds-field\"><input class=\"ds-input\" placeholder=\"Paste your OpenAI API key\"></label>",
+      "css": ".ds-field { position: relative; display: inline-block; width: 240px; border-radius: 999px; } .ds-input { box-sizing: border-box; width: 100%; height: 28px; padding: 0 12px; border: 0; border-radius: 999px; background: rgba(255,255,255,0.85); box-shadow: inset 0 0 0 1px rgba(20,21,25,0.1); color: #1C1C1E; font: 400 13px/18px -apple-system, BlinkMacSystemFont, 'SF Pro', system-ui, sans-serif; outline: none; } .ds-input::placeholder { color: #6F6A62; } .ds-input:focus { box-shadow: inset 0 0 0 1px rgba(20,21,25,0.22), 0 0 0 2px rgba(28,28,30,0.6); } .ds-field:focus-within::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 1px; background: linear-gradient(90deg, rgba(255,246,234,0), #FFF6EA 50%, rgba(255,246,234,0)); pointer-events: none; }"
+    },
+    {
+      "name": "Sidebar items",
+      "kind": "nav",
+      "refersTo": "sidebar-item",
+      "description": "28 pt capsules on the sidebar fill; hover tint, selected pane in surface/selected.",
+      "html": "<nav class=\"ds-sidebar\"><a class=\"ds-side-item ds-selected\" href=\"#\">General</a><a class=\"ds-side-item\" href=\"#\">Dictation</a><a class=\"ds-side-item\" href=\"#\">Models</a></nav>",
+      "css": ".ds-sidebar { display: flex; flex-direction: column; gap: 2px; width: 160px; padding: 12px; background: rgba(255,255,255,0.4); box-shadow: inset -1px 0 0 rgba(20,21,25,0.1); } .ds-side-item { display: flex; align-items: center; height: 28px; padding: 0 10px; border-radius: 999px; color: #1C1C1E; text-decoration: none; font: 500 13px/16px -apple-system, BlinkMacSystemFont, 'SF Pro Rounded', ui-rounded, system-ui, sans-serif; transition: background 0.13s; } .ds-side-item:hover { background: rgba(20,21,25,0.04); } .ds-side-item.ds-selected { background: rgba(20,21,25,0.08); } .ds-side-item:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(28,28,30,0.6); }"
+    },
+    {
+      "name": "Menu bar popover",
+      "kind": "custom",
+      "refersTo": "popover",
+      "description": "280 pt wide on the shell material with Elevation/Float and the lit top edge; hover the panel to see the edge go live as it does while listening.",
+      "html": "<div class=\"ds-desk\"><div class=\"ds-pop\"><div class=\"ds-pop-status\"><span class=\"ds-dot\"></span><span class=\"ds-pop-label\">Ready</span><span class=\"ds-pop-small\">Hold ⌥ Space</span></div><div class=\"ds-pop-last\"><div class=\"ds-pop-detail\">Last dictation · 2 min ago</div><div class=\"ds-pop-text\">Move the standup to 10:30 and tell Priya the build is green.</div></div><div class=\"ds-pop-rows\"><div class=\"ds-pop-row\"><span>Settings…</span><span class=\"ds-pop-small\">⌘ ,</span></div><div class=\"ds-pop-row\"><span>Quit Fluidity</span><span class=\"ds-pop-small\">⌘ Q</span></div></div></div></div>",
+      "css": ".ds-desk { background: linear-gradient(135deg, #DCE6F2, #F3E7DA); padding: 24px; border-radius: 12px; display: inline-block; } .ds-pop { position: relative; width: 280px; border-radius: 16px; background: rgba(255,255,255,0.72); -webkit-backdrop-filter: blur(40px); backdrop-filter: blur(40px); box-shadow: inset 0 0 0 1px rgba(20,21,25,0.1), 0 8px 24px rgba(0,0,0,0.16); overflow: hidden; color: #1C1C1E; } .ds-pop::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 1px; background: linear-gradient(90deg, rgba(255,246,234,0), #FFF6EA 50%, rgba(255,246,234,0)); } .ds-pop::after { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 1.2px; background: linear-gradient(90deg, #FFE4B8 0%, #FFF6EA 8.33%, #FFCFA0 16.67%, #FFEBD2 25%, #FFE4B8 33.33%, #FFF6EA 41.67%, #FFCFA0 50%, #FFEBD2 58.33%, #FFE4B8 66.67%, #FFF6EA 75%, #FFCFA0 83.33%, #FFEBD2 91.67%, #FFE4B8 100%); opacity: 0; } .ds-pop:hover::after { opacity: 1; box-shadow: 0 0 4px 1px rgba(255,228,184,0.7); } .ds-pop:hover .ds-dot { background: #FFE4B8; box-shadow: 0 0 0 1px rgba(20,21,25,0.22), 0 0 6px #FFE4B8; } .ds-pop-status { display: flex; align-items: center; gap: 8px; height: 38px; padding: 0 12px 0 16px; box-shadow: inset 0 -1px 0 rgba(20,21,25,0.1); } .ds-dot { width: 8px; height: 8px; border-radius: 50%; background: #6F6A62; } .ds-pop-label { flex: 1; font: 500 13px/16px -apple-system, BlinkMacSystemFont, 'SF Pro Rounded', ui-rounded, system-ui, sans-serif; } .ds-pop-small { color: #6F6A62; font: 400 11px/14px -apple-system, BlinkMacSystemFont, 'SF Pro', system-ui, sans-serif; } .ds-pop-last { padding: 10px 16px 12px; box-shadow: inset 0 -1px 0 rgba(20,21,25,0.1); } .ds-pop-detail { color: #6F6A62; font: 400 12px/16px -apple-system, BlinkMacSystemFont, 'SF Pro', system-ui, sans-serif; } .ds-pop-text { margin-top: 4px; font: 400 13px/17px -apple-system, BlinkMacSystemFont, 'SF Pro', system-ui, sans-serif; } .ds-pop-rows { padding: 6px; } .ds-pop-row { display: flex; justify-content: space-between; align-items: center; height: 28px; padding: 0 10px; border-radius: 999px; font: 500 13px/16px -apple-system, BlinkMacSystemFont, 'SF Pro Rounded', ui-rounded, system-ui, sans-serif; } .ds-pop-row:hover { background: rgba(20,21,25,0.08); }"
+    },
+    {
+      "name": "Settings window",
+      "kind": "card",
+      "refersTo": "settings-window",
+      "description": "Shell material, 16 pt corners, sidebar 184 pt, a raised panel of 44 pt rows, lit top edge. Shown small; the real window is 720 x 520 pt.",
+      "html": "<div class=\"ds-desk\"><div class=\"ds-win\"><div class=\"ds-win-side\"><div class=\"ds-win-item ds-on\">General</div><div class=\"ds-win-item\">Dictation</div></div><div class=\"ds-win-main\"><div class=\"ds-win-title\">General</div><div class=\"ds-win-panel\"><div class=\"ds-win-row\">Launch at login<span class=\"ds-win-knob\"></span></div><div class=\"ds-win-row\">Show Fluidity in<span class=\"ds-win-pop\">Menu bar and Dock</span></div></div></div></div></div>",
+      "css": ".ds-desk { background: linear-gradient(135deg, #DCE6F2, #F3E7DA); padding: 24px; border-radius: 12px; display: inline-block; } .ds-win { position: relative; display: flex; width: 520px; border-radius: 16px; background: rgba(255,255,255,0.72); -webkit-backdrop-filter: blur(40px); backdrop-filter: blur(40px); box-shadow: inset 0 0 0 1px rgba(20,21,25,0.1), 0 8px 24px rgba(0,0,0,0.16); overflow: hidden; color: #1C1C1E; } .ds-win::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 1px; background: linear-gradient(90deg, rgba(255,246,234,0), #FFF6EA 50%, rgba(255,246,234,0)); } .ds-win-side { width: 160px; padding: 52px 12px 12px; display: flex; flex-direction: column; gap: 2px; background: rgba(255,255,255,0.4); box-shadow: inset -1px 0 0 rgba(20,21,25,0.1); } .ds-win-item { height: 28px; display: flex; align-items: center; padding: 0 10px; border-radius: 999px; font: 500 13px/16px -apple-system, BlinkMacSystemFont, 'SF Pro Rounded', ui-rounded, system-ui, sans-serif; } .ds-win-item.ds-on { background: rgba(20,21,25,0.08); } .ds-win-main { flex: 1; padding: 20px; } .ds-win-title { font: 600 22px/28px -apple-system, BlinkMacSystemFont, 'SF Pro Rounded', ui-rounded, system-ui, sans-serif; margin-bottom: 16px; } .ds-win-panel { border-radius: 14px; background: rgba(255,255,255,0.85); box-shadow: inset 0 0 0 1px rgba(20,21,25,0.1); } .ds-win-row { display: flex; align-items: center; justify-content: space-between; min-height: 44px; padding: 0 12px; font: 500 13px/16px -apple-system, BlinkMacSystemFont, 'SF Pro Rounded', ui-rounded, system-ui, sans-serif; } .ds-win-row + .ds-win-row { box-shadow: inset 0 1px 0 rgba(20,21,25,0.1); } .ds-win-knob { width: 38px; height: 22px; border-radius: 999px; background: #1C1C1E; } .ds-win-pop { height: 28px; display: inline-flex; align-items: center; padding: 0 12px; border-radius: 999px; background: rgba(255,255,255,0.85); box-shadow: inset 0 0 0 1px rgba(20,21,25,0.22); }"
     }
   ],
   "narrative": {
     "northStar": "Bright future",
-    "overview": "Fluidity shows one thing on screen: a small near-black pill, docked 12 pt above the bottom edge of the screen, that appears only while you dictate. Its edge is a thin ring of ivory light that brightens, drifts and blooms with your voice. Your words appear inside the pill, or in a bubble that splits off above it. When you let go, the light travels inward and becomes one line through the centre while the text is cleaned up. When the paste lands, the line turns mint green, holds for 260 ms, and the pill collapses and is gone.\n\nThe shape and motion come from the iPhone's Dynamic Island. The pill's sizes and springs, and the way the bubble splits off and merges back, all use values read from SpringBoard, so it moves like a system part of the Mac rather than an app's window. The body stays the same near-black on any background, and the light is the only colour.",
+    "overview": "Fluidity shows one thing on screen: a small near-black pill, docked 12 pt above the bottom edge of the screen, that appears only while you dictate. Its edge is a thin ring of ivory light that brightens, drifts and blooms with your voice. Your words appear inside the pill, or in a bubble that splits off above it. When you let go, the light travels inward and becomes one line through the centre while the text is cleaned up. When the paste lands, the line turns mint green, holds for 260 ms, and the pill collapses and is gone.\n\nThe shape and motion come from the iPhone's Dynamic Island. The pill's sizes and springs, and the way the bubble splits off and merges back, all use values read from SpringBoard, so it moves like a system part of the Mac rather than an app's window. The body stays the same near-black on any background, and the light is the only colour.\n\nThe app around the pill, its settings window and menu bar popover, follows the direction the Figma file names \"Glass\". Its shell is macOS's own translucent material, so it floats over other apps the way the pill does, and its only colour is light caught on edges: a 1 pt lit top edge on every floating panel that brightens to the pill's ivory rim while the mic is live. Type, palette, density and the lit top edge are Fluidity's own; navigation and controls are standard macOS.",
     "keyCharacteristics": [
       "One near-black capsule; colour comes only from the light around its edge.",
       "Ivory light by default; mint for a paste that landed, amber for a problem, soft orange for a retry that failed again.",
@@ -412,7 +1117,12 @@
       "**Do** use the Dynamic Island springs above for every size, position and merge change.",
       "**Do** switch from ivory to mint at once when a paste lands, and hold green for 260 ms.",
       "**Do** scale any distance taken from the Dynamic Island by the pill's height ÷ 36.67.",
-      "**Do** honour Reduce Motion exactly as described above."
+      "**Do** honour Reduce Motion exactly as described above.",
+      "**Do** build the shell of the window, the popover and an open pop-up menu from one material: `app-window` over a 40 pt background blur with Elevation/Float.",
+      "**Do** draw the lit top edge on floating panels only: the window, the popover, an open pop-up menu, a focused text field or shortcut recorder.",
+      "**Do** make every control a capsule, radius half its height.",
+      "**Do** keep one filled primary button per pane, bottom right of its section.",
+      "**Do** use standard macOS navigation and controls: sidebar, toggle, pop-up button, segmented control, text field."
     ],
     "donts": [
       "**Don't** use the Ember, Rose quartz or Tide rim colours; Ivory is the only rim colour set.",
@@ -420,7 +1130,14 @@
       "**Don't** let the rim exceed 1.5 pt or its halo 3 pt.",
       "**Don't** scale or bounce the pill to say it can't hear you; pulse the light instead.",
       "**Don't** keep the pill on screen when the user isn't dictating.",
-      "**Don't** fade between the ivory and a state colour; it passes through grey."
+      "**Don't** fade between the ivory and a state colour; it passes through grey.",
+      "**Don't** put a blurred or frosted panel inside the shell; raised panels are plain fills.",
+      "**Don't** draw the lit top edge on rows, raised panels, buttons or the sidebar.",
+      "**Don't** set secondary text in a neutral grey; use `app-text-secondary`.",
+      "**Don't** use `app-state-done-light` for text; at 4.11:1 it colours icons only.",
+      "**Don't** add another colour of light; ivory is the only light, and mint, amber and soft orange appear only for states.",
+      "**Don't** fade the lit top edge or the status dot between ivory and a state colour; switch at once, as on the pill.",
+      "**Don't** replace a macOS control or the sidebar with a custom one."
     ]
   }
 }
