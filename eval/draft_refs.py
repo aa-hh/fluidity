@@ -88,11 +88,28 @@ def word_starts(transcript_json):
     return starts if len(starts) == len(words(d["text"])) else None
 
 
+def segment_times(wispr, v2, segments, starts):
+    """Start time of each word in the draft, laid out like segments: a list of
+    times for an agreed segment, one time for a dispute. Agreed words are
+    words v2 also heard, so their time is v2's time for that word."""
+    lo, _ = boundary_map(wispr, v2)
+    out, pos = [], 0
+    for s in segments:
+        if isinstance(s, str):
+            n = len(s.split())
+            out.append([starts[min(lo[k], len(starts) - 1)] for k in range(pos, pos + n)] if starts else [None] * n)
+        else:
+            n = len(s["wispr"].split())
+            out.append(s["t"])
+        pos += n
+    return out
+
+
 REVIEW_PAGE = Path(__file__).with_name("review_page.html")
 
 
 def review_html(rows):
-    data = [{"id": r["id"], "wav": r["wav"], "segments": r["segments"]} for r in rows]
+    data = [{"id": r["id"], "wav": r["wav"], "segments": r["segments"], "times": r["times"]} for r in rows]
     # Embedded as JSON and rendered by the page's script with textContent, so
     # transcript text never becomes markup. "</" is escaped to keep the
     # script element from closing early.
@@ -113,13 +130,15 @@ def main():
             print(f"skipped {clip['id']}: no {', '.join(missing)} transcript")
             continue
         hyps = {m: words(p.read_text()) for m, p in paths.items()}
-        text, segments = draft(words(clip["wispr_asr"]), hyps)
+        wispr = words(clip["wispr_asr"])
+        text, segments = draft(wispr, hyps)
         disputes = [s for s in segments if not isinstance(s, str)]
         starts = word_starts(test / "transcripts" / "v2" / f"{clip['id']}.json")
         for d in disputes:
             d["t"] = starts[min(d["at"]["v2"], len(starts) - 1)] if starts else None
         rows.append({"id": clip["id"], "wav": clip["wav"], "draft": " ".join(text),
-                     "disputes": disputes, "segments": segments})
+                     "disputes": disputes, "segments": segments,
+                     "times": segment_times(wispr, hyps["v2"], segments, starts)})
     with (test / "references.draft.jsonl").open("w") as f:
         for r in rows:
             f.write(json.dumps({k: r[k] for k in ("id", "wav", "draft", "disputes")}) + "\n")
