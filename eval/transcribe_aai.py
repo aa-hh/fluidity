@@ -26,7 +26,16 @@ def call(method, path, key, body=None, content_type="application/json"):
         return json.load(r)
 
 
+def delete(transcript_id, key):
+    # The recordings hold Alec's emails and messages; don't leave them on AssemblyAI.
+    try:
+        call("DELETE", f"/transcript/{transcript_id}", key)
+    except Exception as e:
+        print(f"transcribe_aai.py: could not delete transcript {transcript_id} ({e}); delete it by hand")
+
+
 def transcribe(wav, key):
+    """The finished transcript, completed or errored. The caller deletes it once saved."""
     url = call("POST", "/upload", key, wav.read_bytes(), "application/octet-stream")["upload_url"]
     body = json.dumps({"audio_url": url, "speech_models": ["universal-3-5-pro"]}).encode()
     t = call("POST", "/transcript", key, body)
@@ -34,14 +43,9 @@ def transcribe(wav, key):
         while t["status"] not in ("completed", "error"):
             time.sleep(3)
             t = call("GET", f"/transcript/{t['id']}", key)
-    finally:
-        # The recordings hold Alec's emails and messages; don't leave them on AssemblyAI.
-        try:
-            call("DELETE", f"/transcript/{t['id']}", key)
-        except Exception as e:
-            print(f"transcribe_aai.py: could not delete transcript {t['id']} ({e}); delete it by hand")
-    if t["status"] == "error":
-        raise RuntimeError(t["error"])
+    except BaseException:
+        delete(t["id"], key)
+        raise
     return t
 
 
@@ -64,13 +68,18 @@ def main():
         if args.limit is not None and sent >= args.limit:
             break
         sent += 1
-        try:
-            t = transcribe(test / clip["wav"], key)
-        except RuntimeError as e:
-            print(f"transcribe_aai.py: failed on {clip['wav']}: {e}")
+        t = transcribe(test / clip["wav"], key)
+        if t["status"] == "error":
+            print(f"transcribe_aai.py: failed on {clip['wav']}: {t['error']}")
+            delete(t["id"], key)
             continue
-        (out / f"{clip['id']}.txt").write_text((t["text"] or "") + "\n")
-        (out / f"{clip['id']}.json").write_text(json.dumps(t))
+        try:
+            (out / f"{clip['id']}.txt").write_text((t["text"] or "") + "\n")
+            (out / f"{clip['id']}.json").write_text(json.dumps(t))
+        except OSError:
+            print(f"transcribe_aai.py: could not save {clip['id']}; transcript {t['id']} is still on AssemblyAI")
+            raise
+        delete(t["id"], key)
     print(f"aai: {len(list(out.glob('*.json')))} clips transcribed")
 
 
