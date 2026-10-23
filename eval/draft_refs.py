@@ -108,7 +108,13 @@ def main():
     rows = []
     for line in (test / "clips.jsonl").open():
         clip = json.loads(line)
-        hyps = {m: words((test / "transcripts" / m / f"{clip['id']}.txt").read_text()) for m in MODELS}
+        paths = {m: test / "transcripts" / m / f"{clip['id']}.txt" for m in MODELS}
+        missing = [m for m, p in paths.items() if not p.exists()]
+        if missing:
+            # transcribe.sh skips a clip the CLI failed on; rerun it to fill the gap.
+            print(f"skipped {clip['id']}: no {', '.join(missing)} transcript")
+            continue
+        hyps = {m: words(p.read_text()) for m, p in paths.items()}
         text, segments = draft(words(clip["wispr_asr"]), hyps)
         disputes = [s for s in segments if not isinstance(s, str)]
         rows.append({"id": clip["id"], "wav": clip["wav"], "draft": " ".join(text),
