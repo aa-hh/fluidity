@@ -2,11 +2,12 @@
 
 Usage: python3 -I eval/draft_refs.py [--out DIR]
 
-Compares three transcripts per clip: Wispr Flow's (from clips.jsonl) and
-Parakeet v2 and v3 (test/transcripts/<model>/<id>.txt, from transcribe.sh).
-Where all three agree the words go straight into the draft. Where they
-differ, the draft takes the majority and the spot is marked for Alec to check
-by ear. Writes test/references.draft.jsonl and test/review.html.
+Compares the transcripts of each clip: Wispr Flow's (from clips.jsonl),
+Parakeet v2 and v3 (test/transcripts/<model>/<id>.txt, from transcribe.sh),
+and AssemblyAI's where transcribe_aai.py has run on the clip. Where all agree
+the words go straight into the draft. Where they differ, the draft takes the
+most-voted version, AssemblyAI breaking ties, and the spot is marked for Alec
+to check by ear. Writes test/references.draft.jsonl and test/review.html.
 """
 import argparse
 import difflib
@@ -15,6 +16,7 @@ import re
 from pathlib import Path
 
 MODELS = ("v2", "v3")
+OPTIONAL = ("aai",)  # AssemblyAI; votes only on clips transcribe_aai.py has done
 
 
 def words(text):
@@ -69,10 +71,14 @@ def draft(wispr, hyps):
         if len(set(values)) == 1:
             segments.append(values[0])
         else:
-            majority = [v for v in values if values.count(v) >= 2]
-            chosen = majority[0] if majority else options["wispr"]
+            top = max(map(values.count, values))
+            leaders = [v for v in dict.fromkeys(values) if values.count(v) == top]
+            if options.get("aai") in leaders:
+                leaders = [options["aai"]]
+            chosen = leaders[0] if len(leaders) == 1 else options["wispr"]
             at = {m: maps[m][0][a] for m in hyps}  # each model's word index where the spot starts
-            segments.append({**options, "chosen": chosen, "majority": bool(majority), "at": at})
+            to = {m: maps[m][1][b] for m in hyps}  # and where it ends
+            segments.append({**options, "chosen": chosen, "majority": top >= 2, "at": at, "to": to})
         pos = b
     if pos < len(wispr):
         segments.append(" ".join(wispr[pos:]))
@@ -86,6 +92,15 @@ def word_starts(transcript_json):
     d = json.loads(transcript_json.read_text())
     starts = [t["startTime"] for t in d.get("wordTimings", []) for _ in words(t["word"])]
     return starts if len(starts) == len(words(d["text"])) else None
+
+
+def word_confidences(transcript_json):
+    """AssemblyAI's confidence for each normalised word, or None when its words
+    don't line up with its text. One AssemblyAI word can normalise to several
+    ("3.5" to "3", "5"), and each gets that word's confidence."""
+    d = json.loads(transcript_json.read_text())
+    confs = [w["confidence"] for w in d.get("words") or [] for _ in words(w["text"])]
+    return confs if len(confs) == len(words(d["text"] or "")) else None
 
 
 def segment_times(wispr, v2, segments, starts):
@@ -129,13 +144,19 @@ def main():
             # transcribe.sh skips a clip the CLI failed on; rerun it to fill the gap.
             print(f"skipped {clip['id']}: no {', '.join(missing)} transcript")
             continue
+        paths.update((m, p) for m in OPTIONAL if (p := test / "transcripts" / m / f"{clip['id']}.txt").exists())
         hyps = {m: words(p.read_text()) for m, p in paths.items()}
         wispr = words(clip["wispr_asr"])
         text, segments = draft(wispr, hyps)
         disputes = [s for s in segments if not isinstance(s, str)]
         starts = word_starts(test / "transcripts" / "v2" / f"{clip['id']}.json")
+        confs = word_confidences(test / "transcripts" / "aai" / f"{clip['id']}.json") if "aai" in hyps else None
         for d in disputes:
             d["t"] = starts[min(d["at"]["v2"], len(starts) - 1)] if starts else None
+            if confs:
+                # AssemblyAI's least sure word in the spot; None where it heard nothing there.
+                span = confs[d["at"]["aai"]:d["to"]["aai"]]
+                d["aai_conf"] = round(min(span), 2) if span else None
         rows.append({"id": clip["id"], "wav": clip["wav"], "draft": " ".join(text),
                      "disputes": disputes, "segments": segments,
                      "times": segment_times(wispr, hyps["v2"], segments, starts)})
