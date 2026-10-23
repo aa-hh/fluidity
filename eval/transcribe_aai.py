@@ -37,7 +37,8 @@ def delete(transcript_id, key):
 def transcribe(wav, key):
     """The finished transcript, completed or errored. The caller deletes it once saved."""
     url = call("POST", "/upload", key, wav.read_bytes(), "application/octet-stream")["upload_url"]
-    body = json.dumps({"audio_url": url, "speech_models": ["universal-3-5-pro"]}).encode()
+    # disfluencies keeps "um"s and "uh"s, which the references keep and AssemblyAI drops by default.
+    body = json.dumps({"audio_url": url, "speech_models": ["universal-3-5-pro"], "disfluencies": True}).encode()
     t = call("POST", "/transcript", key, body)
     try:
         while t["status"] not in ("completed", "error"):
