@@ -35,7 +35,7 @@
   <label><input type="checkbox" id="hide"> Hide checked clips</label>
   <button id="export">Export checked clips</button>
 </header>
-<p>The small number under each word is when it starts in the recording; while audio plays, the current word is outlined in blue. Click any word to play from the word before it. Click a mark to hear that moment and pick what you actually said: one of the three versions, or type your own. Yellow means two of the three agreed; red means all three differed. If a word that isn't marked is wrong, use "Edit text". Always pick what you actually said, word for word, even when it's ungrammatical or a model offers a "better" word: keep your "um"s, repeats and false starts. Fixing grammar is cleanup's job; this text scores how well each model hears. Tick "Checked" once a clip reads exactly as spoken. Your work is saved in this browser as you go; "Export checked clips" downloads <code>references.reviewed.jsonl</code>.</p>
+<p>The small number under each word is when it starts in the recording; while audio plays, the current word is outlined in blue. Click any word to play from the word before it. Click a mark to hear that moment and pick what you actually said: one of the versions, or type your own. Yellow means at least two versions agreed; red means no two did. On clips AssemblyAI has transcribed it's a fourth version: it breaks two-two ties, and its menu entry shows how sure it was. If a word that isn't marked is wrong, use "Edit text". Always pick what you actually said, word for word, even when it's ungrammatical or a model offers a "better" word: keep your "um"s, repeats and false starts. Fixing grammar is cleanup's job; this text scores how well each model hears. Tick "Checked" once a clip reads exactly as spoken. Your work is saved in this browser as you go; "Export checked clips" downloads <code>references.reviewed.jsonl</code>.</p>
 <main id="clips"></main>
 
 <script type="application/json" id="data">/*DATA*/[]</script>
@@ -110,9 +110,12 @@ function showMenu(button, r, i, g, rerender, replay) {
   closeMenu();
   const s = st(r.id);
   const bySource = new Map();
-  for (const src of ["wispr", "v2", "v3"]) {
+  for (const src of ["wispr", "v2", "v3", "aai"]) {
+    if (!(src in g)) continue;
     const v = g[src];
-    bySource.set(v, (bySource.get(v) || []).concat(src));
+    const name = src !== "aai" ? src
+      : "AssemblyAI" + (g.aai_conf === null || g.aai_conf === undefined ? "" : " " + Math.round(g.aai_conf * 100) + "% sure");
+    bySource.set(v, (bySource.get(v) || []).concat(name));
   }
   const menu = el("div", { className: "menu" });
   const pick = v => { s.choices[i] = v; save(); closeMenu(); rerender(); };
@@ -134,6 +137,18 @@ function showMenu(button, r, i, g, rerender, replay) {
 
 function renderClip(r, node) {
   const s = st(r.id);
+  // Picks are stored by mark position. If a rerun of draft_refs.py moved the
+  // marks (AssemblyAI adds some), old picks would land on the wrong words, so
+  // they are set aside instead. Saved before this check existed, a clip
+  // without AssemblyAI has the same marks as then and keeps its picks.
+  const sig = r.segments.map(g => typeof g === "string" ? g : "[" + g.wispr + "]").join("|");
+  const hasAai = r.segments.some(g => typeof g !== "string" && "aai" in g);
+  if (s.sig === undefined && !hasAai) s.sig = sig;
+  if (s.sig !== sig) {
+    if (Object.keys(s.choices).length) { s.setAside = s.choices; s.choices = {}; s.checked = false; }
+    s.sig = sig;
+    save();
+  }
   const marks = r.segments.filter(g => typeof g !== "string").length;
   const rerender = () => { renderClip(r, node); updateProgress(); };
   node.className = "clip" + (s.checked ? " checked" : "");
@@ -146,6 +161,7 @@ function renderClip(r, node) {
   const editBtn = el("button", { onclick: () => { if (s.override === null) s.override = textOf(r); save(); rerender(); } }, "Edit text");
   const head = el("div", { className: "head" }, el("b", {}, r.id), marks + " marked", el("label", {}, checked, " Checked"));
   if (s.override === null) head.append(editBtn);
+  if (s.setAside && !s.checked) head.append("Marks changed since your last visit; pick again.");
 
   let body;
   if (s.override !== null) {

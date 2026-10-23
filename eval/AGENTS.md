@@ -20,12 +20,16 @@ scoring. The scripts live here; the data never does.
 - **Score only against references Alec has checked by ear.** A draft
   reference is model output, and scoring a model against it measures
   agreement, not accuracy.
+- **AssemblyAI is the one step that sends recordings off this Mac.** Keep
+  `transcribe_aai.py` deleting each transcript once saved; that also deletes
+  the uploaded audio.
 - Runs happen on this Mac: the mule cannot see the `Space` drive.
 
 ## Map
 
 - `build_testset.py` → exports clips, draws or reuses the split.
 - `transcribe.sh` → runs each Parakeet model over the test clips.
+- `transcribe_aai.py` → runs AssemblyAI over the test clips, the fourth vote.
 - `draft_refs.py` → majority-vote draft references, disagreements marked.
 - `review_page.html` → template for the page where Alec settles each mark.
 - `test_draft_refs.py` → regression tests for the draft alignment.
