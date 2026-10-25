@@ -11,11 +11,11 @@ Mode: Operate. The person came to change one setting, check why the mic is off, 
 
 Job and audience: heavy typists, developers, people who cannot type easily, privacy-minded people; all on their own Mac, often with the pill floating over another app at the same time. Core tasks (start and stop dictation, pick a model, edit word lists, grant Microphone and Accessibility) must work with VoiceOver, Voice Control and Full Keyboard Access and never need long typing or precise pointing.
 
-Scope: the settings window (sidebar: General, Dictation, Models, Cleanup, Words, Permissions), the menu bar popover, and later the first-run permission flow. The recording pill is designed and approved separately on the "Recording pill: Rim (approved)" Figma page and is not touched by this brief.
+Scope: the settings window, the menu bar popover, and the first-run permission check. Version 1 panes: General, Cleanup, Words, Permissions. Models (the model library) and a full history window arrive in version 2 (AA-296). The recording pill is designed and approved separately on the "Recording pill: Rim (approved)" Figma page and is not touched by this brief.
 
 Source of truth: Figma file 5JcAX6bwl48LqQhqcUuGOJ, pages Tokens, Atoms and Style Guide (the former "D4 · Glass" direction, chosen 23 Oct 2026 from five candidates: Lantern, Typeset, Studio, Glass, Signal).
 
-Open product decisions shown as settings with defaults, not decided here: how dictation starts (shortcut, menu bar, or both), where the app lives (menu bar, Dock, or both), which models ship.
+Product decisions this brief follows (PRODUCT.md, Linear AA-296 and AA-298): the app lives in the menu bar with no Dock icon; one customisable key starts dictation (tap for hands-free, hold to talk); version 1 ships Parakeet TDT v2 only, so there is no model picker; the popover lists the last 20 or so dictations, each one click to copy or paste again.
 
 ## Direction contract
 
@@ -25,7 +25,7 @@ OWN-WORLD: Translucent white (72%) or near-black (72%) shell over a 40 pt backgr
 
 STORY: The visitor sees a standard macOS settings window, finds the row they came for in seconds, and understands from the lit top edge and the status line that the app is listening or ready; they leave trusting that it is one system with the pill.
 
-FIRST VIEWPORT: 720 × 520 window, 184 pt sidebar on the left with six panes, General selected as a capsule; content pane titled "General" with two grouped sections, Dictation (shortcut recorder, show-in pop-up, launch toggle) and Recording pill (size segmented control, position pop-up, a Reduce Motion note); status line "Ready · ⌥ Space" at the sidebar's foot. The primary action on a pane is the one filled capsule button, bottom right of its section. Menu bar popover 280 wide: status row, last transcript, model line, Settings and Quit.
+FIRST VIEWPORT: 720 × 520 window, 184 pt sidebar on the left with six panes, General selected as a capsule; content pane titled "General" with two grouped sections, Dictation (shortcut recorder, show-in pop-up, launch toggle) and Recording pill (size segmented control, position pop-up, a Reduce Motion note); status line "Ready · ⌥ Space" at the sidebar's foot. The primary action on a pane is the one filled capsule button, bottom right of its section. Menu bar popover 280 wide: status row, the last 20 or so dictations, Settings and Quit.
 
 FORM: Chosen direction out of five built candidates (Glass, ranked first by the orchestrator; Lantern the alternate). seed: none (unavailable). Signature interaction: the lit top edge, resting as a faint ivory line, brightening to the pill's four-tone rim with a 2.6 pt halo while the mic is live; motion uses the Motion collection's springs copied from the pill.
 

@@ -48,12 +48,18 @@ Confirmed:
 - macOS requires the user to grant Microphone access, and pasting into other apps requires Accessibility access. Both are permission prompts the user must approve.
 - Impeccable has no `macos` platform guidance. Its iOS guidance is written for iPhone and does not apply. Design work follows Apple's Human Interface Guidelines for macOS.
 
+Decided for version 1 (Alec only; version 2 goes to a few friends). Linear holds the detail: AA-296 features, AA-297 saved data, AA-298 cleanup, AA-302 architecture.
+
+- Where it lives: a menu bar app with no Dock icon, a popover, a settings window and the recording pill. macOS 26 or later.
+- How dictation starts and stops: one customisable key, which can be left or right Command or Option on its own. Tap for hands-free until the next tap, hold to talk until release. Escape cancels.
+- Speech model: Parakeet TDT v2 (English) on the Mac. A model library comes in version 2.
+- Cleanup: Cerebras `gpt-oss-120b` with the user's key, on as soon as a key is entered. When it is slow (about 1 s), offline or fails its output check, the raw transcript is pasted instead.
+- Every dictation's audio and texts are saved as training data, except from password fields.
+
 Open, not yet decided:
 
 - How people get it: direct download, Mac App Store, or both.
 - Pricing and licensing.
-- Which local models ship, and which cloud providers are supported.
-- How dictation starts and stops (keyboard shortcut, menu bar, or something else) and where the app lives (menu bar, Dock, or both).
 
 ## Evidence on Hand
 
