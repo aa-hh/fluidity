@@ -348,7 +348,7 @@ All motion uses the Dynamic Island's springs: mass 1, stiffness (2π ÷ response
 No travel, wobble, bump or shake. Bubbles fade in and out in place over 0.2 s, sizes jump instead of springing, and the waveform shows loudness without moving along.
 
 ### App surfaces
-Each control is the standard macOS control for its job, drawn in Glass colours. The frontmatter components use the Light keys; in Dark each takes the `-dark` key of the same role. Disabled controls drop to 40% opacity. How dictation starts, where the app lives and which models ship are open product decisions; the settings window shows them as settings with defaults, and the popover's sample text is not a decision.
+Each control is the standard macOS control for its job, drawn in Glass colours. The frontmatter components use the Light keys; in Dark each takes the `-dark` key of the same role. Disabled controls drop to 40% opacity. The settings window and popover described here are the Glass comps of 23 Oct 2026, made before version 1's features were fixed. Version 1 (PRODUCT.md, Linear AA-296) has four panes (General, Cleanup, Words, Permissions), no model line, and a popover listing the last 20 or so dictations; the popover's sample text is not a decision.
 
 #### Buttons
 - 28 pt tall, 16 pt side padding, text in `app-label`.
