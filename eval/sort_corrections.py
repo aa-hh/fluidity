@@ -127,18 +127,13 @@ def classify(old, new, rw, cw, p, i1, i2, th):
     return 9
 
 
-def edit(t, w1, w2, new):
-    """(start, end, replacement) that swaps t's words [w1, w2) for the text new."""
-    n = len(t.words)
-    if w1 == w2:
-        if w1 < n:
-            return t.start(w1), t.start(w1), new + " "
-        return (t.unit_end(n - 1), t.unit_end(n - 1), " " + new) if n else (0, len(t.s), new)
-    if new:
-        return t.start(w1), t.end(w2 - 1), new
-    if w2 < n:
-        return t.start(w1), t.start(w2), ""
-    return (t.unit_end(w1 - 1), t.unit_end(w2 - 1), "") if w1 else (0, len(t.s), "")
+def gap(t, w1, w2, last=False):
+    """Character range of words [w1, w2) plus the spaces and punctuation between them and their
+    neighbours; with last, or at the end of t, it stops after the punctuation, before any spaces."""
+    a = t.end(w1 - 1) if w1 else 0
+    if w2 < len(t.words) and not last:
+        return a, t.start(w2)
+    return a, t.unit_end(w2 - 1) if w2 else 0
 
 
 def apply(s, edits):
@@ -178,7 +173,6 @@ def sort_dictation(rec, th):
     pc, cr = boundary_map(p.words, c.words), boundary_map(c.words, r.words)
     timings = rec.get("wordTimings") or []
     tmap = timing_map(r.words, timings)
-    off = 0
     spans = []
 
     def span(cat, i1, i2, j1, j2, surface=False):
@@ -196,7 +190,7 @@ def sort_dictation(rec, th):
         spans.append({
             "category": cat, "oldWords": old, "newWords": new,
             "similarity": round(similarity(old, new), 3) if old and new else None,
-            "positions": {"R": [r1, r2], "C": [c1, c2], "P": [i1, i2], "F": [j1 + off, j2 + off]},
+            "positions": {"R": [r1, r2], "C": [c1, c2], "P": [i1, i2], "F": [j1, j2]},
             "audioStart": timings[tmap[r1]]["start"] if audio else None,
             "audioEnd": timings[tmap[r2 - 1]]["end"] if audio else None,
             "_local": (i1, i2, j1, j2, surface), "_rw": r.words[r1:r2], "_cw": c.words[c1:c2],
@@ -214,17 +208,17 @@ def sort_dictation(rec, th):
             span(1, 0, len(p.words), 0, len(f.words))
         return finish()
 
-    n = len(p.words)
-    if 0 < n < len(f.words):
-        a = next((a for a in range(len(f.words) - n + 1) if f.words[a:a + n] == p.words), None)
-        if a is not None:
-            if a:
-                span(2, 0, 0, 0, a)
-            if a + n < len(f.words):
-                span(2, n, n, a + n, len(f.words))
-            f, off = Text(f.s[f.start(a):f.unit_end(a + n - 1)]), a
-
-    ops = difflib.SequenceMatcher(None, p.words, f.words, autojunk=False).get_opcodes()
+    n, nf = len(p.words), len(f.words)
+    ops = []
+    for tag, i1, i2, j1, j2 in difflib.SequenceMatcher(None, p.words, f.words, autojunk=False).get_opcodes():
+        extra = (j2 - j1) - (i2 - i1)
+        # The matcher merges a fix at either end with words typed beside it; split the typed words off.
+        if tag == "replace" and extra > 0 and i1 == 0:
+            ops += [("insert", 0, 0, 0, extra), ("replace", 0, i2, extra, j2)]
+        elif tag == "replace" and extra > 0 and i2 == n:
+            ops += [("replace", i1, i2, j1, j2 - extra), ("insert", n, n, j2 - extra, j2)]
+        else:
+            ops.append((tag, i1, i2, j1, j2))
     kept = sum(i2 - i1 for tag, i1, i2, _, _ in ops if tag == "equal")
     if not f.words or (n and kept / n < th["min_survive_share"]):
         res["changedShare"] = round(1 - kept / n, 3) if n else 1.0
@@ -232,30 +226,42 @@ def sort_dictation(rec, th):
         res["speech"] = None  # the user rejected this transcript, so nothing confirms it
         return finish()
 
-    first = len(spans)
     changed = counted = 0
     for tag, i1, i2, j1, j2 in ops:
         if tag != "equal":
             s = span(0, i1, i2, j1, j2)
+            # Words added before or after the pasted text, unless they are R's words the cleanup dropped there.
+            if tag == "insert" and i1 in (0, n) and s["newWords"] != s["_rw"]:
+                s["category"] = 2
+                continue
             s["category"] = classify(s["oldWords"], s["newWords"], s["_rw"], s["_cw"], p.words, i1, i2, th)
             if s["category"] != 4:
                 changed, counted = changed + max(i2 - i1, j2 - j1), counted + 1
             continue
+        # Before a changed span, the punctuation after the last kept word belongs to that span's edit.
+        trim = i2 < n or j2 < nf
+
+        def differs(d):
+            if trim and d == i2 - i1 - 1:
+                return p.toks[p.wpos[i1 + d]][0] != f.toks[f.wpos[j1 + d]][0]
+            return p.unit(i1 + d) != f.unit(j1 + d)
+
         k = 0
         while k < i2 - i1:
-            if p.unit(i1 + k) == f.unit(j1 + k):
+            if not differs(k):
                 k += 1
                 continue
             e = k
-            while e < i2 - i1 and p.unit(i1 + e) != f.unit(j1 + e):
+            while e < i2 - i1 and differs(e):
                 e += 1
-            span(4, i1 + k, i1 + e, j1 + k, j1 + e, surface=True)
+            span(4, i1 + k, i1 + e, j1 + k, j1 + e, surface="trim" if trim and e == i2 - i1 else "units")
             k = e
     res["changedShare"] = round(changed / n, 3) if n else 0.0
     if res["changedShare"] > th["max_changed_share"] or counted > th["max_spans"]:
-        for s in spans[first:]:
-            s["category"] = 9
-    spans[first:] = sorted(spans[first:], key=lambda s: s["positions"]["P"])
+        for s in spans:
+            if s["category"] != 2:
+                s["category"] = 9
+    spans.sort(key=lambda s: s["positions"]["P"])
 
     cats = {s["category"] for s in spans}
     res["speech"] = None if 9 in cats else apply(r.s, [
@@ -270,13 +276,18 @@ def sort_dictation(rec, th):
             i1, i2, j1, j2, surface = s["_local"]
             c1, c2 = s["positions"]["C"]
             if not surface:
-                edits.append(edit(c, c1, c2, f.between(j1, j2)))
+                (a, b), (fa, fb) = gap(c, c1, c2), gap(f, j1, j2, c2 == len(c.words))
+                edits.append((a, b, f.s[fa:fb]))
                 continue
             for d in range(i2 - i1):
                 cc = pc[0][i1 + d]
-                if cc < len(c.words) and c.unit(cc) == p.unit(i1 + d):
-                    edits.append((c.start(cc), c.unit_end(cc),
-                                  f.s[f.start(j1 + d):f.unit_end(j1 + d)]))
+                if cc >= len(c.words):
+                    continue
+                if surface == "trim" and d == i2 - i1 - 1:  # the word only; its punctuation is the next span's
+                    if c.toks[c.wpos[cc]][0] == p.toks[p.wpos[i1 + d]][0]:
+                        edits.append((c.start(cc), c.end(cc), f.toks[f.wpos[j1 + d]][0]))
+                elif c.unit(cc) == p.unit(i1 + d):
+                    edits.append((c.start(cc), c.unit_end(cc), f.s[f.start(j1 + d):f.unit_end(j1 + d)]))
         res["cleanup"] = apply(c.s, edits)
     return finish()
 

@@ -26,8 +26,6 @@ def cats(r, th=TH):
 def run_folder(records, thresholds=DEFAULT_THRESHOLDS):
     tmp = Path(tempfile.mkdtemp())
     (tmp / "data").mkdir()
-    (tmp / "data" / "split.json").write_text("{}")
-    (tmp / "data" / "train").mkdir()
     if records:
         (tmp / "data" / "2026-10-26.jsonl").write_text("".join(json.dumps(r) + "\n" for r in records))
     buf = io.StringIO()
@@ -45,7 +43,7 @@ class CategoryTest(unittest.TestCase):
 
     # Turns red if additions before and after the pasted words stop being cut off before sorting the rest.
     def test_2_additions_cut_then_rest_sorted(self):
-        self.assertEqual(cats(rec("Purple walrus", "Hi there. Purple walrus, thanks")), [2, 2, 4])
+        self.assertEqual(cats(rec("Purple walrus", "Hi there. purple walrus, thanks")), [2, 2, 4])
 
     # Turns red if a wiped or mostly replaced dictation stops counting as rejected.
     def test_3_wipe_and_replacement(self):
@@ -67,6 +65,13 @@ class CategoryTest(unittest.TestCase):
         r = rec("I'm gonna feed the walrus after lunch", "I'm gonna feed the walrus after lunch",
                 cleaned="I'm going to feed the walrus after lunch")
         self.assertEqual(cats(r), [6])
+
+    # Turns red if a raw word the cleanup dropped at either end, put back by the user, is taken as an addition.
+    def test_6_user_restores_dropped_edge_word(self):
+        for raw in ("send the walrus file now.", "so send the walrus file."):
+            res = sort_dictation(rec(raw, raw, cleaned="send the walrus file."), TH)
+            self.assertEqual([s["category"] for s in res["spans"]], [6])
+            self.assertEqual(res["cleanup"], raw)
 
     # Turns red if a word the cleanup invented and the user deleted is not blamed on the cleanup.
     def test_7_user_removes_cleanup_word(self):
@@ -123,6 +128,13 @@ class DictationTest(unittest.TestCase):
         _, rows = run_folder([rec("meet me at the pier", "meet me at the peer")])
         self.assertEqual(rows["speech_to_text"][0]["text"], "meet me at the peer")
         self.assertEqual(rows["cleanup"], [])
+
+    # Turns red if words typed after a misheard fix merge with it into one rewrite span.
+    def test_fix_then_typed_words_stays_in_speech(self):
+        r = rec("meet me at the pier", "meet me at the peer thanks a lot")
+        self.assertEqual(cats(r), [2, 8])
+        _, rows = run_folder([r])
+        self.assertEqual(rows["speech_to_text"][0]["text"], "meet me at the peer")
 
     # Turns red if the span-length threshold is read from code instead of the JSON file.
     def test_thresholds_file_drives_the_sort(self):
