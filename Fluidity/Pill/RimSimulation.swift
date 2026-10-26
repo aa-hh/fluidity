@@ -424,7 +424,9 @@ nonisolated struct RimSimulation {
     /// off in the approved tuning but stay wired so they can be turned back on.
     private mutating func updateLine(dt: Float, state: RimState, reduced: Bool) {
         let p = self.params
-        let breathStep = dt / max(0.4, p.pulsePeriod)
+        // The shader adds the breath to the line's width, glow and tone whatever `pulseDepth` is,
+        // so with the pulse off the breath must not move or the line keeps swelling.
+        let breathStep = p.pulseDepth > 0 ? dt / max(0.4, p.pulsePeriod) : 0
         if state == .think {
             self.thinkClock += dt
             let slide = reduced ? 0 : p.lineSlide
