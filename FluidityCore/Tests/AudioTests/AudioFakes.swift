@@ -121,11 +121,16 @@ final class FakeRechecker: WordListRechecking, @unchecked Sendable {
 }
 
 /// Records every chunk it is fed and each stream call; `partial` sends text as the engine's live words.
-/// With `finishFails`, `finishStream` throws.
+/// With `finishFails`, `finishStream` throws; with `startFails`, `startStream` does. While `holdLoad` holds it,
+/// it is unloaded and `startStream` and `feed` throw not loaded, recording nothing.
 final class FakeStreamingEngine: StreamingSpeechEngine, @unchecked Sendable {
     private let lock = NSLock()
     private let result: String
     private let finishFails: Bool
+    private let startFails: Bool
+    private var loaded = true
+    private var holdingLoad = false
+    private var heldLoad: [CheckedContinuation<Void, Never>] = []
     private var partialSink: (@Sendable (String) -> Void)?
     private var chunks: [[Float]] = []
     private var calls: [String] = []
@@ -134,9 +139,10 @@ final class FakeStreamingEngine: StreamingSpeechEngine, @unchecked Sendable {
     private var holdingCancels = false
     private var heldCancels: [CheckedContinuation<Void, Never>] = []
 
-    init(result: String = "streamed", finishFails: Bool = false) {
+    init(result: String = "streamed", finishFails: Bool = false, startFails: Bool = false) {
         self.result = result
         self.finishFails = finishFails
+        self.startFails = startFails
     }
 
     var fedChunks: [[Float]] { lock.withLock { chunks } }
@@ -169,7 +175,34 @@ final class FakeStreamingEngine: StreamingSpeechEngine, @unchecked Sendable {
         for continuation in waiting { continuation.resume() }
     }
 
-    func load(progress: @escaping @Sendable (Double) -> Void) async throws {}
+    /// Unloads the engine and parks every `load` until `releaseLoad`, like a slow launch load.
+    func holdLoad() {
+        lock.withLock {
+            holdingLoad = true
+            loaded = false
+        }
+    }
+
+    func releaseLoad() {
+        let waiting = lock.withLock {
+            holdingLoad = false
+            defer { heldLoad = [] }
+            return heldLoad
+        }
+        for continuation in waiting { continuation.resume() }
+    }
+
+    func load(progress: @escaping @Sendable (Double) -> Void) async throws {
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            let parked = lock.withLock {
+                if holdingLoad { heldLoad.append(continuation) }
+                return holdingLoad
+            }
+            if !parked { continuation.resume() }
+        }
+        lock.withLock { loaded = true }
+    }
+
     func unload() async {}
 
     func transcribe(_ audio: [Float]) async throws -> Transcript {
@@ -178,6 +211,7 @@ final class FakeStreamingEngine: StreamingSpeechEngine, @unchecked Sendable {
     }
 
     func startStream(partial: @escaping @Sendable (String) -> Void) async throws {
+        guard lock.withLock({ loaded }), !startFails else { throw FluidAudioEngine.EngineError.notLoaded }
         lock.withLock {
             calls.append("start")
             partialSink = partial
@@ -185,6 +219,7 @@ final class FakeStreamingEngine: StreamingSpeechEngine, @unchecked Sendable {
     }
 
     func feed(_ chunk: [Float]) async throws {
+        guard lock.withLock({ loaded }) else { throw FluidAudioEngine.EngineError.notLoaded }
         lock.withLock { chunks.append(chunk) }
         await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
             let parked = lock.withLock {

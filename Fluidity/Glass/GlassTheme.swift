@@ -49,6 +49,14 @@ enum GlassTheme {
     static let controlHeight: CGFloat = 28
     static let rowMinHeight: CGFloat = 44
     static let sidebarWidth: CGFloat = 184
+    /// The Speech model tables: the First word and Updates every columns, then Live vs final.
+    static let modelFigureWidth: CGFloat = 76
+    static let modelLiveVsFinalWidth: CGFloat = 84
+    static let modelRowHeight: CGFloat = 48
+    static let modelHeaderHeight: CGFloat = 28
+    /// The download bar under a model's name.
+    static let progressTrackWidth: CGFloat = 48
+    static let progressTrackHeight: CGFloat = 4
 
     // MARK: Motion
 

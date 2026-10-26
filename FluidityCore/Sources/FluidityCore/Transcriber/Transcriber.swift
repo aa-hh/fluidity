@@ -94,6 +94,9 @@ public actor Transcriber {
     /// Samples of the streamed recording the engine has been fed; reset inside the chain, so a late feed
     /// from the recording before cannot count towards this one.
     private var fedSamples = 0
+    /// Whether the streamed recording's `startStream` succeeded; set inside the chain. When it did not, the final
+    /// pass transcribes the whole recording instead.
+    private var streamStarted = false
     /// Bumped by each `switchEngine`, so an older switch still waiting gives up.
     private var switchNumber = 0
     private var switchWaiters: [CheckedContinuation<Void, Never>] = []
@@ -112,9 +115,16 @@ public actor Transcriber {
         self.clock = clock
     }
 
-    /// Loads the models, downloading them on first launch; `progress` runs from 0 to 1.
-    public func prepare(progress: @escaping @Sendable (Double) -> Void = { _ in }) async throws {
-        let load = Task { [engine] in try await engine.load(progress: progress) }
+    /// Loads the models, downloading them on first launch; `progress` runs from 0 to 1. `before` runs first inside
+    /// the same load, so a final pass made while it runs waits for it too.
+    public func prepare(
+        before: @escaping @Sendable () async throws -> Void = {},
+        progress: @escaping @Sendable (Double) -> Void = { _ in }
+    ) async throws {
+        let load = Task { [engine] in
+            try await before()
+            try await engine.load(progress: progress)
+        }
         loading = load
         try await load.value
     }
@@ -159,7 +169,10 @@ public actor Transcriber {
             feeder = Task {
                 await previous?.value
                 fedSamples = 0
-                try? await streaming.startStream { continuation.yield($0) }
+                streamStarted = false
+                // A recording begun during the launch load starts its stream once the engine is loaded.
+                _ = await loading?.result
+                streamStarted = (try? await streaming.startStream { continuation.yield($0) }) != nil
             }
             return previews
         }
@@ -183,6 +196,7 @@ public actor Transcriber {
         let previous = feeder
         feeder = Task {
             await previous?.value
+            guard streamStarted else { return }
             try? await stream.feed(chunk)
             fedSamples += chunk.count
         }
@@ -214,7 +228,7 @@ public actor Transcriber {
             let previous = feeder
             let pass = Task {
                 await previous?.value
-                guard let streaming else { return try await engine.transcribe(recording) }
+                guard let streaming, streamStarted else { return try await engine.transcribe(recording) }
                 if fedSamples < recording.count { try await streaming.feed(Array(recording[fedSamples...])) }
                 return try await streaming.finishStream()
             }
@@ -250,7 +264,8 @@ public actor Transcriber {
     }
 
     /// Stops the live preview and drops the recording; nothing is transcribed. Returns once a streaming engine
-    /// has ended the stream, so a caller can start another stream on the same engine after it.
+    /// has ended the stream and the last preview pass has left the engine, so a caller can start another pass
+    /// or stream on the same engine after it.
     public func cancel() async {
         endPreviews()
         recording = []
@@ -259,6 +274,7 @@ public actor Transcriber {
         wakeSwitches()
         let chain = feeder
         await chain?.value
+        while let pass = runningPass { await pass.value }
     }
 
     private func cancelStream() {

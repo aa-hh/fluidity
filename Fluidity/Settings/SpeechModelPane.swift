@@ -289,14 +289,14 @@ private enum PaneFocus: Hashable {
 /// Column widths shared by both tables, so names and figures line up.
 private enum ModelColumns {
     static let leading: CGFloat = 16
-    static let firstWord: CGFloat = 76
-    static let updates: CGFloat = 76
-    static let liveVsFinal: CGFloat = 84
+    static let firstWord = GlassTheme.modelFigureWidth
+    static let updates = GlassTheme.modelFigureWidth
+    static let liveVsFinal = GlassTheme.modelLiveVsFinalWidth
     static let symbolButton: CGFloat = 28
     static let gap: CGFloat = 8
     static let trailing: CGFloat = symbolButton * 2 + gap
-    static let rowHeight: CGFloat = 48
-    static let headerHeight: CGFloat = 28
+    static let rowHeight = GlassTheme.modelRowHeight
+    static let headerHeight = GlassTheme.modelHeaderHeight
 }
 
 /// A raised panel with the column header row, then the rows.
@@ -558,9 +558,10 @@ private struct ProgressTrack: View {
 
     var body: some View {
         Capsule().fill(GlassTheme.selected)
-            .frame(width: 48, height: 4)
+            .frame(width: GlassTheme.progressTrackWidth, height: GlassTheme.progressTrackHeight)
             .overlay(alignment: .leading) {
-                Capsule().fill(GlassTheme.textSecondary).frame(width: 48 * min(max(fraction, 0), 1), height: 4)
+                Capsule().fill(GlassTheme.textSecondary)
+                    .frame(width: GlassTheme.progressTrackWidth * min(max(fraction, 0), 1), height: GlassTheme.progressTrackHeight)
             }
             .accessibilityHidden(true)
     }

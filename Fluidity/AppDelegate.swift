@@ -355,6 +355,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             closeCompare()
             settingsWindow.show(pane: .speechModel)
         }
+        model.onStart = { session.start() }
+        model.onStop = { Task { await session.stop() } }
+        model.onChoose = { column, id in
+            if column == .left { session.choose(left: id) } else { session.choose(right: id) }
+        }
+        model.onReplay = { session.replayLiveWords() }
         compareModel = model
         syncHotkeyRecording()
         compareWindow = CompareWindow(model: model)

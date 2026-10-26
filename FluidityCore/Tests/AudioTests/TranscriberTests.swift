@@ -196,6 +196,29 @@ struct TranscriberTests {
         #expect(engine.audioLengths == [16_000])
     }
 
+    @Test func cancelReturnsOnlyOnceItsPreviewPassHasLeftTheSharedEngine() async throws {
+        // Returning from cancel while a preview pass still runs, so the next transcriber's pass overlaps it on the engine, turns this red.
+        let engine = FakeSpeechEngine()
+        let (transcriber, _) = makeTranscriber(engine: engine)
+        let (next, _) = makeTranscriber(engine: engine)
+        var started = engine.started.makeAsyncIterator()
+        let previews = await transcriber.startRecording()
+        await transcriber.append(chunk: oneSecond)
+        engine.hold()
+        await advance(by: .milliseconds(250))
+        _ = await started.next()
+
+        let cancelThenNext = Task {
+            await transcriber.cancel()
+            return try await next.finish(recording: oneSecond)
+        }
+        await settle()
+        engine.release()
+        #expect(try await cancelThenNext.value.text == "heard 16000")
+        #expect(engine.mostAtOnce == 1)
+        withExtendedLifetime(previews) {}
+    }
+
     // MARK: Switching engines
 
     @Test func aSwitchDuringARecordingLandsAfterItsFinalPass() async throws {
@@ -374,6 +397,44 @@ struct TranscriberTests {
         _ = try await transcriber.finish(recording: chunk + tail)
         #expect(engine.fedChunks == [chunk, tail])
         #expect(engine.streamCalls == ["start", "finish"])
+    }
+
+    @Test func aStreamBegunDuringTheLaunchLoadGetsTheWholeRecording() async throws {
+        // Starting the stream at key down without waiting for the launch load, so the start and early feeds fail and only
+        // the tail reaches the engine, turns this red.
+        let engine = FakeStreamingEngine()
+        let (transcriber, _) = makeTranscriber(engine: engine, model: .parakeetUnified)
+        let first = [Float](repeating: 0.1, count: 4)
+        let second = [Float](repeating: 0.2, count: 4)
+        let tail = [Float](repeating: 0.3, count: 2)
+        engine.holdLoad()
+        let preparing = Task { try await transcriber.prepare() }
+        await settle()
+        _ = await transcriber.startRecording()
+        await transcriber.append(chunk: first)
+        await transcriber.append(chunk: second)
+        let finishing = Task { try await transcriber.finish(recording: first + second + tail) }
+        await settle()
+        #expect(engine.streamCalls.isEmpty)
+
+        engine.releaseLoad()
+        try await preparing.value
+        #expect(try await finishing.value.text == "streamed")
+        #expect(engine.streamCalls == ["start", "finish"])
+        #expect(engine.fedChunks == [first, second, tail])
+    }
+
+    @Test func aStreamThatFailsToStartIsTranscribedWhole() async throws {
+        // Finishing a stream whose start failed, instead of transcribing the whole recording, turns this red.
+        let engine = FakeStreamingEngine(startFails: true)
+        let (transcriber, _) = makeTranscriber(engine: engine, model: .parakeetUnified)
+        let chunk = [Float](repeating: 0.1, count: 4)
+        _ = await transcriber.startRecording()
+        await transcriber.append(chunk: chunk)
+
+        #expect(try await transcriber.finish(recording: chunk).text == "streamed")
+        #expect(engine.streamCalls == ["transcribe"])
+        #expect(engine.fedChunks.isEmpty)
     }
 
     @Test func streamCallsNeverOverlapAndCountOnlyTheirRecording() async throws {

@@ -96,8 +96,9 @@ public final class ModelCoordinator {
             // The first launch downloads Parakeet TDT v2 here, outside `ModelDownloads`.
             downloads.refreshInstalled()
         }
-        if dictationModel != .parakeetTDTv2 { try await loadSupport() }
-        try await transcriber.prepare(progress: progress)
+        // Every model but Parakeet TDT v2 loads Silero and CTC first, inside the load the final pass waits for.
+        let support: @Sendable () async throws -> Void = dictationModel == .parakeetTDTv2 ? { @Sendable in } : loadSupport
+        try await transcriber.prepare(before: support, progress: progress)
     }
 
     /// Saves the choice and switches the transcriber to it once no dictation is running.

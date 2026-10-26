@@ -22,8 +22,12 @@ public actor AppleSpeechEngine: StreamingSpeechEngine {
         commonFormat: .pcmFormatFloat32, sampleRate: 16_000, channels: 1, interleaved: false)!
 
     private let loads = SingleFlight()
+    /// Paces the asset-install progress checks.
+    private let clock: any Clock<Duration>
 
-    public init() {}
+    public init(clock: any Clock<Duration> = ContinuousClock()) {
+        self.clock = clock
+    }
 
     /// Installs the locale's speech assets the first time; macOS keeps them after that.
     public func load(progress: @escaping @Sendable (Double) -> Void) async throws {
@@ -52,10 +56,10 @@ public actor AppleSpeechEngine: StreamingSpeechEngine {
             reportingOptions: [.volatileResults],
             attributeOptions: [.audioTimeRange])
         if let request = try await AssetInventory.assetInstallationRequest(supporting: [transcriber]) {
-            let poll = Task {
+            let poll = Task { [clock] in
                 while !Task.isCancelled {
                     progress(request.progress.fractionCompleted)
-                    try? await Task.sleep(for: .milliseconds(250))
+                    try? await clock.sleep(for: .milliseconds(250))
                 }
             }
             defer { poll.cancel() }

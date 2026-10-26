@@ -36,7 +36,8 @@ struct ModelCoordinatorTests {
     private func make(
         chosen: SpeechModelID = .parakeetTDTv2,
         installed: Set<SpeechModelID> = [.parakeetTDTv2, .parakeetUnified],
-        registered: Set<SpeechModelID> = Set(SpeechModelID.allCases)
+        registered: Set<SpeechModelID> = Set(SpeechModelID.allCases),
+        loadSupport: @escaping @Sendable () async throws -> Void = {}
     ) -> (ModelCoordinator, ModelDownloads, ChosenModel) {
         let saved = ChosenModel(chosen)
         let downloads = ModelDownloads(fetcher: InstalledModels(installed: installed), network: Online())
@@ -47,7 +48,7 @@ struct ModelCoordinatorTests {
             setChosenModel: { saved.value = $0 },
             engines: all.filter { registered.contains($0.key) },
             downloads: downloads,
-            loadSupport: {},
+            loadSupport: loadSupport,
             makeTranscriber: { engine, model in
                 Transcriber(
                     engine: engine, model: model, voiceDetector: FakeVoiceDetector(speech: true),
@@ -83,6 +84,26 @@ struct ModelCoordinatorTests {
         #expect(coordinator.dictationModel == expected)
         #expect(saved.value == expected)
         #expect(try await coordinator.transcriber.finish(recording: [0]).model == expected)
+    }
+
+    @Test func aDictationReleasedDuringTheSupportLoadWaitsForTheLaunchLoad() async throws {
+        // Loading Silero and CTC before the transcriber's load starts, so a final pass made meanwhile skips the wait and
+        // runs on the unloaded engine, losing the dictation, turns this red.
+        let (support, supportDone) = AsyncStream.makeStream(of: Void.self)
+        let (coordinator, _, _) = make(chosen: .parakeetUnified, loadSupport: { for await _ in support {} })
+        unified.hold()
+        let preparing = Task { try await coordinator.prepare(progress: { _ in }) }
+        await settle()
+        let finishing = Task { try await coordinator.transcriber.finish(recording: [0]) }
+        await settle()
+        #expect(unified.audioLengths.isEmpty)
+
+        supportDone.finish()
+        await settle()
+        #expect(unified.audioLengths.isEmpty)
+        unified.release()
+        try await preparing.value
+        #expect(try await finishing.value.text == "heard 1")
     }
 
     // MARK: Switching

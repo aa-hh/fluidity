@@ -24,6 +24,14 @@ final class CompareModel {
     var onKeep: () -> Void = {}
     /// Switch Model: dictate with the right-hand model.
     var onSwitch: () -> Void = {}
+    /// Speak Now: start listening.
+    var onStart: () -> Void = {}
+    /// Stop: end the listening and run both final passes.
+    var onStop: () -> Void = {}
+    /// A column's model menu: point that column at the model.
+    var onChoose: (CompareSession.Column, SpeechModelID) -> Void = { _, _ in }
+    /// Replay Live Words Slowly.
+    var onReplay: () -> Void = {}
 
     private let player = RecordingPlayer()
 

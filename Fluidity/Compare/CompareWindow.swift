@@ -118,11 +118,7 @@ struct CompareView: View {
             .accessibilityElement(children: .combine)
             .frame(maxWidth: .infinity, alignment: .leading)
             Button(session.phase == .listening ? "Stop" : "Speak Now") {
-                if session.phase == .listening {
-                    Task { await session.stop() }
-                } else {
-                    session.start()
-                }
+                if session.phase == .listening { model.onStop() } else { model.onStart() }
             }
             .buttonStyle(.glassSecondary)
             .disabled(session.phase == .finishing || (session.phase != .listening && (!model.bothReady || model.dictationRunning)))
@@ -205,7 +201,7 @@ struct CompareView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             if session.phase == .finished, !session.recording.isEmpty {
                 Button("Play Recording", action: model.playRecording).buttonStyle(.glassQuiet)
-                Button("Replay Live Words Slowly", action: session.replayLiveWords).buttonStyle(.glassQuiet)
+                Button("Replay Live Words Slowly", action: model.onReplay).buttonStyle(.glassQuiet)
             }
         }
         .frame(minHeight: GlassTheme.controlHeight)
@@ -259,7 +255,7 @@ private struct CompareColumn: View {
 
     private func item(for candidate: SpeechModel) -> some View {
         Button(candidate.name) {
-            if column == .left { session.choose(left: candidate.id) } else { session.choose(right: candidate.id) }
+            model.onChoose(column, candidate.id)
         }
         .disabled(candidate.id == other)
     }
