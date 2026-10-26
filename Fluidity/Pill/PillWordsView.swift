@@ -39,9 +39,6 @@ final class PillWordsView: NSView {
         self.clip.addSublayer(self.shimmer)
         self.band.startPoint = CGPoint(x: 0, y: 0.5)
         self.band.endPoint = CGPoint(x: 1, y: 0.5)
-        let solid = NSColor.black.cgColor
-        let faded = NSColor.black.withAlphaComponent(CGFloat(RimWords.bandFade)).cgColor
-        self.band.colors = [solid, faded, faded, solid]
         self.setAccessibilityElement(false)
     }
 
@@ -57,11 +54,11 @@ final class PillWordsView: NSView {
 
     /// Puts each word in place for this frame. `box` is the pill's or the bubble's size now, in points,
     /// centred `offset` from the view's centre (y up), and the words take `look`'s scale and opacity.
-    /// `band`, from `RimWords.band`, fades the letters it covers.
+    /// `band`, from `RimWords.band`, dims the words outside it.
     func show(
         _ looks: [RimWords.Look],
         words: RimWords,
-        band: (middle: Float, core: Float, edge: Float)?,
+        band: (middle: Float, core: Float, edge: Float, base: Float)?,
         box: CGSize,
         offset: CGPoint,
         look: (scale: SIMD2<Float>, opacity: Float),
@@ -109,6 +106,8 @@ final class PillWordsView: NSView {
             let reach = clipFrame.width
             let span = max(1, clipFrame.width + 2 * reach)
             self.band.frame = CGRect(x: -reach, y: 0, width: span, height: clipFrame.height)
+            let dim = NSColor.black.withAlphaComponent(CGFloat(band.base)).cgColor
+            self.band.colors = [dim, NSColor.black.cgColor, NSColor.black.cgColor, dim]
             let half = band.core / 2
             self.band.locations = [-half - band.edge, -half, half, half + band.edge].map {
                 NSNumber(value: Double((CGFloat(band.middle + $0) + 2 + reach) / span))

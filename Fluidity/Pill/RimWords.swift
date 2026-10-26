@@ -4,7 +4,7 @@ import Foundation
 /// The live words: what Parakeet hears appears as you speak. In the pill, the
 /// pill grows to fit on the island's size spring and then scrolls, the oldest
 /// words fading at the left; on release the rim's light reaches the words from
-/// the ends inward, while the AI works a pale band sweeps across them letter by letter,
+/// the ends inward, while the AI works they dim and a bright band sweeps across them letter by letter,
 /// and the cleaned text then settles in place. Above the pill, the words wrap
 /// in smaller text inside their own full-width bubble, up to six lines and then
 /// scrolling up, and stay a preview of what you said: the band sweeps
@@ -21,13 +21,14 @@ nonisolated struct RimWords {
     static let appear: Float = 0.28
     static let scrollSpring: (Float, Float) = (0.78, 0.4)
     static let stagger: Float = 0.035
-    /// The thinking band: it crosses in `sweepTime` once every `sweepPeriod`, its solid middle and each
-    /// soft edge a share of the text's width, fading the letters under its middle to `bandFade`.
+    /// The thinking band: the words dim to `bandBase` and the band crosses in `sweepTime` once every
+    /// `sweepPeriod`, its solid middle and each soft edge a share of the text's width, lifting the
+    /// letters under its middle back to full.
     static let sweepPeriod: Float = 3
     static let sweepTime: Float = 2.3
     static let bandCore: Float = 0.42
     static let bandEdge: Float = 0.23
-    static let bandFade: Float = 0.2
+    static let bandBase: Float = 0.4
     static let inward: Float = 0.15
     static let popSpring: (Float, Float) = (0.78, 0.4)
     static let leaveResponse: Float = 0.45
@@ -318,17 +319,22 @@ nonisolated struct RimWords {
         self.words.removeAll { $0.gone && $0.appear.x < 0.01 && abs($0.appear.v) < 0.05 }
     }
 
-    /// Where the thinking band is this frame, in points from the left of the text in view, or nil while it
-    /// rests between crossings. While the AI works it crosses `inner`, the width inside the padding, across
-    /// every line in view at the same moment; under Reduce Motion it never shows.
-    func band(thinking: Bool, inner: Float, reduced: Bool) -> (middle: Float, core: Float, edge: Float)? {
-        guard thinking, !reduced, self.thinkStart >= 0 else { return nil }
-        let since = self.clock - self.thinkStart - Self.inward - 0.05
-        let phase = since.truncatingRemainder(dividingBy: Self.sweepPeriod)
-        guard since > 0, phase < Self.sweepTime else { return nil }
+    /// The thinking band this frame, or nil when the AI is not working: where its middle is, in points from
+    /// the left of the text in view, and `base`, how bright the words sit outside it. It crosses `inner`, the
+    /// width inside the padding, across every line in view at the same moment. Between crossings, and always
+    /// under Reduce Motion, it waits off the left and the words stay dimmed.
+    func band(thinking: Bool, inner: Float, reduced: Bool) -> (middle: Float, core: Float, edge: Float, base: Float)? {
+        guard thinking, self.thinkStart >= 0 else { return nil }
         let core = Self.bandCore * inner, edge = Self.bandEdge * inner
         let half = core / 2 + edge
-        return (-half + (inner + 2 * half) * phase / Self.sweepTime, core, edge)
+        let since = self.clock - self.thinkStart - Self.inward - 0.05
+        let phase = since.truncatingRemainder(dividingBy: Self.sweepPeriod)
+        let crossing = !reduced && since > 0 && phase < Self.sweepTime
+        let dim = rimSmooth((self.clock - self.thinkStart - Self.inward * 0.6) / 0.12)
+        return (
+            crossing ? -half + (inner + 2 * half) * phase / Self.sweepTime : -half,
+            core, edge, rimLerp(1, Self.bandBase, dim)
+        )
     }
 
     /// Each word's look this frame.
