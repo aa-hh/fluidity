@@ -874,6 +874,11 @@
         "purpose": "The only small shadow inside the shell, under the toggle knob."
       },
       {
+        "name": "segment-selected",
+        "value": "0 1px 1px rgba(0,0,0,0.22)",
+        "purpose": "Under the selected segment of a segmented control; the same shadow as the toggle knob."
+      },
+      {
         "name": "status-live-glow",
         "value": "SwiftUI shadow radius 3, #FFE4B8 (app-live)",
         "purpose": "Glow around the listening status dot."
@@ -1048,6 +1053,14 @@
       "description": "38 x 22 pt capsule, 2 pt padding, 18 pt knob with a small shadow. On: primary action track, on-primary knob. Off: selected fill with a rule outline and the control knob colour. The knob slides over 130 ms.",
       "html": "<div class=\"ds-toggles\"><button class=\"ds-toggle\" role=\"switch\" aria-checked=\"true\" aria-label=\"Clean up with AI\"><span class=\"ds-knob\"></span></button><button class=\"ds-toggle\" role=\"switch\" aria-checked=\"false\" aria-label=\"Launch at login\"><span class=\"ds-knob\"></span></button></div>",
       "css": ".ds-toggles { display: flex; gap: 12px; } .ds-toggle { box-sizing: border-box; width: 38px; height: 22px; padding: 2px; border: 0; border-radius: 999px; background: #1C1C1E; cursor: pointer; transition: background 0.13s ease-in-out, box-shadow 0.13s ease-in-out; } .ds-knob { display: block; width: 18px; height: 18px; border-radius: 50%; background: #FFFFFF; box-shadow: 0 1px 1px rgba(0,0,0,0.22); transform: translateX(16px); transition: transform 0.13s ease-in-out, background 0.13s ease-in-out; } .ds-toggle[aria-checked='false'] { background: rgba(20,21,25,0.08); box-shadow: inset 0 0 0 1px rgba(20,21,25,0.1); } .ds-toggle[aria-checked='false'] .ds-knob { background: #FFFFFF; transform: translateX(0); } .ds-toggle:hover { cursor: pointer; } .ds-toggle:focus-visible { outline: 2px solid rgba(28,28,30,0.6); outline-offset: 1px; } .ds-toggle:disabled { opacity: 0.4; }"
+    },
+    {
+      "name": "Segmented control",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "A 28 pt capsule track with equal-width 24 pt capsule segments; the selected one is raised on app-raised with a strong outline and the knob shadow. Used for Live words on the General pane.",
+      "html": "<div class=\"ds-seg\" role=\"radiogroup\" aria-label=\"Live words\"><button class=\"ds-seg-item\" role=\"radio\" aria-checked=\"false\">Off</button><button class=\"ds-seg-item ds-seg-item-on\" role=\"radio\" aria-checked=\"true\">In the pill</button><button class=\"ds-seg-item\" role=\"radio\" aria-checked=\"false\">Bubble above</button></div>",
+      "css": ".ds-seg { display: inline-flex; gap: 2px; padding: 2px 3px; height: 28px; box-sizing: border-box; border-radius: 999px; background: rgba(20,21,25,0.04); box-shadow: inset 0 0 0 1px rgba(20,21,25,0.1); } .ds-seg-item { flex: 1 0 auto; height: 24px; padding: 0 12px; border: none; border-radius: 999px; background: transparent; color: #6F6A62; font: 500 13px/24px ui-rounded, 'SF Pro Rounded', system-ui, sans-serif; cursor: pointer; transition: background 0.13s ease-in-out, color 0.13s ease-in-out; } .ds-seg-item-on { background: rgba(255,255,255,0.85); color: #1C1C1E; box-shadow: inset 0 0 0 1px rgba(20,21,25,0.22), 0 1px 1px rgba(0,0,0,0.22); } .ds-seg-item:focus-visible { outline: 2px solid rgba(28,28,30,0.6); outline-offset: 1px; }"
     },
     {
       "name": "Sidebar items",
