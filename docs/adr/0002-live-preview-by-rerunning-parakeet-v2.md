@@ -37,3 +37,14 @@ spike measured, `1b0ed50d686873128a4129b3510ce3914c849bab`.
 - The recheck's cost on real dictation, and how often the pre-check skips it, is
   not yet measured; re-time it on Alec's clips and drop it if it is slow.
 - Recordings over 15 s cost more per pass (248 / 451 ms) but still kept up.
+
+## Amendment, 2026-10-26 (AA-333)
+
+The preview no longer runs on a 1 s clock. `Transcriber` runs voice detection
+and then a pass, waits 250 ms, and goes again, so the first pass starts within
+250 ms of voice detection hearing speech and later passes follow each other as
+fast as the engine allows. A pass costs about 121 ms for any audio up to 15 s,
+because FluidAudio pads every input to 15 s, and 0 of 885 passes queued in the
+AA-305 spike, so the engine has room for this. A slow pass delays the next pass
+instead of dropping it. The measured numbers in this record are from the 1 s
+design; AA-333 holds the new ones once measured.

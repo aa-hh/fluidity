@@ -10,8 +10,8 @@ FluidAudio, and stays a thin wrapper.
 
 - **Never two passes on the engine at once.** Preview and final passes share
   one `AsrManager`. `runningPass` can belong to a recording that already
-  ended or was cancelled, and the next recording's ticks and final pass must
-  still wait for it. Ticks also skip while `finalPassRunning` is set.
+  ended or was cancelled, and the next recording's preview passes and final pass must
+  still wait for it. Preview passes also wait while `finalPassRunning` is set.
 - **The recheck needs the speech model's token timings.** `Transcript`
   carries them internally; one built with the public initialiser has none,
   so the real candidate check always says no. Pass the recheck the
@@ -26,7 +26,7 @@ FluidAudio, and stays a thin wrapper.
 
 ## Map
 
-- `Transcriber` → preview ticks, final pass, recheck, stage timings.
+- `Transcriber` → preview passes, final pass, recheck, stage timings.
 - `SpeechEngine`, `VoiceDetecting`, `WordListRechecking` → what it needs from the models.
 - `Transcript` → one pass's text and word timings.
 - `RawTranscript` → what `finish` returns, with the stage timings.
