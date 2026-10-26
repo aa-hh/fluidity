@@ -104,10 +104,13 @@ extension DictationController {
     public struct Transcript: Equatable, Sendable {
         public var text: String
         public var wordTimings: [WordTiming]
+        /// Seconds the word list recheck took, when it ran.
+        public var wordListRecheck: TimeInterval?
 
-        public init(text: String, wordTimings: [WordTiming] = []) {
+        public init(text: String, wordTimings: [WordTiming] = [], wordListRecheck: TimeInterval? = nil) {
             self.text = text
             self.wordTimings = wordTimings
+            self.wordListRecheck = wordListRecheck
         }
     }
 

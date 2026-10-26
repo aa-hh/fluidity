@@ -5,10 +5,12 @@ public enum PillState: Equatable, Sendable {
     /// The 200 ms of audio after release, then the final pass.
     case finishing
     case cleaning
-    case pasted
+    /// Carries the pasted text, which the live words settle into.
+    case pasted(text: String)
     /// The raw transcript was pasted after a fallback; shown quietly.
-    case pastedRawTranscript
-    case nowhereToPaste
+    case pastedRawTranscript(text: String)
+    /// Carries the finished text, which a retry pastes.
+    case nowhereToPaste(text: String)
     /// Escape: nothing was pasted.
     case cancelled
     case permissionMissing(DictationController.Permission)

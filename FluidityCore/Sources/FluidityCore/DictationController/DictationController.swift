@@ -33,7 +33,7 @@ public final class DictationController {
     private let store: any DictationStoring
     private let permissions: any PermissionChecking
     private let modelVersion: String
-    private let wordListVersion: String
+    private let wordListVersion: @Sendable () -> String
     private let timeline: Timeline
 
     @ObservationIgnored private var session: Session?
@@ -52,7 +52,7 @@ public final class DictationController {
         store: any DictationStoring,
         permissions: any PermissionChecking,
         modelVersion: String,
-        wordListVersion: String,
+        wordListVersion: @escaping @Sendable () -> String,
         clock: any Clock<Duration> = ContinuousClock()
     ) {
         self.audio = audio
@@ -186,9 +186,10 @@ public final class DictationController {
             startedAt: current.startedAt,
             rawTranscript: transcript.text,
             wordTimings: transcript.wordTimings,
-            timings: StageTimings(transcription: seconds(since: transcriptionStart)),
+            timings: StageTimings(
+                transcription: seconds(since: transcriptionStart), wordListRecheck: transcript.wordListRecheck),
             modelVersion: modelVersion,
-            wordListVersion: wordListVersion
+            wordListVersion: wordListVersion()
         )
 
         guard current.canPaste else {
@@ -237,10 +238,10 @@ public final class DictationController {
         switch outcome {
         case .landed:
             // Stays in pasting until the record is saved, so a new dictation cannot stop a watch that has not begun.
-            end(showing: record.fallbackReason == nil ? .pasted : .pastedRawTranscript,
+            end(showing: record.fallbackReason == nil ? .pasted(text: finished) : .pastedRawTranscript(text: finished),
                 for: Self.pastedShownFor, phase: watches ? .pasting : .ready)
         case .nowhereToPaste:
-            end(showing: .nowhereToPaste)
+            end(showing: .nowhereToPaste(text: finished))
         }
         guard !secure else { return }
         await store.save(record, recording: recording)
