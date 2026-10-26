@@ -221,13 +221,24 @@ def sort_dictation(rec, th):
         # otherwise the whole replace is the user restoring R.
         if tag == "replace" and extra > 0 and i1 == 0:
             x = f.words[:extra]
-            if x == front or not set(x) & dropped:
+            if (x and set(x) <= set(front)) or not set(x) & dropped:
                 ops += [("insert", 0, 0, 0, extra), ("replace", 0, i2, extra, j2)]
                 continue
         elif tag == "replace" and extra > 0 and i2 == n:
             x = f.words[j2 - extra:j2]
-            if x == back or not set(x) & dropped:
+            if (x and set(x) <= set(back)) or not set(x) & dropped:
                 ops += [("replace", i1, i2, j1, j2 - extra), ("insert", n, n, j2 - extra, j2)]
+                continue
+        # An edge insert can be typed words plus R words dropped at that edge; split it in two.
+        elif tag == "insert" and i1 == 0 and front:
+            k = next((k for k in range(j1, j2) if set(f.words[k:j2]) <= set(front)), j2)
+            if j1 < k < j2:
+                ops += [("insert", 0, 0, j1, k), ("insert", 0, 0, k, j2)]
+                continue
+        elif tag == "insert" and i1 == n and back:
+            k = next((k for k in range(j2, j1, -1) if set(f.words[j1:k]) <= set(back)), j1)
+            if j1 < k < j2:
+                ops += [("insert", n, n, j1, k), ("insert", n, n, k, j2)]
                 continue
         ops.append((tag, i1, i2, j1, j2))
     # A hyphen- or apostrophe-only change keeps its words.
@@ -267,12 +278,15 @@ def sort_dictation(rec, th):
     # (4-7) replaces the punctuation on both its sides, and a typed addition (2) brought the
     # punctuation before it. Spans with no cleanup edit (8, 9) get their own category-4 fix.
     for idx, (tag, i1, i2, j1, j2) in enumerate(ops):
-        if tag != "equal":
-            if word_spans[idx]["category"] in (8, 9) and i1 < i2 and j1 < j2 \
-                    and p.unit(i2 - 1)[1:] != f.unit(j2 - 1)[1:]:
-                span(9 if rewrite else 4, i2 - 1, i2, j2 - 1, j2, surface="punct")
-            continue
         nxt = word_spans.get(idx + 1)
+        if tag != "equal":
+            # Skipped in a rewrite (the span is already 9) and before an addition (which brought it).
+            old, new = p.unit(i2 - 1)[1:] if i2 else (), f.unit(j2 - 1)[1:] if j2 else ()
+            if (not rewrite and word_spans[idx]["category"] in (8, 9) and i1 < i2 and j1 < j2
+                    and not (nxt and nxt["category"] == 2) and old != new):
+                s = span(4, i2 - 1, i2, j2 - 1, j2, surface="punct")
+                s["oldWords"], s["newWords"], s["similarity"] = list(old), list(new), 1.0
+            continue
         trim = nxt is not None and nxt["category"] in (2, 4, 5, 6, 7)
 
         def differs(d):

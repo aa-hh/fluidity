@@ -87,7 +87,8 @@ LONG = "meet me at the pier then walk to the bear den and feed the deer near the
 TWENTY = "meet me at the pier then walk to the bear den and feed the deer near the sail boat now"
 # Every dictation a pull-request review found mishandled. raw, final, cleaned (None: same as raw), pasted,
 # the sorted categories, then optional checks: speech or cleanup output (None: no row),
-# share_above (changedShare must exceed it), raw_in_range (every span's R positions ordered and in R).
+# words (each span's category, oldWords and newWords), share_above (changedShare must exceed it),
+# raw_in_range (every span's R positions ordered and in R).
 REVIEW_CASES = [
     # a filler the cleanup dropped beside the fixed word stays out of its raw words
     dict(raw="um meet me at the pier", cleaned="meet me at the pier", final="meat me at the pier",
@@ -143,7 +144,7 @@ REVIEW_CASES = [
          final="yeah send the walrus file to the team", cats=[6], cleanup="yeah send the walrus file to the team"),
     # a misheard word owns the punctuation after it, and a change there is a cleanup fix
     dict(raw="meet me at the pier. then go home", final="meet me at the peer, then go home", cats=[4, 8],
-         speech="meet me at the peer. then go home", cleanup="meet me at the pier, then go home"),
+         words=[(4, ["."], [","]), (8, ["pier"], ["peer"])], speech="meet me at the peer. then go home", cleanup="meet me at the pier, then go home"),
     # punctuation typed with an end addition is not a fix
     dict(raw="its walrus time now", final="it's walrus time now, ok", cats=[2, 4], cleanup="it's walrus time now"),
     # a fix to text the finisher changed, which C does not hold, writes no cleanup row
@@ -162,6 +163,20 @@ REVIEW_CASES = [
          speech="meet me at the peer then go home"),
     # the modifier-letter apostrophe is an app rewrite
     dict(raw="we'll meet at the pier today", final="we\u02bcll meet at the pier today", cats=[1]),
+    # an edge insert of typed words and R words dropped there splits: 2 for the typed, 6 for R's
+    dict(raw="so meet me at the pier then walk to the den", cleaned="meet me at the pier then walk to the den",
+         final="hey so meet me at the pier then walk to the den", cats=[2, 6],
+         cleanup="so meet me at the pier then walk to the den"),
+    dict(raw="meet me at the pier then walk to the den now", cleaned="meet me at the pier then walk to the den",
+         final="meet me at the pier then walk to the den now please", cats=[2, 6],
+         cleanup="meet me at the pier then walk to the den now"),
+    # some of the R words dropped at an edge, restored beside a fix
+    dict(raw="so yeah meet me at the pier then walk to the den", cleaned="meet me at the pier then walk to the den",
+         final="yeah meat me at the pier then walk to the den", cats=[6, 8]),
+    # a comma typed between a misheard fix and an addition is the addition's, not a fix
+    dict(raw=LONG, final=LONG.replace("boat", "boot, thanks"), cats=[2, 8], cleanup=None),
+    # a rewrite adds no punctuation span on top of its own
+    dict(raw="meet me at the pier", final="meat me at the peer,", cats=[9, 9], speech=None),
 ]
 
 
@@ -175,6 +190,9 @@ class ReviewCasesTest(unittest.TestCase):
                 for key in ("speech", "cleanup"):
                     if key in case:
                         self.assertEqual(res[key], case[key])
+                if "words" in case:
+                    self.assertEqual(sorted((s["category"], s["oldWords"], s["newWords"]) for s in res["spans"]),
+                                     case["words"])
                 if "share_above" in case:
                     self.assertGreater(res["changedShare"], case["share_above"])
                 if case.get("raw_in_range"):
