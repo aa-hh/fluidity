@@ -62,6 +62,18 @@ private let decoderCases: [DecoderCase] = [
         expected: [.keyDown, .ignore, .keyUp]
     ),
     DecoderCase(
+        name: "held ordinary key keeps its repeats after the modifier is let go",
+        key: commandSpace,
+        events: [down(49, .command), down(49, [], repeat: true), up(49)],
+        expected: [.keyDown, .ignore, .keyUp]
+    ),
+    DecoderCase(
+        name: "held paste-again key keeps its repeats after the modifiers are let go",
+        key: rightOption,
+        events: [down(9, [.control, .option]), down(9, [], repeat: true), up(9)],
+        expected: [.pasteAgain, .ignore, .ignore]
+    ),
+    DecoderCase(
         name: "ordinary key with the wrong modifiers passes through",
         key: commandSpace,
         events: [down(49), up(49), down(49, [.command, .shift]), up(49, [.command, .shift])],
@@ -120,4 +132,24 @@ func decoderTurnsEventsIntoDecisions(_ testCase: DecoderCase) {
     #expect(HotkeyDecision.ignore.swallows(up(53)))
     #expect(!HotkeyDecision.keyDown.swallows(flags(61, .rightOption)))
     #expect(!HotkeyDecision.passThrough.swallows(down(0)))
+}
+
+// Turns red if a held Escape's repeats reach the focused app once the cancel has stopped recording.
+@Test func heldEscapeRepeatsStaySwallowedAfterCancel() {
+    var decoder = HotkeyDecoder(key: rightOption)
+    decoder.isRecording = true
+    #expect(decoder.decode(down(53)) == .cancel)
+    decoder.isRecording = false
+    #expect([down(53, repeat: true), up(53), down(53)].map { decoder.decode($0) } == [.ignore, .ignore, .passThrough])
+}
+
+// Turns red if changing the shortcuts drops the recording state or loses the key up of a held dictation key.
+@Test func changingKeysKeepsRecordingAndReleasesAHeldKey() {
+    var decoder = HotkeyDecoder(key: rightOption, pasteAgainKey: pasteAgain)
+    decoder.isRecording = true
+    #expect(decoder.decode(flags(61, [.option, .rightOption])) == .keyDown)
+    #expect(decoder.setKeys(rightOption, pasteAgainKey: nil) == nil)
+    #expect(decoder.setKeys(commandSpace, pasteAgainKey: nil) == .keyUp)
+    #expect(decoder.decode(down(53)) == .cancel)
+    #expect([down(49, .command), up(49)].map { decoder.decode($0) } == [.keyDown, .keyUp])
 }

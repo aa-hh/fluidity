@@ -65,6 +65,8 @@ public actor Transcriber {
     private var ticker: Task<Void, Never>?
     /// The preview pass on the engine, possibly left over from a recording that already ended.
     private var runningPass: Task<Void, Never>?
+    /// Set while a final pass or its recheck is on the engine; a new recording's ticks skip until it clears.
+    private var finalPassRunning = false
 
     public init(
         engine: any SpeechEngine,
@@ -111,6 +113,8 @@ public actor Transcriber {
     public func finish(recording: [Float], wordList: [String] = []) async throws -> RawTranscript {
         endPreviews()
         await runningPass?.value
+        finalPassRunning = true
+        defer { finalPassRunning = false }
 
         var transcript = Transcript(text: "", wordTimings: [])
         let transcriptionTime = try await clock.measure {
@@ -150,7 +154,7 @@ public actor Transcriber {
     }
 
     private func tick() {
-        guard runningPass == nil, let preview else { return }
+        guard runningPass == nil, !finalPassRunning, let preview else { return }
         let audio = recording
         let number = recordingNumber
         runningPass = Task { await previewPass(on: audio, recordingNumber: number, preview: preview) }

@@ -1,6 +1,6 @@
 # Cheap review
 
-You are reviewing one branch of {{PROJECT_NAME}}, {{ONE_LINE_DESCRIPTION}}, before it merges to `main`. You get the diff and the text of the `AGENTS.md` files for the folders it touches. You have no tools: judge the diff alone.
+You are reviewing one branch of Fluidity, a native Mac dictation app that pastes what you say into whatever app you are typing in, with speech-to-text running on the Mac, before it merges to `main`. You get the diff and the text of the `AGENTS.md` files for the folders it touches. You have no tools: judge the diff alone.
 
 Review only the changed lines. Ignore pre-existing problems on lines the branch did not modify.
 

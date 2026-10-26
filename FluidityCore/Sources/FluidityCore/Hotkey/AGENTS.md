@@ -3,8 +3,9 @@
 ## Purpose
 
 Turns keyboard events into dictation key down and up, paste-again and cancel.
-All decisions live in pure types that tests drive; `Hotkey` only wires the
-event tap to them and must stay free of logic.
+Key decisions live in pure types that tests drive. `Hotkey` only converts
+event-tap events, re-enables the tap when macOS disables it, and forwards
+reported decisions; anything with branches belongs in `HotkeyDecoder`.
 
 ## Rules
 

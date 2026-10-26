@@ -12,6 +12,10 @@ cd "$(dirname "$0")/.."
 full=0
 [ "${1:-}" = --full ] && { full=1; shift; }
 
+# eval/'s Python tests: a few seconds, no build, and none of the swift test
+# options in "$@" apply to them.
+python3 -I -m unittest discover -s eval -t eval
+
 # GitHub's runners (CI=true) have no remote-run; there the command runs bare.
 run="$HOME/.claude/scripts/remote-run"
 [ "${CI:-}" = true ] && run=

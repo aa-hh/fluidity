@@ -1,10 +1,11 @@
-# {{PROJECT_NAME}}
+# Fluidity
 
 ## Purpose
 
-{{ONE_LINE_DESCRIPTION}}. `CONTEXT.md` defines the domain words; `docs/adr/`
-records decisions. This file orients an agent to where things live and the
-rules that apply everywhere.
+A native Mac dictation app that pastes what you say into whatever app you are
+typing in, with speech-to-text running on the Mac. `CONTEXT.md` defines the
+domain words; `docs/adr/` records decisions. This file orients an agent to
+where things live and the rules that apply everywhere.
 
 ## What belongs in an AGENTS.md (HARD RULE)
 
@@ -49,6 +50,7 @@ symbol you cannot find in source, believe the source and fix the doc.
 - `scripts/` → the only sanctioned way to build, test, review and land.
 - `.githooks/` → commit and push guards; settings in `project.conf`.
 - `docs/review/` → instructions for each branch-review pass.
+- `eval/` → builds the sealed speech test set and scores models against it.
 - `.scratch/` → research write-ups and notes linked from Linear issues; never tickets or status.
 
 ## Rules (all targets)
@@ -75,7 +77,7 @@ symbol you cannot find in source, believe the source and fix the doc.
 - **Dev tooling that outlives its session is labelled, parked and purgeable.**
   Anything that keeps running after the session that made it (a launchd/cron
   job, login item, file watcher, watchdog) must (a) carry a name starting
-  `{{PROJECT_SLUG}}.dev.`, (b) live in the repo's `dev/`, never inside the
+  `fluidity.dev.`, (b) live in the repo's `dev/`, never inside the
   app's own data directory, and (c) be removable by a purge script updated in
   the same change. Unlabelled tooling dropped onto a machine runs unnoticed
   for days.

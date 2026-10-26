@@ -118,6 +118,28 @@ struct TranscriberTests {
         #expect(await previews.next() == nil)
     }
 
+    @Test func aNewRecordingWaitsForTheLastFinalPass() async throws {
+        // Letting a new recording's tick start a preview while the last final pass is on the engine turns this red.
+        let engine = FakeSpeechEngine()
+        let (transcriber, _) = makeTranscriber(engine: engine)
+        var started = engine.started.makeAsyncIterator()
+        engine.hold()
+        let finishing = Task { try await transcriber.finish(recording: oneSecond) }
+        _ = await started.next()
+
+        var previews = await transcriber.startRecording().makeAsyncIterator()
+        await transcriber.append(chunk: [Float](repeating: 0, count: 8_000))
+        await advance(by: .seconds(1))
+        await settle()
+        #expect(engine.audioLengths == [16_000])
+
+        engine.release()
+        _ = try await finishing.value
+        await advance(by: .seconds(1))
+        #expect(await previews.next() == "heard 8000")
+        #expect(engine.mostAtOnce == 1)
+    }
+
     @Test(arguments: [
         ([String](), true, false),
         (["Fluidity"], false, false),

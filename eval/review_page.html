@@ -1,0 +1,204 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Test set review</title>
+<style>
+  :root { color-scheme: light dark; --line: #8885; --mark: #ffe08a; --nomaj: #ff9f8a; --picked: #2a9d4b; }
+  body { font: 15px/1.7 -apple-system, system-ui, sans-serif; max-width: 900px; margin: 0 auto; padding: 0 16px 6em; background: Canvas; color: CanvasText; }
+  header { position: sticky; top: 0; z-index: 4; background: Canvas; display: flex; flex-wrap: wrap; gap: .5em 1em; align-items: center; padding: .7em 0; border-bottom: 1px solid var(--line); }
+  header b { font-size: 17px; }
+  .clip { padding: 1em 0; border-bottom: 1px solid var(--line); }
+  .clip.checked .text { opacity: .55; }
+  .head { display: flex; flex-wrap: wrap; gap: .4em 1em; align-items: center; font-size: 13px; color: GrayText; }
+  .head b { color: CanvasText; font-size: 14px; }
+  audio { width: 100%; margin: .4em 0; }
+  .text { margin: .3em 0; line-height: 1.2; }
+  .w { display: inline-flex; flex-direction: column; align-items: center; margin: 0 .12em .55em; cursor: pointer; border-radius: 4px; }
+  .w > small { font-size: 10px; color: GrayText; font-variant-numeric: tabular-nums; margin-top: 1px; }
+  .w:hover > span, .w:hover > button { text-decoration: underline; }
+  .w.now > span, .w.now > button { outline: 2px solid #3b82f6; outline-offset: 1px; border-radius: 3px; }
+  .w.now > small { color: #3b82f6; }
+  button.mark { font: inherit; color: #000; border: 0; border-radius: 4px; padding: 0 4px; background: var(--mark); cursor: pointer; }
+  button.mark.nomaj { background: var(--nomaj); }
+  button.mark.picked { box-shadow: inset 0 -3px var(--picked); }
+  button.mark.empty { font-style: italic; opacity: .8; }
+  .menu { position: absolute; z-index: 9; min-width: 14em; background: Canvas; border: 1px solid var(--line); border-radius: 8px; padding: 4px; box-shadow: 0 6px 24px #0004; }
+  .menu button { display: block; width: 100%; text-align: left; font: inherit; color: CanvasText; background: none; border: 0; border-radius: 4px; padding: 4px 8px; cursor: pointer; }
+  .menu button:hover, .menu button:focus { background: #8883; }
+  .menu small { color: GrayText; margin-left: .4em; }
+  textarea { width: 100%; box-sizing: border-box; font: inherit; min-height: 7em; }
+</style>
+
+<header>
+  <b>Test set review</b>
+  <span id="progress"></span>
+  <label><input type="checkbox" id="hide"> Hide checked clips</label>
+  <button id="export">Export checked clips</button>
+</header>
+<p>The small number under each word is when it starts in the recording; while audio plays, the current word is outlined in blue. Click any word to play from the word before it. Click a mark to hear that moment and pick what you actually said: one of the three versions, or type your own. Yellow means two of the three agreed; red means all three differed. If a word that isn't marked is wrong, use "Edit text". Always pick what you actually said, word for word, even when it's ungrammatical or a model offers a "better" word: keep your "um"s, repeats and false starts. Fixing grammar is cleanup's job; this text scores how well each model hears. Tick "Checked" once a clip reads exactly as spoken. Your work is saved in this browser as you go; "Export checked clips" downloads <code>references.reviewed.jsonl</code>.</p>
+<main id="clips"></main>
+
+<script type="application/json" id="data">/*DATA*/[]</script>
+<script>
+const rows = JSON.parse(document.getElementById("data").textContent);
+const KEY = "fluidity-test-review-v1";
+let state = {};
+try { state = JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) {}
+function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
+function st(id) { return state[id] || (state[id] = { choices: {}, override: null, checked: false }); }
+
+function el(tag, props, ...kids) {
+  const n = Object.assign(document.createElement(tag), props || {});
+  for (const k of kids) n.append(k);
+  return n;
+}
+
+function textOf(r) {
+  const s = st(r.id);
+  if (s.override !== null) return s.override;
+  return r.segments.map((g, i) => typeof g === "string" ? g : (i in s.choices ? s.choices[i] : g.chosen))
+    .filter(Boolean).join(" ");
+}
+
+function fmt(t) {
+  if (t === null || t === undefined) return "";
+  const m = Math.floor(t / 60), s = t - m * 60;
+  return m + ":" + (s < 10 ? "0" : "") + s.toFixed(1);
+}
+
+// Play from the start of the word before item k, and stop a few seconds after item k.
+function playFrom(audio, items, k) {
+  let j = k - 1;
+  while (j >= 0 && items[j].t === null) j--;
+  const start = j >= 0 ? items[j].t : 0;
+  const at = items[k].t === null ? start : items[k].t;
+  document.querySelectorAll("audio").forEach(a => { if (a !== audio) a.pause(); });
+  const go = () => {
+    audio.currentTime = Math.max(0, start - 0.15);
+    audio.play().then(() => { audio.dataset.stop = String(at + 3); });
+  };
+  // A jump before the file's length is known is silently ignored, so load first.
+  if (audio.readyState >= 1) go();
+  else { audio.addEventListener("loadedmetadata", go, { once: true }); audio.preload = "auto"; audio.load(); }
+}
+
+// Outline the word playing now, following the audio frame by frame while it
+// plays. Reads audio.items, which each redraw of the clip replaces.
+function follow(audio) {
+  let raf = 0;
+  const mark = () => {
+    const items = audio.items || [];
+    const t = audio.currentTime + 0.05;
+    let k = -1;
+    for (let i = 0; i < items.length; i++) if (items[i].t !== null && items[i].t <= t) k = i;
+    items.forEach((it, i) => it.el.classList.toggle("now", i === k && (!audio.paused || audio.currentTime > 0)));
+    if (audio.dataset.stop && audio.currentTime >= Number(audio.dataset.stop)) { audio.pause(); delete audio.dataset.stop; }
+  };
+  const loop = () => { mark(); raf = requestAnimationFrame(loop); };
+  audio.addEventListener("play", () => { cancelAnimationFrame(raf); loop(); });
+  // Any pause ends a word's short replay, so the player's own play button then plays on freely.
+  audio.addEventListener("pause", () => { cancelAnimationFrame(raf); delete audio.dataset.stop; mark(); });
+  audio.addEventListener("seeked", mark);
+}
+
+let openMenu = null;
+function closeMenu() { if (openMenu) { openMenu.remove(); openMenu = null; } }
+document.addEventListener("click", e => { if (openMenu && !openMenu.contains(e.target) && !e.target.classList.contains("mark")) closeMenu(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeMenu(); });
+
+function showMenu(button, r, i, g, rerender, replay) {
+  closeMenu();
+  const s = st(r.id);
+  const bySource = new Map();
+  for (const src of ["wispr", "v2", "v3"]) {
+    const v = g[src];
+    bySource.set(v, (bySource.get(v) || []).concat(src));
+  }
+  const menu = el("div", { className: "menu" });
+  const pick = v => { s.choices[i] = v; save(); closeMenu(); rerender(); };
+  for (const [v, srcs] of bySource) {
+    menu.append(el("button", { onclick: () => pick(v) }, v || "(nothing: no word here)", el("small", {}, srcs.join(", "))));
+  }
+  menu.append(el("button", { onclick: () => {
+    const v = prompt("What did you actually say here?", i in s.choices ? s.choices[i] : g.chosen);
+    if (v !== null) pick(v.trim());
+  } }, "Type what I said…"));
+  menu.append(el("button", { onclick: replay }, "▶ Play this moment again"));
+  const rect = button.getBoundingClientRect();
+  menu.style.left = (window.scrollX + rect.left) + "px";
+  menu.style.top = (window.scrollY + rect.bottom + 4) + "px";
+  document.body.append(menu);
+  openMenu = menu;
+  menu.querySelector("button").focus();
+}
+
+function renderClip(r, node) {
+  const s = st(r.id);
+  const marks = r.segments.filter(g => typeof g !== "string").length;
+  const rerender = () => { renderClip(r, node); updateProgress(); };
+  node.className = "clip" + (s.checked ? " checked" : "");
+  node.hidden = document.getElementById("hide").checked && s.checked;
+  // One player per clip for the page's life, so redrawing after a pick doesn't stop playback.
+  if (!node.audio) { node.audio = el("audio", { controls: true, preload: "none", src: r.wav }); follow(node.audio); }
+  const audio = node.audio;
+
+  const checked = el("input", { type: "checkbox", checked: s.checked, onchange: e => { s.checked = e.target.checked; save(); rerender(); } });
+  const editBtn = el("button", { onclick: () => { if (s.override === null) s.override = textOf(r); save(); rerender(); } }, "Edit text");
+  const head = el("div", { className: "head" }, el("b", {}, r.id), marks + " marked", el("label", {}, checked, " Checked"));
+  if (s.override === null) head.append(editBtn);
+
+  let body;
+  if (s.override !== null) {
+    const ta = el("textarea", { value: s.override, oninput: e => { s.override = e.target.value; save(); } });
+    const reset = el("button", { onclick: () => { if (confirm("Throw away your typed edits and go back to the marks?")) { s.override = null; save(); rerender(); } } }, "Back to marks");
+    body = el("div", { className: "text" }, ta, reset);
+  } else {
+    body = el("div", { className: "text" });
+    const items = [];
+    const addWord = (inner, t) => {
+      const k = items.length;
+      const w = el("span", { className: "w" }, inner, el("small", {}, fmt(t)));
+      items.push({ el: w, t: t === undefined ? null : t });
+      body.append(w);
+      return k;
+    };
+    r.segments.forEach((g, i) => {
+      if (typeof g === "string") {
+        g.split(" ").forEach((word, j) => {
+          const k = addWord(el("span", {}, word), r.times[i][j]);
+          items[k].el.onclick = () => playFrom(audio, items, k);
+        });
+        return;
+      }
+      const value = i in s.choices ? s.choices[i] : g.chosen;
+      const b = el("button", {
+        className: "mark" + (g.majority ? "" : " nomaj") + (i in s.choices ? " picked" : "") + (value ? "" : " empty"),
+        title: "Click to hear this moment and choose",
+      }, value || "(nothing)");
+      const k = addWord(b, r.times[i]);
+      const replay = () => playFrom(audio, items, k);
+      b.onclick = e => { e.stopPropagation(); replay(); showMenu(b, r, i, g, rerender, replay); };
+    });
+    audio.items = items;
+  }
+  if (s.override !== null) audio.items = [];
+  node.replaceChildren(head, audio, body);
+}
+
+function updateProgress() {
+  const done = rows.filter(r => st(r.id).checked).length;
+  document.getElementById("progress").textContent = done + " of " + rows.length + " clips checked";
+}
+
+const main = document.getElementById("clips");
+const nodes = rows.map(r => { const n = el("section"); main.append(n); renderClip(r, n); return n; });
+document.getElementById("hide").onchange = () => rows.forEach((r, k) => renderClip(r, nodes[k]));
+document.getElementById("export").onclick = () => {
+  const done = rows.filter(r => st(r.id).checked);
+  if (!done.length) { alert("Tick \"Checked\" on at least one clip first."); return; }
+  const lines = done.map(r => JSON.stringify({ id: r.id, wav: r.wav, reference: textOf(r), typed: st(r.id).override !== null }));
+  const a = el("a", { href: URL.createObjectURL(new Blob([lines.join("\n") + "\n"], { type: "application/jsonl" })), download: "references.reviewed.jsonl" });
+  document.body.append(a); a.click(); a.remove();
+};
+updateProgress();
+</script>
