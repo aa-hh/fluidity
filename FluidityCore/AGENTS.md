@@ -28,6 +28,7 @@ run without the app, the microphone or the speech model.
 ## Map
 
 - `FluidityCore` → the library target the app imports.
+- `Sources/FluidityCore/<Part>/` → one folder per part, named as ADR 0001 (`DictationController`, `Hotkey`, `AudioCapture`, `Transcriber`, `CleanupClient`, `Settings`, `FocusedField`, `Finisher`, `Paster`, `EditWatcher`, `DictationStore`); a part's traps live in its own `AGENTS.md`.
 - `DictationRecord` → the saved record of one dictation, shared by every part.
 - `FluidityTestSupport` → helpers all four test targets share, such as `ManualClock`.
 - `DictationTests`, `AudioTests`, `CleanupTests`, `FieldTests` → the four test targets.

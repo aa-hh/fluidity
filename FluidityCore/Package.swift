@@ -19,7 +19,18 @@ let package = Package(
     targets: [
         .target(
             name: "FluidityCore",
-            dependencies: [.product(name: "FluidAudio", package: "FluidAudio")]
+            dependencies: [.product(name: "FluidAudio", package: "FluidAudio")],
+            // Folder notes for agents, not sources.
+            exclude: [
+                "AudioCapture/AGENTS.md",
+                "DictationController/AGENTS.md",
+                "DictationStore/AGENTS.md",
+                "EditWatcher/AGENTS.md",
+                "FocusedField/AGENTS.md",
+                "Hotkey/AGENTS.md",
+                "Paster/AGENTS.md",
+                "Transcriber/AGENTS.md",
+            ],
         ),
         .target(name: "FluidityTestSupport", path: "Tests/TestSupport"),
         .testTarget(name: "DictationTests", dependencies: ["FluidityCore", "FluidityTestSupport"]),
