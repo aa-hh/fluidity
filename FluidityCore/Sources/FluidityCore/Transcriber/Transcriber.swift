@@ -51,7 +51,8 @@ public struct RawTranscript: Sendable {
 
 /// Runs the live preview while recording and the final pass on release, one pass at a time on one engine.
 public actor Transcriber {
-    static let previewInterval: Duration = .seconds(1)
+    /// The pause after each preview pass, or each voice check, before the next one.
+    static let previewGap: Duration = .milliseconds(250)
 
     private let engine: any SpeechEngine
     private let voiceDetector: any VoiceDetecting
@@ -65,7 +66,7 @@ public actor Transcriber {
     private var ticker: Task<Void, Never>?
     /// The preview pass on the engine, possibly left over from a recording that already ended.
     private var runningPass: Task<Void, Never>?
-    /// Set while a final pass or its recheck is on the engine; a new recording's ticks skip until it clears.
+    /// Set while a final pass or its recheck is on the engine; a new recording's preview passes wait until it clears.
     private var finalPassRunning = false
 
     public init(
@@ -96,9 +97,9 @@ public actor Transcriber {
         preview = continuation
         ticker = Task { [weak self, clock] in
             while true {
-                do { try await clock.sleep(for: Self.previewInterval) } catch { return }
+                do { try await clock.sleep(for: Self.previewGap) } catch { return }
                 guard let self else { return }
-                await self.tick()
+                await self.step()
             }
         }
         return stream
@@ -112,7 +113,7 @@ public actor Transcriber {
     /// Ends the live preview and runs the final pass on `recording`, which includes the tail after release.
     public func finish(recording: [Float], wordList: [String] = []) async throws -> RawTranscript {
         endPreviews()
-        await runningPass?.value
+        while let pass = runningPass { await pass.value }
         finalPassRunning = true
         defer { finalPassRunning = false }
 
@@ -153,11 +154,15 @@ public actor Transcriber {
         preview = nil
     }
 
-    private func tick() {
-        guard runningPass == nil, !finalPassRunning, let preview else { return }
+    /// One preview iteration: waits for a pass left over from an earlier recording, then runs and awaits one pass.
+    private func step() async {
+        if let leftover = runningPass { await leftover.value }
+        guard !Task.isCancelled, runningPass == nil, !finalPassRunning, let preview else { return }
         let audio = recording
         let number = recordingNumber
-        runningPass = Task { await previewPass(on: audio, recordingNumber: number, preview: preview) }
+        let pass = Task { await previewPass(on: audio, recordingNumber: number, preview: preview) }
+        runningPass = pass
+        await pass.value
     }
 
     private func previewPass(on audio: [Float], recordingNumber number: Int, preview: AsyncStream<String>.Continuation) async {
@@ -166,7 +171,7 @@ public actor Transcriber {
             guard (try? await voiceDetector.hasSpeech(in: audio)) == true else { return }
             if number == recordingNumber { speechHeard = true }
         }
-        // A failed preview pass is dropped; the next tick tries again.
+        // A failed preview pass is dropped; the next pass tries again.
         if let text = try? await engine.transcribe(audio).text {
             preview.yield(text)
         }

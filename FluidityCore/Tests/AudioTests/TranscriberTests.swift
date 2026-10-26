@@ -23,7 +23,7 @@ struct TranscriberTests {
         return (transcriber, voice)
     }
 
-    /// Lets every task that is ready run, so a tick that should not start a pass has had its chance to.
+    /// Lets every task that is ready run, so a step that should not start a pass has had its chance to.
     func settle() async {
         for _ in 0..<100 { await Task.yield() }
     }
@@ -42,38 +42,38 @@ struct TranscriberTests {
         await transcriber.append(chunk: oneSecond)
 
         for _ in 0..<3 {
-            await advance(by: .seconds(1))
+            await advance(by: .milliseconds(250))
             _ = await checks.next()
         }
         await settle()
         #expect(engine.audioLengths.isEmpty)
 
         voice.speech = true
-        await advance(by: .seconds(1))
+        await advance(by: .milliseconds(250))
         #expect(await previews.next() == "heard 16000")
     }
 
-    @Test func previewsRunAboutOnceASecondOnTheWholeRecordingSoFar() async {
-        // Ticking faster than once a second, or transcribing only the newest chunk, turns this red.
+    @Test func passesRunAfterEachGapOnTheWholeRecordingSoFar() async {
+        // Starting a pass before the gap has passed, or transcribing only the newest chunk, turns this red.
         let engine = FakeSpeechEngine()
         let (transcriber, _) = makeTranscriber(engine: engine)
         var previews = await transcriber.startRecording().makeAsyncIterator()
         await transcriber.append(chunk: oneSecond)
 
-        await advance(by: .milliseconds(500))
+        await advance(by: .milliseconds(200))
         await settle()
         #expect(engine.audioLengths.isEmpty)
-        await advance(by: .milliseconds(500))
+        await advance(by: .milliseconds(50))
         #expect(await previews.next() == "heard 16000")
 
         await transcriber.append(chunk: oneSecond)
-        await advance(by: .seconds(1))
+        await advance(by: .milliseconds(250))
         #expect(await previews.next() == "heard 32000")
         #expect(engine.audioLengths == [16_000, 32_000])
     }
 
-    @Test func aSlowPassMakesTheNextTickSkip() async {
-        // Starting a pass on a tick while the previous pass is still running turns this red.
+    @Test func aSlowPassDelaysTheNextPassInsteadOfOverlappingIt() async {
+        // Starting a second pass while the previous one is still running turns this red.
         let engine = FakeSpeechEngine()
         let (transcriber, _) = makeTranscriber(engine: engine)
         var started = engine.started.makeAsyncIterator()
@@ -81,15 +81,15 @@ struct TranscriberTests {
         await transcriber.append(chunk: oneSecond)
         engine.hold()
 
-        await advance(by: .seconds(1))
+        await advance(by: .milliseconds(250))
         _ = await started.next()
-        await advance(by: .seconds(1))
+        await advance(by: .milliseconds(250))
         await settle()
         #expect(engine.audioLengths.count == 1)
 
         engine.release()
         #expect(await previews.next() == "heard 16000")
-        await advance(by: .seconds(1))
+        await advance(by: .milliseconds(250))
         _ = await started.next()
         #expect(engine.audioLengths.count == 2)
         #expect(engine.mostAtOnce == 1)
@@ -103,7 +103,7 @@ struct TranscriberTests {
         var previews = await transcriber.startRecording().makeAsyncIterator()
         await transcriber.append(chunk: oneSecond)
         engine.hold()
-        await advance(by: .seconds(1))
+        await advance(by: .milliseconds(250))
         _ = await started.next()
 
         let withTail = oneSecond + [Float](repeating: 0, count: 3_200)
@@ -119,7 +119,7 @@ struct TranscriberTests {
     }
 
     @Test func aNewRecordingWaitsForTheLastFinalPass() async throws {
-        // Letting a new recording's tick start a preview while the last final pass is on the engine turns this red.
+        // Letting a new recording's preview pass start while the last final pass is on the engine turns this red.
         let engine = FakeSpeechEngine()
         let (transcriber, _) = makeTranscriber(engine: engine)
         var started = engine.started.makeAsyncIterator()
@@ -129,13 +129,13 @@ struct TranscriberTests {
 
         var previews = await transcriber.startRecording().makeAsyncIterator()
         await transcriber.append(chunk: [Float](repeating: 0, count: 8_000))
-        await advance(by: .seconds(1))
+        await advance(by: .milliseconds(250))
         await settle()
         #expect(engine.audioLengths == [16_000])
 
         engine.release()
         _ = try await finishing.value
-        await advance(by: .seconds(1))
+        await advance(by: .milliseconds(250))
         #expect(await previews.next() == "heard 8000")
         #expect(engine.mostAtOnce == 1)
     }
@@ -162,12 +162,12 @@ struct TranscriberTests {
     }
 
     @Test func cancelEndsThePreviewAndStopsPasses() async {
-        // Leaving the preview ticker running after cancel turns this red.
+        // Leaving the preview loop running after cancel turns this red.
         let engine = FakeSpeechEngine()
         let (transcriber, _) = makeTranscriber(engine: engine)
         var previews = await transcriber.startRecording().makeAsyncIterator()
         await transcriber.append(chunk: oneSecond)
-        await advance(by: .seconds(1))
+        await advance(by: .milliseconds(250))
         #expect(await previews.next() == "heard 16000")
 
         await transcriber.cancel()
