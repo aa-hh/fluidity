@@ -58,6 +58,7 @@ final class SettingsModel {
     private(set) var recordingSlot: ShortcutSlot?
     private(set) var shortcutProblem: ShortcutProblem?
     var launchAtLogin = false
+    var liveWords: LiveWords = .inPill
 
     // MARK: Cleanup
 
@@ -80,6 +81,7 @@ final class SettingsModel {
     // MARK: User actions, filled by the app shell
 
     var onLaunchAtLoginChange: (Bool) -> Void = { _ in }
+    var onLiveWordsChange: (LiveWords) -> Void = { _ in }
     var onCleanupEnabledChange: (Bool) -> Void = { _ in }
     /// The user entered a key; the shell saves it and marks any saved key `.accepted` without checking it.
     var onAPIKeySubmit: (String) -> Void = { _ in }
@@ -112,6 +114,11 @@ final class SettingsModel {
     func changeLaunchAtLogin(_ on: Bool) {
         launchAtLogin = on
         onLaunchAtLoginChange(on)
+    }
+
+    func changeLiveWords(_ choice: LiveWords) {
+        liveWords = choice
+        onLiveWordsChange(choice)
     }
 
     func changeCleanupEnabled(_ on: Bool) {
