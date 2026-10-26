@@ -26,9 +26,13 @@ public final class AVAudioEngineInput: AudioInput, @unchecked Sendable {
         let engine = AVAudioEngine()
         let node = engine.inputNode
         // The model and retraining both get raw audio: no echo cancellation, noise suppression or gain control.
-        try node.setVoiceProcessingEnabled(false)
+        // Voice processing is off on a fresh input node, and it must stay untouched: calling
+        // `setVoiceProcessingEnabled(false)` rebuilds the input unit, and on a Bluetooth headset the
+        // stream then delivers exact zeros after about a second while the engine keeps running
+        // (AirPods Pro, macOS 27, 26 Oct 2026; a standalone probe showed the same with the call and
+        // clean audio without it).
         let format = node.outputFormat(forBus: 0)
-        log.notice("input start: \(format.sampleRate, privacy: .public) Hz, \(format.channelCount, privacy: .public) ch")
+        log.notice("input start: \(format.sampleRate, privacy: .public) Hz, \(format.channelCount, privacy: .public) ch, voiceProcessing=\(node.isVoiceProcessingEnabled, privacy: .public)")
         guard format.sampleRate > 0, format.channelCount > 0 else {
             log.error("input start: no input device (format \(format.sampleRate, privacy: .public) Hz)")
             throw Failure.noInputDevice

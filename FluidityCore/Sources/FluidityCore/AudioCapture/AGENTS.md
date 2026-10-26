@@ -9,8 +9,11 @@ logic sits over `AudioInput` so tests feed it by hand; only
 
 ## Rules
 
-- **Voice processing stays off.** The speech model and retraining both need the
-  raw audio, room noise included.
+- **Voice processing stays off, and untouched.** The speech model and retraining
+  both need the raw audio, room noise included. It is off on a fresh input node;
+  never call `setVoiceProcessingEnabled(false)` to make sure, because the setter
+  rebuilds the input unit and a Bluetooth headset then delivers exact zeros after
+  about a second while the engine keeps running (AirPods Pro, macOS 27).
 - **Never call `AudioInput.start()` or `stop()` while holding the state lock.**
   `AVAudioEngine` waits for a tap callback in progress when it stops, and that
   callback takes the state lock, so the two would deadlock. A separate lock
