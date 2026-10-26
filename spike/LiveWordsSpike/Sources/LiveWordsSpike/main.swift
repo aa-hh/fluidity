@@ -3,6 +3,8 @@
 //
 // Usage: LiveWordsSpike <mode> <clip-list> <out.jsonl> [model-dir]
 //   a        re-run TDT v2 on the growing recording ~1/s; one AsrManager for preview and final
+//   a250     the loop that merged in AA-333: every 250 ms, Silero on the whole recording until it hears speech, then
+//            a TDT v2 pass on the whole recording, waited for; the final pass waits for a running preview (AA-335)
 //   b160     Parakeet EOU 160 ms streaming live, TDT v2 final
 //   b320     Parakeet EOU 320 ms streaming live, TDT v2 final
 //   ab160 / ab320  both live loops at once; separate AsrManagers for preview and final
@@ -235,10 +237,17 @@ if mode == "boost" {
 
 // MARK: - Live modes
 
-let useA = mode == "a" || mode.hasPrefix("ab")
+let useA = mode == "a" || mode.hasPrefix("ab") || mode == "a250"
 let unifiedVariant: StreamingModelVariant? = ["u320": .parakeetUnified320ms, "u640": .parakeetUnified640ms, "u1120": .parakeetUnified1120ms][mode]
 let eouSize: StreamingChunkSize? = !mode.hasPrefix("u") && mode.hasSuffix("160") ? .ms160 : !mode.hasPrefix("u") && mode.hasSuffix("320") ? .ms320 : nil
-let previewMgr = mode == "a" ? finalMgr : AsrManager(config: .default, models: models)
+let previewMgr = mode == "a" || mode == "a250" ? finalMgr : AsrManager(config: .default, models: models)
+var vad: VadManager?
+if mode == "a250" {
+    let (m, t) = try await timed { try await VadManager() }
+    _ = try await m.process([Float](repeating: 0.001, count: 16000))
+    vad = m
+    emit(["mode": mode, "kind": "setup", "vadLoadSec": t, "footprintAfterVadMB": footprintMB()])
+}
 if previewMgr !== finalMgr { _ = try await tdt(previewMgr, [Float](repeating: 0.001, count: 16000)) }
 var eou: StreamingEouAsrManager?
 if let eouSize {
@@ -289,7 +298,36 @@ for (ci, path) in clips.enumerated() {
         cont.finish()
     }
 
-    let previewTask: Task<([Pass], [Double]), Never>? = useA ? Task {
+    // a250: sleep 250 ms, voice-check the recording so far until speech is heard, then one pass, waited for.
+    var vadCost: [Double] = []
+    var speechHeardAt = -999.0
+    let previewTask: Task<([Pass], [Double]), Never>? = mode == "a250" ? Task {
+        var passes: [Pass] = [], late: [Double] = []
+        var heard = false
+        var next = t0 + 0.25
+        while true {
+            // The app cancels this sleep at release, so stop sleeping as soon as release is seen.
+            while now() < next && !shared.released { try? await Task.sleep(nanoseconds: 2_000_000) }
+            if shared.released { break }
+            let snap = shared.snapshot()
+            if !heard {
+                let s = now()
+                heard = (try? await vad!.process(snap))?.contains { $0.isVoiceActive } ?? false
+                vadCost.append(now() - s)
+                if !heard { next = now() + 0.25; continue }
+                speechHeardAt = now() - t0
+            }
+            let s = now()
+            late.append(s - next)
+            shared.inFlight = true
+            let r = try? await tdt(previewMgr, snap)
+            shared.inFlight = false
+            let e = now()
+            passes.append(Pass(sched: next, start: s, end: e, audioSec: Double(snap.count) / 16000, text: r?.text ?? ""))
+            next = e + 0.25
+        }
+        return (passes, late)
+    } : useA ? Task {
         var passes: [Pass] = [], late: [Double] = []
         var tick = t0 + 0.5
         while true {
@@ -343,13 +381,18 @@ for (ci, path) in clips.enumerated() {
     let release = now()
     shared.released = true
     let inFlightAtRelease = shared.inFlight
-    // Final pass starts the moment the key is released.
+    // a250 mirrors the app: the final pass waits for a running preview pass.
+    var a250Passes: ([Pass], [Double])?
+    if mode == "a250" { a250Passes = await previewTask?.value }
+    let releaseWait = now() - release
+    // Final pass starts the moment the key is released (a250: once the running preview has finished).
     var finalErr = ""
     var final: ASRResult?
     do { final = try await tdt(finalMgr, audio) } catch { finalErr = String(describing: type(of: error)) }
     let finalEnd = now()
 
-    let (passes, late) = await previewTask?.value ?? ([], [])
+    var (passes, late) = a250Passes ?? ([], [])
+    if a250Passes == nil, let t = previewTask { (passes, late) = await t.value }
     var (proc, lag) = await eouTask?.value ?? ([], [])
     var eouFinishSec = 0.0
     if let m = eou {
@@ -407,6 +450,11 @@ for (ci, path) in clips.enumerated() {
         "passLate": late, "eouProc": proc, "eouLagMax": lag.max() ?? 0, "eouFinishSec": eouFinishSec,
         "footprintMB": footprintMB(),
     ]
+    if mode == "a250" {
+        row["vadCost"] = vadCost; row["vadCalls"] = vadCost.count
+        row["speechHeardSec"] = speechHeardAt > -999 ? speechHeardAt - speechStart : -999
+        row["releaseWaitSec"] = releaseWait
+    }
     if uOffline != nil {
         row["uFinalSec"] = uFinalSec; row["uFinalEdits"] = edits(finalWords, words(uText))
         row["uFinalWords"] = words(uText).count; row["uFinalError"] = uErr

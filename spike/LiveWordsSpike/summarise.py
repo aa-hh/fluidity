@@ -16,7 +16,7 @@ def rows(m):
     allr = [json.loads(l) for l in open(p)]
     return allr, [r for r in allr if 'clip' in r]
 
-for m in ['a', 'b160', 'b320', 'ab160', 'ab320', 'u320', 'u640', 'u1120', 'ufinal']:
+for m in ['a', 'a250', 'b160', 'b320', 'ab160', 'ab320', 'u320', 'u640', 'u1120', 'ufinal']:
     allr, c = rows(m)
     if not c: continue
     print(f"\n### {m}  clips={len(c)}")
@@ -38,7 +38,16 @@ for m in ['a', 'b160', 'b320', 'ab160', 'ab320', 'u320', 'u640', 'u1120', 'ufina
             sel = [x for x, a in pc if lo < a <= hi]
             if sel: print(f"     buffer {lo}-{hi} s:", ms(sel))
         late = [x for r in c for x in r['passLate']]
-        print("  passes that ran past the next 1 s tick:", len(late), "of", len(pc), (f"max late {max(late)*1000:.0f} ms" if late else ""))
+        if m == 'a250':
+            print("  pass started late after its 250 ms gap:", ms(late), f"max {max(late)*1000:.0f} ms", "n=", len(late))
+            vc = [x for r in c for x in r['vadCost']]
+            print("  voice checks per clip median:", q([r['vadCalls'] for r in c], .5), " cost each:", ms(vc),
+                  " speech heard after speech start:", ms([r['speechHeardSec'] for r in c if r['speechHeardSec'] > -999]),
+                  f"clips: {sum(r['speechHeardSec'] > -999 for r in c)}/{len(c)}")
+            print("  release waited for a running preview:", ms([r['releaseWaitSec'] for r in c]), " clips with a wait over 10 ms:",
+                  sum(r['releaseWaitSec'] > 0.01 for r in c))
+        else:
+            print("  passes that ran past the next 1 s tick:", len(late), "of", len(pc), (f"max late {max(late)*1000:.0f} ms" if late else ""))
     ep = [x for r in c for x in r['eouProc']]
     if ep:
         print("  streaming process per 100 ms buffer:", ms(ep), " worst lag behind audio p90/max:",
