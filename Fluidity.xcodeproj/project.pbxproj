@@ -20,6 +20,7 @@
 			membershipExceptions = (
 				AGENTS.md,
 				Fluidity.entitlements,
+				Glass/AGENTS.md,
 			);
 			target = F1D0A0000000000000000050 /* Fluidity */;
 		};
