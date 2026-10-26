@@ -38,8 +38,8 @@ final class PillPresenter {
         )
     }
 
-    /// Pastes the transcript waiting in the bubble again; returns true when it landed.
-    var retryPaste: (@MainActor () async -> Bool)?
+    /// Pastes the text waiting in the bubble again; returns true when it landed.
+    var retryPaste: (@MainActor (String) async -> Bool)?
     /// Opens the System Settings pane for a missing permission; a click on the lock bubble calls it.
     var openPermissionSettings: (@MainActor (DictationController.Permission) -> Void)?
     /// Where the live preview shows: in the pill, in a bubble above it, or not at all (the waveform shows instead).
@@ -63,6 +63,8 @@ final class PillPresenter {
     private var lockedPermission: DictationController.Permission?
     /// A failed paste's transcript waits in the bubble beside the pill.
     private var isHoldingFailedPaste = false
+    /// The text that failed to paste, which a click on the bubble retries.
+    private var heldText = ""
 
     private var state: RimState = .idle
     private var stateStartedAt: CFTimeInterval = 0
@@ -116,7 +118,8 @@ final class PillPresenter {
         case .pasted, .pastedRawTranscript:
             // A fallback paste is quiet: it ends in mint like any other.
             self.finish(pasted: true)
-        case .nowhereToPaste:
+        case let .nowhereToPaste(text):
+            self.heldText = text
             self.holdFailedPaste()
         case .cancelled:
             self.finish(pasted: false)
@@ -283,8 +286,9 @@ final class PillPresenter {
             self.isRetrying = false
             return
         }
+        let text = self.heldText
         Task { @MainActor in
-            if await retryPaste() { self.retryPasteSucceeded() } else { self.retryPasteFailed() }
+            if await retryPaste(text) { self.retryPasteSucceeded() } else { self.retryPasteFailed() }
         }
     }
 

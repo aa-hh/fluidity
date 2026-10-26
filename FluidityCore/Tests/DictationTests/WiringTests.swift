@@ -228,7 +228,7 @@ private final class CountingEngine: SpeechEngine, VoiceDetecting, WordListRechec
 
     func hasCandidates(in transcript: Transcript, wordList: [String]) async -> Bool {
         state.withLock { $0.wordList = wordList }
-        return false
+        return true
     }
 
     func recheck(_ transcript: Transcript, audio: [Float], wordList: [String]) async -> Transcript { transcript }
@@ -265,12 +265,12 @@ func previewPassesStopWhenThePreviewIsNoLongerRead() async {
 }
 
 @Test func finalPassUsesTheWordListAndKeepsWordTimings() async throws {
-    // Not passing the settings word list to the final pass, or dropping its word timings, turns this red.
+    // Not passing the settings word list to the final pass, or dropping its word timings or recheck time, turns this red.
     let engine = CountingEngine()
     let transcriber = Transcriber(engine: engine, voiceDetector: engine, rechecker: engine, clock: ManualClock())
     let adapter = TranscriberAdapter(transcriber: transcriber, wordList: { ["Fluidity"] })
     let transcript = try await adapter.transcribe(.init(samples: [0.1, 0.2], sampleRate: 16_000))
-    #expect(transcript == .init(text: "hello", wordTimings: CountingEngine.timings))
+    #expect(transcript == .init(text: "hello", wordTimings: CountingEngine.timings, wordListRecheck: 0))
     #expect(engine.wordList == ["Fluidity"])
 }
 

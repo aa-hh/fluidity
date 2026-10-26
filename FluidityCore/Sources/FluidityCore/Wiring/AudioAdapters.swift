@@ -46,8 +46,7 @@ public struct AudioCaptureAdapter: AudioCapturing {
 
 /// `Transcribing` over `Transcriber`.
 ///
-/// The controller's `Transcript` has no field for `RawTranscript.transcriptionTime` or
-/// `wordListRecheckTime`, so neither reaches the saved record; the controller times the final pass itself.
+/// `RawTranscript.transcriptionTime` is not passed on: the controller times the final pass itself.
 public final class TranscriberAdapter: Transcribing {
     private let transcriber: Transcriber
     private let wordList: @Sendable () -> [String]
@@ -88,6 +87,7 @@ public final class TranscriberAdapter: Transcribing {
 
     public func transcribe(_ recording: DictationController.Recording) async throws -> DictationController.Transcript {
         let raw = try await transcriber.finish(recording: recording.samples, wordList: wordList())
-        return DictationController.Transcript(text: raw.text, wordTimings: raw.wordTimings)
+        return DictationController.Transcript(
+            text: raw.text, wordTimings: raw.wordTimings, wordListRecheck: raw.wordListRecheckTime)
     }
 }

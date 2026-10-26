@@ -1,8 +1,8 @@
 import Foundation
 import os
 
-/// Splits captured audio into the rim's eight voice bands on the capture
-/// thread. Runs eight band-pass filters (`CENTRES` in the prototype's audio.js) and a
+/// Splits captured audio into the rim's eight voice bands, on whichever task
+/// `PillPresenter.feed` is called from, one at a time. Runs eight band-pass filters (`CENTRES` in the prototype's audio.js) and a
 /// 10 ms loudness reading per band, then publishes the latest reading under a
 /// lock for the render loop. Read-only tap: it never alters the samples.
 nonisolated final class RimAudioAnalyzer: @unchecked Sendable {
@@ -35,13 +35,13 @@ nonisolated final class RimAudioAnalyzer: @unchecked Sendable {
     }
 
     private struct Published {
-        // A SIMD value, not an array, so writing it from the capture thread never allocates.
+        // A SIMD value, not an array, so writing it from `ingest` never allocates.
         var bands = SIMD8<Float>()
         var isActive = false
     }
 
-    // Capture-thread state. Only `ingest` touches it, and the capture pipeline
-    // calls `ingest` from one thread at a time.
+    // Unlocked state. Only `ingest` touches it, and callers must call `ingest`
+    // from one task at a time.
     private var filters: [Biquad]
     private var energy = [Float](repeating: 0, count: RimFeatures.bandCount)
     private var hopFill = 0
@@ -75,8 +75,8 @@ nonisolated final class RimAudioAnalyzer: @unchecked Sendable {
         return (0..<RimFeatures.bandCount).map { bands[$0] }
     }
 
-    /// Feed 16 kHz mono samples. Called from the capture pipeline, so it
-    /// allocates nothing and takes the lock at most twice per packet.
+    /// Feed 16 kHz mono samples, from one task at a time. It runs for every
+    /// chunk of audio, so it allocates nothing and takes the lock at most twice per packet.
     func ingest(_ samples: [Float]) {
         guard self.published.withLock({ $0.isActive }) else { return }
         var hasReading = false

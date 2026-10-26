@@ -81,7 +81,7 @@ final class SettingsModel {
 
     var onLaunchAtLoginChange: (Bool) -> Void = { _ in }
     var onCleanupEnabledChange: (Bool) -> Void = { _ in }
-    /// The user entered a key; the shell saves it, checks it and updates `cleanupKey`.
+    /// The user entered a key; the shell saves it and marks any saved key `.accepted` without checking it.
     var onAPIKeySubmit: (String) -> Void = { _ in }
     var onCleanupRulesChange: (String) -> Void = { _ in }
     var onWordListChange: ([String]) -> Void = { _ in }

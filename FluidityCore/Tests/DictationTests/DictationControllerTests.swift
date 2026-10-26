@@ -66,15 +66,16 @@ struct DictationControllerTests {
     }
 
     nonisolated static let cleanupCases: [CleanupCase] = [
-        .init(name: "cleaned", result: .cleaned("Hello, world."), pill: .pasted, pasted: "HELLO, WORLD.",
+        .init(name: "cleaned", result: .cleaned("Hello, world."), pill: .pasted(text: "HELLO, WORLD."), pasted: "HELLO, WORLD.",
               cleanedText: "Hello, world.", cleanupSeconds: 0),
-        .init(name: "offline", result: .fallback(.offline), pill: .pastedRawTranscript, pasted: "HELLO WORLD",
+        .init(name: "offline", result: .fallback(.offline), pill: .pastedRawTranscript(text: "HELLO WORLD"), pasted: "HELLO WORLD",
               fallbackReason: .offline, cleanupSeconds: 0),
-        .init(name: "failed output check", result: .fallback(.wordsNotInTranscript), pill: .pastedRawTranscript,
+        .init(name: "failed output check", result: .fallback(.wordsNotInTranscript),
+              pill: .pastedRawTranscript(text: "HELLO WORLD"),
               pasted: "HELLO WORLD", fallbackReason: .wordsNotInTranscript, cleanupSeconds: 0),
-        .init(name: "slow", result: nil, pill: .pastedRawTranscript, pasted: "HELLO WORLD",
+        .init(name: "slow", result: nil, pill: .pastedRawTranscript(text: "HELLO WORLD"), pasted: "HELLO WORLD",
               fallbackReason: .slow, cleanupSeconds: 1),
-        .init(name: "off", cleanupOn: false, pill: .pasted, pasted: "HELLO WORLD"),
+        .init(name: "off", cleanupOn: false, pill: .pasted(text: "HELLO WORLD"), pasted: "HELLO WORLD"),
     ]
 
     // Turns red if a cleanup answer, fallback or the off setting reaches the paste, the pill or the record wrongly,
@@ -103,10 +104,11 @@ struct DictationControllerTests {
         #expect(s.saved.first?.timings.cleanup == c.cleanupSeconds)
     }
 
-    // Turns red if a paste that landed is not watched, or one with nowhere to paste is recorded as pasted.
+    // Turns red if a paste that landed is not watched, one with nowhere to paste is recorded as pasted,
+    // or the pill stops carrying the finished text a retry pastes.
     @Test(arguments: [
-        (DictationController.PasteOutcome.landed, PillState.pasted, Phase.watching),
-        (.nowhereToPaste, .nowhereToPaste, .ready),
+        (DictationController.PasteOutcome.landed, PillState.pasted(text: "HELLO, WORLD."), Phase.watching),
+        (.nowhereToPaste, .nowhereToPaste(text: "HELLO, WORLD."), .ready),
     ])
     func pasteOutcome(_ outcome: DictationController.PasteOutcome, pill: PillState, phase: Phase) async {
         let landed = outcome == .landed
@@ -120,9 +122,11 @@ struct DictationControllerTests {
         #expect(s.saved.first?.pastedText == (landed ? "HELLO, WORLD." : nil))
     }
 
-    // Turns red if a stage's text, the field around the cursor, a timing or a version stops reaching the saved record.
+    // Turns red if a stage's text, the field around the cursor, a timing or a version stops reaching the saved record,
+    // or the word list version is read when the controller is made instead of when the record is built.
     @Test func savedRecordHoldsEveryStage() async throws {
         let h = Harness()
+        h.parts.state.withLock { $0.wordListVersion = "words-2" }
         await h.dictate()
         await h.untilDone()
         let saved = try #require(h.parts.snapshot.saved.first)
@@ -132,8 +136,8 @@ struct DictationControllerTests {
             wordTimings: FakeParts.wordTimings,
             textBeforeCursor: "Dear Sam, ", selectedText: "", textAfterCursor: " Thanks.",
             pasteLanded: true,
-            timings: StageTimings(transcription: 0, cleanup: 0, finishing: 0, paste: 0),
-            modelVersion: "parakeet-v2", wordListVersion: "words-1"))
+            timings: StageTimings(transcription: 0, wordListRecheck: 0.25, cleanup: 0, finishing: 0, paste: 0),
+            modelVersion: "parakeet-v2", wordListVersion: "words-2"))
     }
 
     // Turns red if the pasted pill stays up, or goes before 600 ms.
@@ -143,7 +147,7 @@ struct DictationControllerTests {
         await h.untilDone()
         await h.advance(.milliseconds(599))
         await h.settle()
-        #expect(h.controller.pill == .pasted)
+        #expect(h.controller.pill == .pasted(text: "HELLO, WORLD."))
         await h.advance(.milliseconds(1))
         await h.until { h.controller.pill == .hidden }
     }

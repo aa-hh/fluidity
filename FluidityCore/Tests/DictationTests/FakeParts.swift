@@ -25,6 +25,9 @@ final class FakeParts: AudioCapturing, Transcribing, CleaningUp, FieldContextRea
         var previewSink: AsyncStream<String>.Continuation?
         /// Nil makes the final pass fail.
         var rawTranscript: String? = "hello world"
+        var wordListRecheck: TimeInterval? = 0.25
+        /// Read by the controller each time it builds a record.
+        var wordListVersion = "words-1"
         var transcribeHangs = false
         var transcribeCalls = 0
         var cleanupOn = true
@@ -96,13 +99,13 @@ final class FakeParts: AudioCapturing, Transcribing, CleaningUp, FieldContextRea
     }
 
     func transcribe(_ recording: DictationController.Recording) async throws -> DictationController.Transcript {
-        let (text, hangs) = state.withLock { s in
+        let (text, hangs, recheck) = state.withLock { s in
             s.transcribeCalls += 1
-            return (s.rawTranscript, s.transcribeHangs)
+            return (s.rawTranscript, s.transcribeHangs, s.wordListRecheck)
         }
         if hangs { try await clock.sleep(for: .seconds(3600)) }
         guard let text else { throw Failure() }
-        return .init(text: text, wordTimings: Self.wordTimings)
+        return .init(text: text, wordTimings: Self.wordTimings, wordListRecheck: recheck)
     }
 
     var isOn: Bool { state.withLock { $0.cleanupOn } }
@@ -170,11 +173,12 @@ struct ControllerHarness {
     let controller: DictationController
 
     init(_ setUp: (inout FakeParts.State) -> Void = { _ in }) {
-        parts = FakeParts(clock: clock, setUp)
+        let parts = FakeParts(clock: clock, setUp)
+        self.parts = parts
         controller = DictationController(
             audio: parts, transcriber: parts, cleanup: parts, field: parts, finisher: parts, paster: parts,
             watcher: parts, store: parts, permissions: parts,
-            modelVersion: "parakeet-v2", wordListVersion: "words-1", clock: clock)
+            modelVersion: "parakeet-v2", wordListVersion: { parts.snapshot.wordListVersion }, clock: clock)
     }
 
     func advance(_ duration: Duration) async { await clock.advance(by: duration) }

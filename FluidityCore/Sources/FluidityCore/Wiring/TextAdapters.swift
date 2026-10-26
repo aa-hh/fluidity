@@ -59,17 +59,25 @@ public final class FieldContextAdapter: FieldContextReading {
         field.prepare()
     }
 
+    /// Nil only when nothing has focus. A field that could not be read counts as a password field,
+    /// so its dictation is neither saved nor watched.
     public func read() async -> DictationController.FieldContext? {
-        let context = try? field.read().map {
+        let context: DictationController.FieldContext? = switch field.read() {
+        case .success(let reading):
             DictationController.FieldContext(
-                textBeforeCursor: $0.textBeforeCursor, selectedText: $0.selectedText,
-                textAfterCursor: $0.textAfterCursor, isSecure: $0.isSecure, app: $0.app)
-        }.get()
+                textBeforeCursor: reading.textBeforeCursor, selectedText: reading.selectedText,
+                textAfterCursor: reading.textAfterCursor, isSecure: reading.isSecure, app: reading.app)
+        case .failure(.noFocusedElement):
+            nil
+        case .failure(.noTextValue), .failure(.attributeReadFailed), .failure(.appNotAccessible):
+            DictationController.FieldContext(
+                textBeforeCursor: "", selectedText: "", textAfterCursor: "", isSecure: true, app: nil)
+        }
         last.withLock { $0 = context }
         return context
     }
 
-    /// What the last `read()` found; nil when it found no text field.
+    /// What the last `read()` found; nil when nothing had focus.
     public var lastRead: DictationController.FieldContext? { last.withLock { $0 } }
 }
 

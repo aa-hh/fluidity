@@ -33,7 +33,7 @@ enum PillPreview {
         DispatchQueue.main.async {
             let pill = PillPresenter.shared
             if let words = environment["FLUIDITY_PILL_WORDS"].flatMap(PillLiveWords.init(rawValue:)) { pill.liveWords = words }
-            pill.retryPaste = { false }
+            pill.retryPaste = { _ in false }
             Self.script = script
             Self.restart()
             Timer.scheduledTimer(withTimeInterval: Self.tick, repeats: true) { _ in
@@ -44,13 +44,15 @@ enum PillPreview {
 
     private static func script(named name: String) -> Script? {
         let processing: [(at: Double, state: PillState)] = [(0, .finishing), (0.25, .cleaning)]
+        let pasted = "So this is how the words look while you are still talking to the pill."
         switch name {
         case "listening": return Script(listensFor: .infinity)
         case "finishing": return Script(then: [(0, .finishing)])
         case "cleaning": return Script(then: processing)
-        case "pasted": return Script(then: processing + [(1, .pasted), (1.6, .hidden)], repeatsEvery: 5)
-        case "pastedRawTranscript": return Script(then: processing + [(1, .pastedRawTranscript), (1.6, .hidden)], repeatsEvery: 5)
-        case "nowhereToPaste": return Script(then: processing + [(1, .nowhereToPaste)])
+        case "pasted": return Script(then: processing + [(1, .pasted(text: pasted)), (1.6, .hidden)], repeatsEvery: 5)
+        case "pastedRawTranscript":
+            return Script(then: processing + [(1, .pastedRawTranscript(text: pasted)), (1.6, .hidden)], repeatsEvery: 5)
+        case "nowhereToPaste": return Script(then: processing + [(1, .nowhereToPaste(text: pasted))])
         case "cancelled": return Script(then: [(0, .cancelled), (0.12, .hidden)], repeatsEvery: 4)
         case "microphoneMissing": return Script(listensFor: nil, then: [(0, .permissionMissing(.microphone))])
         case "accessibilityMissing": return Script(then: [(0, .finishing), (0.5, .permissionMissing(.accessibility))])
@@ -83,7 +85,12 @@ enum PillPreview {
         if let speaks = Self.script.speaksAfter { pill.feed(Self.voice(loud: speaks ? 1 : 0)) }
         let after = t - listening
         while Self.nextStep < Self.script.then.count, after >= Self.script.then[Self.nextStep].at {
-            pill.show(Self.script.then[Self.nextStep].state)
+            let state = Self.script.then[Self.nextStep].state
+            switch state {
+            case .pasted(let text), .pastedRawTranscript(let text): pill.showPastedText(text)
+            default: break
+            }
+            pill.show(state)
             Self.nextStep += 1
         }
     }

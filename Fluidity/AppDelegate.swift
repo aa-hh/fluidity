@@ -66,7 +66,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             store: StoreAdapter(store: store, didChange: { storeChanged.yield() }),
             permissions: permissions,
             modelVersion: "parakeet-tdt-0.6b-v2",
-            wordListVersion: settings.wordListVersion
+            wordListVersion: { settings.wordListVersion }
         )
         self.settings = settings
         self.keychain = keychain
@@ -81,6 +81,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Builds the pill's panel and compiles its shader now, so the first key press does not wait for it.
+        PillPresenter.shared.prepare()
         wirePill()
         wireSettings()
         wirePopover()
@@ -115,6 +117,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         Task {
             for await pill in Observations({ self.controller.pill }) {
+                switch pill {
+                case .pasted(let text), .pastedRawTranscript(let text): PillPresenter.shared.showPastedText(text)
+                default: break
+                }
                 PillPresenter.shared.show(pill)
             }
         }
@@ -133,9 +139,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func wirePill() {
         let pill = PillPresenter.shared
-        pill.retryPaste = { [store, paste] in
-            guard let last = await store.recent(limit: 1).first,
-                  case .landed? = await paste.pasteAgain(last.textToPasteAgain) else { return false }
+        pill.retryPaste = { [paste] text in
+            guard case .landed? = await paste.pasteAgain(text) else { return false }
             return true
         }
         pill.openPermissionSettings = { [settingsModel] in settingsModel.onOpenPrivacySettings($0) }
@@ -178,6 +183,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         model.onShortcutsChange = { [unowned self] in
             hotkey.setKeys(settings.dictationKey, pasteAgainKey: settings.pasteAgainKey)
+            // A new decoder starts with Escape not taken, which would break a hands-free dictation in progress.
+            hotkey.isRecording = controller.phase.takesEscape
         }
     }
 
