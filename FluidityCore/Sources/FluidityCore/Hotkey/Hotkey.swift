@@ -33,7 +33,7 @@ public final class Hotkey {
     }
 
     public func setKeys(_ key: KeyChoice, pasteAgainKey: KeyChoice?) {
-        decoder = HotkeyDecoder(key: key, pasteAgainKey: pasteAgainKey)
+        if let decision = decoder.setKeys(key, pasteAgainKey: pasteAgainKey) { continuation.yield(decision) }
     }
 
     public func start() throws(StartError) {
@@ -69,7 +69,7 @@ public final class Hotkey {
         }
         guard let raw else { return false }
         let decision = decoder.decode(raw)
-        if decision != .passThrough && decision != .ignore { continuation.yield(decision) }
+        if decision.isReported { continuation.yield(decision) }
         return decision.swallows(raw)
     }
 }

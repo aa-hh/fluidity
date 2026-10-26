@@ -28,7 +28,7 @@ public enum KeySide: String, Codable, Sendable {
 }
 
 /// The key chosen for a shortcut: a modifier key on its own, or an ordinary key with required modifiers.
-public struct KeyChoice: Codable, Equatable, Sendable {
+public struct KeyChoice: Codable, Equatable, Sendable, CustomStringConvertible {
     public var keyCode: UInt16
     /// Required modifiers for an ordinary key; empty for a modifier key.
     public var modifiers: KeyModifiers

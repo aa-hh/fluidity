@@ -33,12 +33,15 @@ public enum HotkeyDecision: Equatable, Sendable {
     public func swallows(_ event: RawKeyEvent) -> Bool {
         self != .passThrough && event.kind != .flagsChanged
     }
+
+    /// Whether `DictationController` needs to hear about it.
+    public var isReported: Bool { self != .passThrough && self != .ignore }
 }
 
 /// Turns keyboard events into hotkey decisions for the chosen key and the paste-again shortcut.
 public struct HotkeyDecoder: Sendable {
-    public var key: KeyChoice
-    public var pasteAgainKey: KeyChoice?
+    public private(set) var key: KeyChoice
+    public private(set) var pasteAgainKey: KeyChoice?
     public var isRecording = false
 
     private var keyHeld = false
@@ -50,16 +53,27 @@ public struct HotkeyDecoder: Sendable {
         self.pasteAgainKey = pasteAgainKey
     }
 
+    /// Changes the shortcuts, keeping the recording state. Returns `.keyUp` when the dictation key
+    /// was held and has changed, since its own key up will no longer be recognised.
+    public mutating func setKeys(_ key: KeyChoice, pasteAgainKey: KeyChoice?) -> HotkeyDecision? {
+        let releasesKey = keyHeld && key != self.key
+        if key != self.key { keyHeld = false }
+        if pasteAgainKey != self.pasteAgainKey { pasteAgainHeld = false }
+        self.key = key
+        self.pasteAgainKey = pasteAgainKey
+        return releasesKey ? .keyUp : nil
+    }
+
     public mutating func decode(_ event: RawKeyEvent) -> HotkeyDecision {
-        if let decision = Self.step(Self.edge(of: key, in: event), held: &keyHeld, onDown: .keyDown, onUp: .keyUp) {
+        if let decision = Self.step(Self.edge(of: key, in: event, held: keyHeld), held: &keyHeld, onDown: .keyDown, onUp: .keyUp) {
             return decision
         }
         if let pasteAgainKey,
-           let decision = Self.step(Self.edge(of: pasteAgainKey, in: event), held: &pasteAgainHeld, onDown: .pasteAgain, onUp: .ignore) {
+           let decision = Self.step(Self.edge(of: pasteAgainKey, in: event, held: pasteAgainHeld), held: &pasteAgainHeld, onDown: .pasteAgain, onUp: .ignore) {
             return decision
         }
         if event.keyCode == KeyNames.escape {
-            if event.kind == .keyDown, isRecording {
+            if event.kind == .keyDown, isRecording || (escapeHeld && event.isRepeat) {
                 escapeHeld = true
                 return event.isRepeat ? .ignore : .cancel
             }
@@ -91,14 +105,16 @@ public struct HotkeyDecoder: Sendable {
 
     private enum Edge { case down, repeatDown, up }
 
-    private static func edge(of choice: KeyChoice, in event: RawKeyEvent) -> Edge? {
+    /// While the key is held, its key code stays owned whatever the flags, so a modifier
+    /// let go early does not leak repeats to the focused app.
+    private static func edge(of choice: KeyChoice, in event: RawKeyEvent, held: Bool) -> Edge? {
         guard event.keyCode == choice.keyCode else { return nil }
         if let modifier = ModifierKey.byCode[choice.keyCode] {
             guard event.kind == .flagsChanged else { return nil }
             return event.flags.contains(modifier.flag) ? .down : .up
         }
         switch event.kind {
-        case .keyDown where event.flags.intersection(.shortcut) == choice.modifiers:
+        case .keyDown where held || event.flags.intersection(.shortcut) == choice.modifiers:
             return event.isRepeat ? .repeatDown : .down
         case .keyUp:
             return .up
