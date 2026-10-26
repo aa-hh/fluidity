@@ -183,7 +183,14 @@ def sort_dictation(rec, th):
 
     def span(cat, i1, i2, j1, j2, surface=False):
         c1, c2 = pc[0][i1], pc[1][i2]
-        r1, r2 = cr[0][c1], cr[1][c2]
+        # A boundary inside a replaced stretch of C has no R match; widen to the stretch's edges.
+        a, b = c1, c2
+        while cr[0][a] > cr[1][a]:
+            a -= 1
+        while cr[0][b] > cr[1][b]:
+            b += 1
+        # Inner boundaries, so words the cleanup dropped beside the span stay out of it.
+        r1, r2 = (cr[1][a], cr[0][b]) if a < b else (cr[0][a], cr[1][b])
         old, new = p.words[i1:i2], f.words[j1:j2]
         audio = r1 < r2 and r1 in tmap and r2 - 1 in tmap
         spans.append({
@@ -220,6 +227,7 @@ def sort_dictation(rec, th):
     ops = difflib.SequenceMatcher(None, p.words, f.words, autojunk=False).get_opcodes()
     kept = sum(i2 - i1 for tag, i1, i2, _, _ in ops if tag == "equal")
     if not f.words or (n and kept / n < th["min_survive_share"]):
+        res["changedShare"] = round(1 - kept / n, 3) if n else 1.0
         span(3, 0, n, 0, len(f.words))
         res["speech"] = None  # the user rejected this transcript, so nothing confirms it
         return finish()

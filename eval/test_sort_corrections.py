@@ -77,13 +77,21 @@ class CategoryTest(unittest.TestCase):
     def test_8_sound_alike_swap(self):
         self.assertEqual(cats(rec("meet me at the pier", "meet me at the peer")), [8])
 
+    # Turns red if a filler the cleanup dropped beside the fixed word is pulled into its raw words.
+    def test_8_next_to_dropped_filler(self):
+        self.assertEqual(cats(rec("um meet me at the pier", "meat me at the pier", cleaned="meet me at the pier")), [8])
+        self.assertEqual(cats(rec("meet me at the pier um", "meet me at the peer", cleaned="meet me at the pier")), [8])
+
     # Turns red if a swap that does not sound alike is let through as a misheard word.
     def test_9_non_sound_alike_swap(self):
         self.assertEqual(cats(rec("meet me at the pier", "meet me at the office")), [9])
 
-    # Turns red if changing over 30% of the words stops marking the dictation as a rewrite.
+    # Turns red if more than 30% of the words or more than 4 spans changing stops marking a rewrite.
     def test_9_too_much_changed(self):
-        self.assertEqual(cats(rec("meet the walrus at noon", "meet the walrus at pier sometime soon")), [9])
+        self.assertEqual(cats(rec("meet me at the pier", "meat me at the peer")), [9, 9])
+        raw = "meet me at the pier then walk to the bear den and feed the deer near the sail boat now"
+        final = "meat me at the peer then walk to the bare den and feed the dear near the sale boat now"
+        self.assertEqual(cats(rec(raw, final)), [9] * 5)
 
 
 class DictationTest(unittest.TestCase):
@@ -100,6 +108,15 @@ class DictationTest(unittest.TestCase):
         _, rows = run_folder([rec("purple walrus dances", "")])
         self.assertEqual(rows["speech_to_text"], [])
         self.assertEqual(rows["corrections"][0]["spans"][0]["category"], 3)
+        self.assertGreater(rows["corrections"][0]["changedShare"], 0.5)
+
+    # Turns red if a span inside a phrase the cleanup rewrote reads R positions from an unmatched boundary.
+    def test_raw_positions_inside_rewritten_phrase(self):
+        raw = "I'm gonna feed the walrus after lunch"
+        r = rec(raw, "I'm going two feed the walrus after lunch", cleaned="I'm going to feed the walrus after lunch")
+        (s,) = sort_dictation(r, TH)["spans"]
+        r1, r2 = s["positions"]["R"]
+        self.assertTrue(0 <= r1 <= r2 <= len(raw.split()))
 
     # Turns red if the category-8 fix stops reaching the speech-to-text target.
     def test_misheard_fix_reaches_speech_target(self):
