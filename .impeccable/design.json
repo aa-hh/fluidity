@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-23T03:34:46+00:00",
+  "generatedAt": "2026-10-26T04:16:33+00:00",
   "title": "Design System: Fluidity",
   "extensions": {
     "colorMeta": {
@@ -545,7 +545,7 @@
         ]
       },
       "app-action-primary-light": {
-        "role": "neutral",
+        "role": "primary",
         "displayName": "Primary button, Light (action/primary)",
         "canonical": "#1C1C1E",
         "tonalRamp": [
@@ -560,7 +560,7 @@
         ]
       },
       "app-action-primary-dark": {
-        "role": "neutral",
+        "role": "primary",
         "displayName": "Primary button, Dark (action/primary)",
         "canonical": "#FFF6EA",
         "tonalRamp": [
@@ -575,7 +575,7 @@
         ]
       },
       "app-action-on-primary-light": {
-        "role": "neutral",
+        "role": "primary",
         "displayName": "Text on primary button, Light (action/on-primary)",
         "canonical": "#FFFFFF",
         "tonalRamp": [
@@ -590,7 +590,7 @@
         ]
       },
       "app-action-on-primary-dark": {
-        "role": "neutral",
+        "role": "primary",
         "displayName": "Text on primary button, Dark (action/on-primary)",
         "canonical": "#0E0F13",
         "tonalRamp": [
@@ -605,7 +605,7 @@
         ]
       },
       "app-state-done-light": {
-        "role": "secondary",
+        "role": "tertiary",
         "displayName": "Done, Light (state/done)",
         "canonical": "#1A8A52",
         "tonalRamp": [
@@ -620,7 +620,7 @@
         ]
       },
       "app-state-done-dark": {
-        "role": "secondary",
+        "role": "tertiary",
         "displayName": "Done, Dark (state/done)",
         "canonical": "#3EDC8A",
         "tonalRamp": [
@@ -662,36 +662,6 @@
           "#DF9200",
           "#FFB930",
           "#FFDD5E"
-        ]
-      },
-      "app-state-retry-light": {
-        "role": "tertiary",
-        "displayName": "Retry, Light (state/retry)",
-        "canonical": "#B5531B",
-        "tonalRamp": [
-          "#310000",
-          "#540000",
-          "#771700",
-          "#9B3B00",
-          "#C3602B",
-          "#EC8552",
-          "#FFAB78",
-          "#FFCF9B"
-        ]
-      },
-      "app-state-retry-dark": {
-        "role": "tertiary",
-        "displayName": "Retry, Dark (state/retry)",
-        "canonical": "#FF9A5C",
-        "tonalRamp": [
-          "#300000",
-          "#530000",
-          "#761B00",
-          "#9A3E00",
-          "#C1621E",
-          "#EA8749",
-          "#FFAE70",
-          "#FFD293"
         ]
       },
       "app-state-destructive-light": {
@@ -818,97 +788,100 @@
     "typographyMeta": {
       "pill-words": {
         "displayName": "Pill words",
-        "purpose": "Live words inside the pill; one line by default, two by setting."
+        "purpose": "One line inside the pill; once it fills it scrolls, and the oldest words fade out at the left edge."
       },
       "bubble-words": {
         "displayName": "Bubble words",
-        "purpose": "Live words in the bubble above the pill, up to six lines."
+        "purpose": "Up to six lines in the bubble above, then it scrolls up a line at a time."
       },
       "app-title": {
         "displayName": "Title (Glass/Title)",
-        "purpose": "Pane titles in the settings window."
+        "purpose": "Pane titles."
       },
       "app-section": {
         "displayName": "Section (Glass/Section)",
-        "purpose": "Group headings above each raised panel."
+        "purpose": "Group headings."
       },
       "app-label": {
         "displayName": "Label (Glass/Label)",
         "purpose": "Sidebar items, control labels, row titles, button text."
       },
+      "app-keycap": {
+        "displayName": "Keycap",
+        "purpose": "The shortcut recorder's keycaps."
+      },
       "app-body": {
         "displayName": "Body (Glass/Body)",
         "purpose": "Running text and text field values."
       },
+      "app-transcript": {
+        "displayName": "Transcript",
+        "purpose": "The popover's history rows, with 4 pt extra line spacing."
+      },
       "app-detail": {
         "displayName": "Detail (Glass/Detail)",
-        "purpose": "Row descriptions, helper text, error messages."
+        "purpose": "Row descriptions, helper text, field messages."
       },
       "app-small": {
         "displayName": "Small (Glass/Small)",
-        "purpose": "Captions and keyboard shortcuts."
+        "purpose": "Captions and keyboard shortcut hints."
       }
     },
     "shadows": [
       {
         "name": "rim-light",
-        "value": "1.2pt line of ivory light, halo reaching 2.6pt; drawn by a shader, not a shadow",
-        "purpose": "The pill's only depth. Rim never over 1.5pt, halo never over 3pt."
+        "value": "1.2pt line of ivory light, +0.95pt where voice lands; halo 2.6pt outward, 3.0pt on hover, up to about 5.65pt during the collapse; drawn by a shader, not a shadow",
+        "purpose": "The pill's only depth."
       },
       {
         "name": "word-glow",
-        "value": "0 0 5px rgba(255, 238, 214, 0.6)",
-        "purpose": "Brief glow on new (0.6) or revised (0.21) words."
+        "value": "0 0 5px rgba(255, 238, 214) at 0.75 x strength",
+        "purpose": "Brief glow on changed words: 0.6 for words cleanup inserts, 0.21 for words it changes, 0.3 for a live preview revision, 0.85 as the release light passes; decays with a 0.32s time constant."
       },
       {
         "name": "waveform-glow",
-        "value": "0 0 3px rgba(255, 222, 184, 0.55)",
+        "value": "1.5pt spread rgba(255, 222, 184, 0.55)",
         "purpose": "Glow around the waveform in the pill."
       },
       {
-        "name": "elevation-float",
-        "value": "0 8px 24px rgba(0,0,0,0.16)",
-        "purpose": "Figma style Elevation/Float. Under the settings window, the menu bar popover and an open pop-up menu. Not used on the pill."
-      },
-      {
         "name": "window-material",
-        "value": "background rgba(255,255,255,0.72) Light / rgba(14,15,19,0.72) Dark; backdrop-filter: blur(40px); 1px inside outline in line/rule",
-        "purpose": "The one shell material for the window, popover and open pop-up menu. In Figma the outer frame carries the shadow and the inner frame the fill, blur, outline and lit top edge."
+        "value": "app-window over macOS behind-window material (NSVisualEffectView, .underWindowBackground); system blur, no fixed radius; 1px app-line-rule outline inside the edge; system window shadow",
+        "purpose": "The one shell for the settings window, the popover and the first-run window."
       },
       {
         "name": "lit-edge-resting",
-        "value": "1px line on the top edge: linear-gradient(90deg, rgba(255,246,234,0), #FFF6EA 50%, rgba(255,246,234,0))",
-        "purpose": "Lit top edge on every floating panel: window, popover, open pop-up menu, focused text field or shortcut recorder."
+        "value": "1px line on the top edge: linear-gradient(90deg, rgba(255,246,234,0), #FFF6EA 50%, rgba(255,246,234,0)); inset 16pt from each end on shells, 14pt on fields",
+        "purpose": "Lit top edge on every floating panel: the window, the popover, the first-run window, a focused text field or shortcut recorder."
       },
       {
         "name": "lit-edge-live-rim",
-        "value": "1.2px line on the top edge: linear-gradient(90deg) repeating #FFE4B8, #FFF6EA, #FFCFA0, #FFEBD2 three times, stops every 8.33%",
-        "purpose": "The lit top edge while the mic is live; same four tones as the pill's rim."
+        "value": "1.2px line on the top edge: linear-gradient(90deg) of #FFE4B8, #FFF6EA, #FFCFA0, #FFEBD2, the four tones repeating three times",
+        "purpose": "The lit top edge while the mic is live; the same four tones as the pill's rim."
       },
       {
         "name": "lit-edge-live-halo",
-        "value": "2.6px band on the top edge, same gradient as the live rim, opacity 0.7, filter: blur(4px)",
-        "purpose": "The halo under the live rim."
+        "value": "2.6px band of the live rim's gradient, opacity 0.7, filter: blur(4px); along and below the edge, never outward",
+        "purpose": "The glow under the live rim."
       },
       {
         "name": "focus-ring",
-        "value": "0 0 0 2px rgba(28,28,30,0.6) Light / 0 0 0 2px rgba(255,228,184,0.85) Dark",
-        "purpose": "Keyboard focus on any control: a 2 pt solid ring outside it, no blur."
+        "value": "outline: 2px solid rgba(28,28,30,0.6) Light / rgba(255,228,184,0.85) Dark; outline-offset: 1px",
+        "purpose": "Keyboard focus on any control that opts in: a 2pt ring 1pt outside its edge, no blur."
       },
       {
         "name": "toggle-knob",
-        "value": "0 1px 2px rgba(0,0,0,0.22)",
-        "purpose": "Shadow under the toggle knob."
+        "value": "0 1px 1px rgba(0,0,0,0.22)",
+        "purpose": "The only small shadow inside the shell, under the toggle knob."
       },
       {
         "name": "segment-selected",
-        "value": "0 1px 2px rgba(0,0,0,0.12)",
-        "purpose": "Shadow under the selected segment of a segmented control."
+        "value": "0 1px 1px rgba(0,0,0,0.22)",
+        "purpose": "Under the selected segment of a segmented control; the same shadow as the toggle knob."
       },
       {
         "name": "status-live-glow",
-        "value": "0 0 6px #FFE4B8",
-        "purpose": "Glow around the popover's status dot while listening."
+        "value": "SwiftUI shadow radius 3, #FFE4B8 (app-live)",
+        "purpose": "Glow around the listening status dot."
       }
     ],
     "motion": [
@@ -920,7 +893,7 @@
       {
         "name": "words-slide",
         "value": "spring damping 0.78, response 0.4s",
-        "purpose": "Words moving to their cleaned-up place."
+        "purpose": "Words sliding into their cleaned-up place."
       },
       {
         "name": "leave",
@@ -930,22 +903,37 @@
       {
         "name": "recombine",
         "value": "spring damping 0.6, response 0.222s",
-        "purpose": "Bubble sliding back into the pill."
+        "purpose": "Bubble recombining with the pill."
       },
       {
         "name": "split",
         "value": "spring damping 0.141, response 0.222s, 130ms head start",
-        "purpose": "Retry bubble splitting off the pill."
+        "purpose": "Retry bubble splitting off the right of the pill."
       },
       {
         "name": "press",
         "value": "scale 1.015 x 1.03, spring damping 0.694, response 0.85s",
-        "purpose": "Press bump on the retry bubble."
+        "purpose": "Press bump on the bubble."
+      },
+      {
+        "name": "shake",
+        "value": "spring damping 0.35, response 0.18s",
+        "purpose": "Retry bubble shaking once when a retry fails again."
+      },
+      {
+        "name": "words-appear",
+        "value": "spring damping 0.816, response 0.28s, 2.2pt rise",
+        "purpose": "Each word appearing."
+      },
+      {
+        "name": "bubble-above-blur",
+        "value": "spring damping 0.816, response 0.3s",
+        "purpose": "Blur of the bubble above as it splits and merges."
       },
       {
         "name": "release-light",
         "value": "150ms",
-        "purpose": "Rim light travelling inward to the centre line."
+        "purpose": "Rim light travelling inward to the centre line on release."
       },
       {
         "name": "green-hold",
@@ -954,55 +942,36 @@
       },
       {
         "name": "collapse",
-        "value": "340ms, swell 1.08 first, height leads width by 80ms, fade from 120ms",
+        "value": "340ms, swell 1.08 first (words 1.05), height leads width by 80ms, fade from 120ms",
         "purpose": "Pill disappearing after a paste."
+      },
+      {
+        "name": "appear",
+        "value": "180ms",
+        "purpose": "Pill growing from a point, through a 1.2pt line, to full height."
+      },
+      {
+        "name": "hide",
+        "value": "120ms",
+        "purpose": "Pill leaving when hidden without a paste."
       },
       {
         "name": "reduce-motion-fade",
         "value": "0.2s",
-        "purpose": "Bubbles fade in place when Reduce Motion is on."
+        "purpose": "Retry bubble fading in and out in place when Reduce Motion is on."
       },
       {
-        "name": "duration/snap",
-        "value": "130ms",
-        "purpose": "App: hover, press, toggle."
+        "name": "snap",
+        "value": "130ms ease-in-out",
+        "purpose": "App: hover, press, the toggle and the pane cross-fade (GlassTheme.snap)."
       },
       {
-        "name": "duration/enter",
-        "value": "180ms",
-        "purpose": "App: opening, revealing."
-      },
-      {
-        "name": "duration/exit",
-        "value": "150ms",
-        "purpose": "App: closing, removing."
-      },
-      {
-        "name": "duration/hold",
+        "name": "hold",
         "value": "260ms",
-        "purpose": "App: a success mark holds."
-      },
-      {
-        "name": "duration/collapse",
-        "value": "340ms",
-        "purpose": "App: dismiss to nothing."
-      },
-      {
-        "name": "spring/size",
-        "value": "spring damping 0.816, response 0.512s",
-        "purpose": "App: layout changes."
-      },
-      {
-        "name": "spring/collapse",
-        "value": "spring damping 0.816, response 0.45s",
-        "purpose": "App: sheets and popovers closing."
-      },
-      {
-        "name": "duration/reduce-crossfade",
-        "value": "130ms",
-        "purpose": "App: the cross-fade that replaces every move under Reduce Motion."
+        "purpose": "App: the copy checkmark holding (GlassTheme.hold)."
       }
-    ]
+    ],
+    "breakpoints": []
   },
   "components": [
     {
@@ -1049,62 +1018,86 @@
       "name": "Primary button",
       "kind": "button",
       "refersTo": "button-primary",
-      "description": "The one filled capsule on a pane, bottom right of its section. Light shown; Dark fills #FFF6EA with #0E0F13 text.",
-      "html": "<button class=\"ds-btn-primary\">Test Microphone</button>",
-      "css": ".ds-btn-primary { height: 28px; padding: 0 16px; border: 0; border-radius: 999px; background: #1C1C1E; color: #FFFFFF; font: 500 13px/16px -apple-system, BlinkMacSystemFont, 'SF Pro Rounded', ui-rounded, system-ui, sans-serif; cursor: pointer; } .ds-btn-primary:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(28,28,30,0.6); } .ds-btn-primary:disabled { opacity: 0.4; }"
+      "description": "The one filled button in the app: Done on the first-run window. Hover lays app-hover over the fill, pressed app-selected. Light shown; Dark fills #FFF6EA with #0E0F13 text.",
+      "html": "<button class=\"ds-btn-primary\">Done</button>",
+      "css": ".ds-btn-primary { height: 28px; padding: 0 16px; border: 0; border-radius: 999px; background: #1C1C1E; color: #FFFFFF; font: 500 13px/16px -apple-system, BlinkMacSystemFont, 'SF Pro Rounded', ui-rounded, system-ui, sans-serif; cursor: pointer; transition: background-image 0.13s ease-in-out; } .ds-btn-primary:hover { background-image: linear-gradient(rgba(20,21,25,0.04), rgba(20,21,25,0.04)); } .ds-btn-primary:active { background-image: linear-gradient(rgba(20,21,25,0.08), rgba(20,21,25,0.08)); } .ds-btn-primary:focus-visible { outline: 2px solid rgba(28,28,30,0.6); outline-offset: 1px; } .ds-btn-primary:disabled { opacity: 0.4; }"
     },
     {
       "name": "Secondary button",
       "kind": "button",
       "refersTo": "button-secondary",
-      "description": "Raised capsule with a strong outline; hover and pressed lay a tint on top.",
+      "description": "Raised capsule with a 1 pt strong outline; hover lays app-hover on top, pressed app-selected.",
       "html": "<button class=\"ds-btn-secondary\">Open System Settings</button>",
-      "css": ".ds-btn-secondary { height: 28px; padding: 0 16px; border: 0; border-radius: 999px; background: rgba(255,255,255,0.85); box-shadow: inset 0 0 0 1px rgba(20,21,25,0.22); color: #1C1C1E; font: 500 13px/16px -apple-system, BlinkMacSystemFont, 'SF Pro Rounded', ui-rounded, system-ui, sans-serif; cursor: pointer; transition: background-image 0.13s; } .ds-btn-secondary:hover { background-image: linear-gradient(rgba(20,21,25,0.04), rgba(20,21,25,0.04)); } .ds-btn-secondary:active { background-image: linear-gradient(rgba(20,21,25,0.08), rgba(20,21,25,0.08)); } .ds-btn-secondary:focus-visible { outline: none; box-shadow: inset 0 0 0 1px rgba(20,21,25,0.22), 0 0 0 2px rgba(28,28,30,0.6); } .ds-btn-secondary:disabled { opacity: 0.4; }"
+      "css": ".ds-btn-secondary { height: 28px; padding: 0 16px; border: 0; border-radius: 999px; background: rgba(255,255,255,0.85); box-shadow: inset 0 0 0 1px rgba(20,21,25,0.22); color: #1C1C1E; font: 500 13px/16px -apple-system, BlinkMacSystemFont, 'SF Pro Rounded', ui-rounded, system-ui, sans-serif; cursor: pointer; transition: background-image 0.13s ease-in-out; } .ds-btn-secondary:hover { background-image: linear-gradient(rgba(20,21,25,0.04), rgba(20,21,25,0.04)); } .ds-btn-secondary:active { background-image: linear-gradient(rgba(20,21,25,0.08), rgba(20,21,25,0.08)); } .ds-btn-secondary:focus-visible { outline: 2px solid rgba(28,28,30,0.6); outline-offset: 1px; } .ds-btn-secondary:disabled { opacity: 0.4; }"
     },
     {
       "name": "Quiet button",
       "kind": "button",
       "refersTo": "button-quiet",
-      "description": "No fill or outline at rest; hover and pressed tints only.",
-      "html": "<button class=\"ds-btn-quiet\">Reset</button>",
-      "css": ".ds-btn-quiet { height: 28px; padding: 0 16px; border: 0; border-radius: 999px; background: transparent; color: #1C1C1E; font: 500 13px/16px -apple-system, BlinkMacSystemFont, 'SF Pro Rounded', ui-rounded, system-ui, sans-serif; cursor: pointer; transition: background 0.13s; } .ds-btn-quiet:hover { background: rgba(20,21,25,0.04); } .ds-btn-quiet:active { background: rgba(20,21,25,0.08); } .ds-btn-quiet:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(28,28,30,0.6); }"
+      "description": "No fill or outline at rest, 10 pt side padding; hover and pressed tints only.",
+      "html": "<button class=\"ds-btn-quiet\">Restore Default</button>",
+      "css": ".ds-btn-quiet { height: 28px; padding: 0 10px; border: 0; border-radius: 999px; background: transparent; color: #1C1C1E; font: 500 13px/16px -apple-system, BlinkMacSystemFont, 'SF Pro Rounded', ui-rounded, system-ui, sans-serif; cursor: pointer; transition: background 0.13s ease-in-out; } .ds-btn-quiet:hover { background: rgba(20,21,25,0.04); } .ds-btn-quiet:active { background: rgba(20,21,25,0.08); } .ds-btn-quiet:focus-visible { outline: 2px solid rgba(28,28,30,0.6); outline-offset: 1px; } .ds-btn-quiet:disabled { opacity: 0.4; }"
     },
     {
       "name": "Text field",
       "kind": "input",
       "refersTo": "text-field",
-      "description": "Capsule field. Focus: strong outline, 2 pt focus ring and a resting lit top edge. Error: destructive outline and message 6 pt below.",
-      "html": "<label class=\"ds-field\"><input class=\"ds-input\" placeholder=\"Paste your OpenAI API key\"></label>",
-      "css": ".ds-field { position: relative; display: inline-block; width: 240px; border-radius: 999px; } .ds-input { box-sizing: border-box; width: 100%; height: 28px; padding: 0 12px; border: 0; border-radius: 999px; background: rgba(255,255,255,0.85); box-shadow: inset 0 0 0 1px rgba(20,21,25,0.1); color: #1C1C1E; font: 400 13px/18px -apple-system, BlinkMacSystemFont, 'SF Pro', system-ui, sans-serif; outline: none; } .ds-input::placeholder { color: #6F6A62; } .ds-input:focus { box-shadow: inset 0 0 0 1px rgba(20,21,25,0.22), 0 0 0 2px rgba(28,28,30,0.6); } .ds-field:focus-within::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 1px; background: linear-gradient(90deg, rgba(255,246,234,0), #FFF6EA 50%, rgba(255,246,234,0)); pointer-events: none; }"
+      "description": "Capsule field; the placeholder takes the system colour. Focus: strong outline, focus ring and a resting lit top edge inset 14 pt. Error: destructive outline and a message 6 pt below, an exclamation-circle 6 pt before the text.",
+      "html": "<div class=\"ds-fields\"><label class=\"ds-field\"><input class=\"ds-input\" placeholder=\"Add a word\"></label><div><label class=\"ds-field\"><input class=\"ds-input ds-invalid\" value=\"sk-…\" aria-invalid=\"true\" aria-describedby=\"ds-err\"></label><p class=\"ds-msg\" id=\"ds-err\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 12 12\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.2\" stroke-linecap=\"round\" aria-hidden=\"true\"><circle cx=\"6\" cy=\"6\" r=\"5\"/><path d=\"M6 3.4v3.1\"/><circle cx=\"6\" cy=\"8.5\" r=\"0.3\" fill=\"currentColor\"/></svg><span>That key was refused.</span></p></div></div>",
+      "css": ".ds-fields { display: flex; flex-direction: column; gap: 16px; } .ds-field { position: relative; display: inline-block; width: 240px; border-radius: 999px; } .ds-input { box-sizing: border-box; width: 100%; height: 28px; padding: 0 12px; border: 0; border-radius: 999px; background: rgba(255,255,255,0.85); box-shadow: inset 0 0 0 1px rgba(20,21,25,0.1); color: #1C1C1E; font: 400 13px/18px -apple-system, BlinkMacSystemFont, 'SF Pro', system-ui, sans-serif; outline: none; } .ds-input:hover { box-shadow: inset 0 0 0 1px rgba(20,21,25,0.22); } .ds-input:focus-visible { box-shadow: inset 0 0 0 1px rgba(20,21,25,0.22); outline: 2px solid rgba(28,28,30,0.6); outline-offset: 1px; } .ds-input.ds-invalid { box-shadow: inset 0 0 0 1px #C83230; } .ds-field:focus-within::before { content: ''; position: absolute; left: 14px; right: 14px; top: 0; height: 1px; background: linear-gradient(90deg, rgba(255,246,234,0), #FFF6EA 50%, rgba(255,246,234,0)); pointer-events: none; } .ds-msg { display: flex; align-items: center; gap: 6px; margin: 6px 0 0; color: #C83230; font: 400 12px/16px -apple-system, BlinkMacSystemFont, 'SF Pro', system-ui, sans-serif; } .ds-msg svg { flex: none; }"
+    },
+    {
+      "name": "Toggle",
+      "kind": "input",
+      "refersTo": "toggle",
+      "description": "38 x 22 pt capsule, 2 pt padding, 18 pt knob with a small shadow. On: primary action track, on-primary knob. Off: selected fill with a rule outline and the control knob colour. The knob slides over 130 ms.",
+      "html": "<div class=\"ds-toggles\"><button class=\"ds-toggle\" role=\"switch\" aria-checked=\"true\" aria-label=\"Clean up with AI\"><span class=\"ds-knob\"></span></button><button class=\"ds-toggle\" role=\"switch\" aria-checked=\"false\" aria-label=\"Launch at login\"><span class=\"ds-knob\"></span></button></div>",
+      "css": ".ds-toggles { display: flex; gap: 12px; } .ds-toggle { box-sizing: border-box; width: 38px; height: 22px; padding: 2px; border: 0; border-radius: 999px; background: #1C1C1E; cursor: pointer; transition: background 0.13s ease-in-out, box-shadow 0.13s ease-in-out; } .ds-knob { display: block; width: 18px; height: 18px; border-radius: 50%; background: #FFFFFF; box-shadow: 0 1px 1px rgba(0,0,0,0.22); transform: translateX(16px); transition: transform 0.13s ease-in-out, background 0.13s ease-in-out; } .ds-toggle[aria-checked='false'] { background: rgba(20,21,25,0.08); box-shadow: inset 0 0 0 1px rgba(20,21,25,0.1); } .ds-toggle[aria-checked='false'] .ds-knob { background: #FFFFFF; transform: translateX(0); } .ds-toggle:hover { cursor: pointer; } .ds-toggle:focus-visible { outline: 2px solid rgba(28,28,30,0.6); outline-offset: 1px; } .ds-toggle:disabled { opacity: 0.4; }"
+    },
+    {
+      "name": "Segmented control",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "A 28 pt capsule track with equal-width 24 pt capsule segments; the selected one is raised on app-raised with a strong outline and the knob shadow. Used for Live words on the General pane.",
+      "html": "<div class=\"ds-seg\" role=\"radiogroup\" aria-label=\"Live words\"><button class=\"ds-seg-item\" role=\"radio\" aria-checked=\"false\">Off</button><button class=\"ds-seg-item ds-seg-item-on\" role=\"radio\" aria-checked=\"true\">In the pill</button><button class=\"ds-seg-item\" role=\"radio\" aria-checked=\"false\">Bubble above</button></div>",
+      "css": ".ds-seg { display: inline-flex; gap: 2px; padding: 2px 3px; height: 28px; box-sizing: border-box; border-radius: 999px; background: rgba(20,21,25,0.04); box-shadow: inset 0 0 0 1px rgba(20,21,25,0.1); } .ds-seg-item { flex: 1 0 auto; height: 24px; padding: 0 12px; border: none; border-radius: 999px; background: transparent; color: #6F6A62; font: 500 13px/24px ui-rounded, 'SF Pro Rounded', system-ui, sans-serif; cursor: pointer; transition: background 0.13s ease-in-out, color 0.13s ease-in-out; } .ds-seg-item-on { background: rgba(255,255,255,0.85); color: #1C1C1E; box-shadow: inset 0 0 0 1px rgba(20,21,25,0.22), 0 1px 1px rgba(0,0,0,0.22); } .ds-seg-item:focus-visible { outline: 2px solid rgba(28,28,30,0.6); outline-offset: 1px; }"
     },
     {
       "name": "Sidebar items",
       "kind": "nav",
       "refersTo": "sidebar-item",
-      "description": "28 pt capsules on the sidebar fill; hover tint, selected pane in surface/selected.",
-      "html": "<nav class=\"ds-sidebar\"><a class=\"ds-side-item ds-selected\" href=\"#\">General</a><a class=\"ds-side-item\" href=\"#\">Dictation</a><a class=\"ds-side-item\" href=\"#\">Models</a></nav>",
-      "css": ".ds-sidebar { display: flex; flex-direction: column; gap: 2px; width: 160px; padding: 12px; background: rgba(255,255,255,0.4); box-shadow: inset -1px 0 0 rgba(20,21,25,0.1); } .ds-side-item { display: flex; align-items: center; height: 28px; padding: 0 10px; border-radius: 999px; color: #1C1C1E; text-decoration: none; font: 500 13px/16px -apple-system, BlinkMacSystemFont, 'SF Pro Rounded', ui-rounded, system-ui, sans-serif; transition: background 0.13s; } .ds-side-item:hover { background: rgba(20,21,25,0.04); } .ds-side-item.ds-selected { background: rgba(20,21,25,0.08); } .ds-side-item:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(28,28,30,0.6); }"
+      "description": "28 pt capsules with a 16 pt icon, 8 pt gap and 8 pt side padding on the sidebar fill; hover adds app-hover, the selected pane is an app-selected capsule, no animation.",
+      "html": "<nav class=\"ds-sidebar\"><button class=\"ds-side-item ds-selected\" aria-current=\"page\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"8\" cy=\"8\" r=\"2.2\"/><path d=\"M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.4 3.4l1.4 1.4M11.2 11.2l1.4 1.4M3.4 12.6l1.4-1.4M11.2 4.8l1.4-1.4\"/></svg><span>General</span></button><button class=\"ds-side-item\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M7 2l1.2 3.3L11.5 6.5 8.2 7.7 7 11 5.8 7.7 2.5 6.5 5.8 5.3z\"/><path d=\"M12 10l.5 1.5L14 12l-1.5.5L12 14l-.5-1.5L10 12l1.5-.5z\"/></svg><span>Cleanup</span></button><button class=\"ds-side-item\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M8 4c-1.5-1-3.5-1.3-5.5-1v9.5c2-.3 4 0 5.5 1 1.5-1 3.5-1.3 5.5-1V3c-2-.3-4 0-5.5 1zM8 4v9.5\"/></svg><span>Words</span></button><button class=\"ds-side-item\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"3.5\" y=\"7\" width=\"9\" height=\"6.5\" rx=\"1.5\"/><path d=\"M5.5 7V5a2.5 2.5 0 015 0v2\"/></svg><span>Permissions</span></button></nav>",
+      "css": ".ds-sidebar { box-sizing: border-box; display: flex; flex-direction: column; gap: 2px; width: 184px; padding: 12px; background: rgba(255,255,255,0.4); box-shadow: inset -1px 0 0 rgba(20,21,25,0.1); } .ds-side-item { display: flex; align-items: center; gap: 8px; height: 28px; padding: 0 8px; border: 0; border-radius: 999px; background: transparent; color: #1C1C1E; text-align: left; font: 500 13px/16px -apple-system, BlinkMacSystemFont, 'SF Pro Rounded', ui-rounded, system-ui, sans-serif; cursor: pointer; } .ds-side-item:hover { background: rgba(20,21,25,0.04); } .ds-side-item.ds-selected { background: rgba(20,21,25,0.08); } .ds-side-item:focus-visible { outline: 2px solid rgba(28,28,30,0.6); outline-offset: 1px; }"
+    },
+    {
+      "name": "History row",
+      "kind": "card",
+      "refersTo": "history-row",
+      "description": "A popover history row: transcript in app-transcript (13 pt, 4 pt extra line spacing, at most 2 lines), meta line in app-detail secondary text, 'Click to paste' on hover or focus, a 24 pt copy button. Hover fills app-hover over 130 ms; focused fills app-selected with the focus ring.",
+      "html": "<div class=\"ds-hist-list\"><button class=\"ds-hist\"><span class=\"ds-hist-text\">Move the standup to 10:30 and tell Priya the build is green.</span><span class=\"ds-hist-meta\">Slack · 10:42</span><span class=\"ds-hist-hint\">Click to paste</span><span class=\"ds-hist-copy\" aria-label=\"Copy\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 14 14\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.2\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"4.5\" y=\"4.5\" width=\"7\" height=\"7.5\" rx=\"1.5\"/><path d=\"M9.5 4.5V3.5A1.5 1.5 0 008 2H4A1.5 1.5 0 002.5 3.5V8A1.5 1.5 0 004 9.5h.5\"/></svg></span></button><button class=\"ds-hist\"><span class=\"ds-hist-text\">Draft reply: thanks, Thursday works for me.</span><span class=\"ds-hist-meta\">Mail · 10:15</span><span class=\"ds-hist-hint\">Click to paste</span><span class=\"ds-hist-copy\" aria-label=\"Copy\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 14 14\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.2\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"4.5\" y=\"4.5\" width=\"7\" height=\"7.5\" rx=\"1.5\"/><path d=\"M9.5 4.5V3.5A1.5 1.5 0 008 2H4A1.5 1.5 0 002.5 3.5V8A1.5 1.5 0 004 9.5h.5\"/></svg></span></button></div>",
+      "css": ".ds-hist-list { width: 268px; padding: 6px; background: rgba(255,255,255,0.72); border-radius: 16px; } .ds-hist { position: relative; display: block; width: 100%; box-sizing: border-box; padding: 8px 10px; border: 0; border-radius: 10px; background: transparent; color: #1C1C1E; text-align: left; cursor: pointer; transition: background 0.13s ease-in-out; } .ds-hist:hover { background: rgba(20,21,25,0.04); } .ds-hist:focus-visible { background: rgba(20,21,25,0.08); outline: 2px solid rgba(28,28,30,0.6); outline-offset: 1px; } .ds-hist-text { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin-right: 28px; font: 400 13px/20px -apple-system, BlinkMacSystemFont, 'SF Pro', system-ui, sans-serif; } .ds-hist-meta { margin-top: 2px; color: #6F6A62; font: 400 12px/16px -apple-system, BlinkMacSystemFont, 'SF Pro', system-ui, sans-serif; } .ds-hist-hint { display: none; margin-top: 2px; color: #6F6A62; font: 400 11px/14px -apple-system, BlinkMacSystemFont, 'SF Pro', system-ui, sans-serif; } .ds-hist:hover .ds-hist-hint, .ds-hist:focus-visible .ds-hist-hint { display: block; } .ds-hist-copy { position: absolute; top: 6px; right: 6px; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; color: #6F6A62; }"
     },
     {
       "name": "Menu bar popover",
       "kind": "custom",
       "refersTo": "popover",
-      "description": "280 pt wide on the shell material with Elevation/Float and the lit top edge; hover the panel to see the edge go live as it does while listening.",
-      "html": "<div class=\"ds-desk\"><div class=\"ds-pop\"><div class=\"ds-pop-status\"><span class=\"ds-dot\"></span><span class=\"ds-pop-label\">Ready</span><span class=\"ds-pop-small\">Hold ⌥ Space</span></div><div class=\"ds-pop-last\"><div class=\"ds-pop-detail\">Last dictation · 2 min ago</div><div class=\"ds-pop-text\">Move the standup to 10:30 and tell Priya the build is green.</div></div><div class=\"ds-pop-rows\"><div class=\"ds-pop-row\"><span>Settings…</span><span class=\"ds-pop-small\">⌘ ,</span></div><div class=\"ds-pop-row\"><span>Quit Fluidity</span><span class=\"ds-pop-small\">⌘ Q</span></div></div></div></div>",
-      "css": ".ds-desk { background: linear-gradient(135deg, #DCE6F2, #F3E7DA); padding: 24px; border-radius: 12px; display: inline-block; } .ds-pop { position: relative; width: 280px; border-radius: 16px; background: rgba(255,255,255,0.72); -webkit-backdrop-filter: blur(40px); backdrop-filter: blur(40px); box-shadow: inset 0 0 0 1px rgba(20,21,25,0.1), 0 8px 24px rgba(0,0,0,0.16); overflow: hidden; color: #1C1C1E; } .ds-pop::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 1px; background: linear-gradient(90deg, rgba(255,246,234,0), #FFF6EA 50%, rgba(255,246,234,0)); } .ds-pop::after { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 1.2px; background: linear-gradient(90deg, #FFE4B8 0%, #FFF6EA 8.33%, #FFCFA0 16.67%, #FFEBD2 25%, #FFE4B8 33.33%, #FFF6EA 41.67%, #FFCFA0 50%, #FFEBD2 58.33%, #FFE4B8 66.67%, #FFF6EA 75%, #FFCFA0 83.33%, #FFEBD2 91.67%, #FFE4B8 100%); opacity: 0; } .ds-pop:hover::after { opacity: 1; box-shadow: 0 0 4px 1px rgba(255,228,184,0.7); } .ds-pop:hover .ds-dot { background: #FFE4B8; box-shadow: 0 0 0 1px rgba(20,21,25,0.22), 0 0 6px #FFE4B8; } .ds-pop-status { display: flex; align-items: center; gap: 8px; height: 38px; padding: 0 12px 0 16px; box-shadow: inset 0 -1px 0 rgba(20,21,25,0.1); } .ds-dot { width: 8px; height: 8px; border-radius: 50%; background: #6F6A62; } .ds-pop-label { flex: 1; font: 500 13px/16px -apple-system, BlinkMacSystemFont, 'SF Pro Rounded', ui-rounded, system-ui, sans-serif; } .ds-pop-small { color: #6F6A62; font: 400 11px/14px -apple-system, BlinkMacSystemFont, 'SF Pro', system-ui, sans-serif; } .ds-pop-last { padding: 10px 16px 12px; box-shadow: inset 0 -1px 0 rgba(20,21,25,0.1); } .ds-pop-detail { color: #6F6A62; font: 400 12px/16px -apple-system, BlinkMacSystemFont, 'SF Pro', system-ui, sans-serif; } .ds-pop-text { margin-top: 4px; font: 400 13px/17px -apple-system, BlinkMacSystemFont, 'SF Pro', system-ui, sans-serif; } .ds-pop-rows { padding: 6px; } .ds-pop-row { display: flex; justify-content: space-between; align-items: center; height: 28px; padding: 0 10px; border-radius: 999px; font: 500 13px/16px -apple-system, BlinkMacSystemFont, 'SF Pro Rounded', ui-rounded, system-ui, sans-serif; } .ds-pop-row:hover { background: rgba(20,21,25,0.08); }"
+      "description": "280 pt wide on the shell material with a resting lit top edge (the system window shadow is not drawn here, and the CSS blur stands in for macOS's material). Hover the panel to see the edge go live and the status dot light, as while listening.",
+      "html": "<div class=\"ds-desk\"><div class=\"ds-pop\"><div class=\"ds-pop-halo\"></div><div class=\"ds-pop-status\"><span class=\"ds-dot\"></span><span class=\"ds-pop-label\">Ready</span><span class=\"ds-pop-small\">Tap or hold Fn</span></div><div class=\"ds-pop-hist\"><button class=\"ds-hist\"><span class=\"ds-hist-text\">Move the standup to 10:30 and tell Priya the build is green.</span><span class=\"ds-hist-meta\">Slack · 10:42</span><span class=\"ds-hist-hint\">Click to paste</span><span class=\"ds-hist-copy\" aria-label=\"Copy\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 14 14\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.2\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"4.5\" y=\"4.5\" width=\"7\" height=\"7.5\" rx=\"1.5\"/><path d=\"M9.5 4.5V3.5A1.5 1.5 0 008 2H4A1.5 1.5 0 002.5 3.5V8A1.5 1.5 0 004 9.5h.5\"/></svg></span></button><button class=\"ds-hist\"><span class=\"ds-hist-text\">Draft reply: thanks, Thursday works for me.</span><span class=\"ds-hist-meta\">Mail · 10:15</span><span class=\"ds-hist-hint\">Click to paste</span><span class=\"ds-hist-copy\" aria-label=\"Copy\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 14 14\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.2\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"4.5\" y=\"4.5\" width=\"7\" height=\"7.5\" rx=\"1.5\"/><path d=\"M9.5 4.5V3.5A1.5 1.5 0 008 2H4A1.5 1.5 0 002.5 3.5V8A1.5 1.5 0 004 9.5h.5\"/></svg></span></button></div><div class=\"ds-pop-rows\"><button class=\"ds-pop-row\"><span>Settings…</span><span class=\"ds-pop-small\">⌘ ,</span></button><button class=\"ds-pop-row\"><span>Quit Fluidity</span><span class=\"ds-pop-small\">⌘ Q</span></button></div></div></div>",
+      "css": ".ds-desk { background: linear-gradient(135deg, #DCE6F2, #F3E7DA); padding: 24px; border-radius: 12px; display: inline-block; } .ds-pop { position: relative; width: 280px; border-radius: 16px; background: rgba(255,255,255,0.72); -webkit-backdrop-filter: blur(40px); backdrop-filter: blur(40px); box-shadow: inset 0 0 0 1px rgba(20,21,25,0.1); overflow: hidden; color: #1C1C1E; } .ds-pop::before { content: ''; position: absolute; left: 16px; right: 16px; top: 0; height: 1px; background: linear-gradient(90deg, rgba(255,246,234,0), #FFF6EA 50%, rgba(255,246,234,0)); } .ds-pop::after { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 1.2px; background: linear-gradient(90deg, #FFE4B8 0%, #FFF6EA 8.33%, #FFCFA0 16.67%, #FFEBD2 25%, #FFE4B8 33.33%, #FFF6EA 41.67%, #FFCFA0 50%, #FFEBD2 58.33%, #FFE4B8 66.67%, #FFF6EA 75%, #FFCFA0 83.33%, #FFEBD2 91.67%, #FFE4B8 100%); opacity: 0; } .ds-pop-halo { position: absolute; left: 0; right: 0; top: 0; height: 2.6px; background: linear-gradient(90deg, #FFE4B8 0%, #FFF6EA 8.33%, #FFCFA0 16.67%, #FFEBD2 25%, #FFE4B8 33.33%, #FFF6EA 41.67%, #FFCFA0 50%, #FFEBD2 58.33%, #FFE4B8 66.67%, #FFF6EA 75%, #FFCFA0 83.33%, #FFEBD2 91.67%, #FFE4B8 100%); filter: blur(4px); opacity: 0; pointer-events: none; } .ds-pop:hover::before { opacity: 0; } .ds-pop:hover::after { opacity: 1; } .ds-pop:hover .ds-pop-halo { opacity: 0.7; } .ds-pop:hover .ds-dot { background: #FFE4B8; box-shadow: 0 0 0 1px rgba(20,21,25,0.22), 0 0 3px #FFE4B8; } .ds-pop-status { display: flex; align-items: center; gap: 8px; min-height: 38px; box-sizing: border-box; padding: 8px 16px; box-shadow: inset 0 -1px 0 rgba(20,21,25,0.1); } .ds-dot { width: 8px; height: 8px; border-radius: 50%; background: #6F6A62; } .ds-pop-label { flex: 1; font: 500 13px/16px -apple-system, BlinkMacSystemFont, 'SF Pro Rounded', ui-rounded, system-ui, sans-serif; } .ds-pop-small { color: #6F6A62; font: 400 11px/14px -apple-system, BlinkMacSystemFont, 'SF Pro', system-ui, sans-serif; } .ds-pop-hist { padding: 6px; box-shadow: inset 0 -1px 0 rgba(20,21,25,0.1); } .ds-pop-rows { display: flex; flex-direction: column; padding: 6px; } .ds-pop-row { display: flex; justify-content: space-between; align-items: center; height: 28px; padding: 0 10px; border: 0; border-radius: 999px; background: transparent; color: #1C1C1E; font: 500 13px/16px -apple-system, BlinkMacSystemFont, 'SF Pro Rounded', ui-rounded, system-ui, sans-serif; cursor: pointer; } .ds-pop-row:hover { background: rgba(20,21,25,0.08); } .ds-pop-row:focus-visible { outline: 2px solid rgba(28,28,30,0.6); outline-offset: 1px; } .ds-hist { position: relative; display: block; width: 100%; box-sizing: border-box; padding: 8px 10px; border: 0; border-radius: 10px; background: transparent; color: #1C1C1E; text-align: left; cursor: pointer; transition: background 0.13s ease-in-out; } .ds-hist:hover { background: rgba(20,21,25,0.04); } .ds-hist:focus-visible { background: rgba(20,21,25,0.08); outline: 2px solid rgba(28,28,30,0.6); outline-offset: 1px; } .ds-hist-text { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin-right: 28px; font: 400 13px/20px -apple-system, BlinkMacSystemFont, 'SF Pro', system-ui, sans-serif; } .ds-hist-meta { margin-top: 2px; color: #6F6A62; font: 400 12px/16px -apple-system, BlinkMacSystemFont, 'SF Pro', system-ui, sans-serif; } .ds-hist-hint { display: none; margin-top: 2px; color: #6F6A62; font: 400 11px/14px -apple-system, BlinkMacSystemFont, 'SF Pro', system-ui, sans-serif; } .ds-hist:hover .ds-hist-hint, .ds-hist:focus-visible .ds-hist-hint { display: block; } .ds-hist-copy { position: absolute; top: 6px; right: 6px; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; color: #6F6A62; }"
     },
     {
       "name": "Settings window",
       "kind": "card",
       "refersTo": "settings-window",
-      "description": "Shell material, 16 pt corners, sidebar 184 pt, a raised panel of 44 pt rows, lit top edge. Shown small; the real window is 720 x 520 pt.",
-      "html": "<div class=\"ds-desk\"><div class=\"ds-win\"><div class=\"ds-win-side\"><div class=\"ds-win-item ds-on\">General</div><div class=\"ds-win-item\">Dictation</div></div><div class=\"ds-win-main\"><div class=\"ds-win-title\">General</div><div class=\"ds-win-panel\"><div class=\"ds-win-row\">Launch at login<span class=\"ds-win-knob\"></span></div><div class=\"ds-win-row\">Show Fluidity in<span class=\"ds-win-pop\">Menu bar and Dock</span></div></div></div></div></div>",
-      "css": ".ds-desk { background: linear-gradient(135deg, #DCE6F2, #F3E7DA); padding: 24px; border-radius: 12px; display: inline-block; } .ds-win { position: relative; display: flex; width: 520px; border-radius: 16px; background: rgba(255,255,255,0.72); -webkit-backdrop-filter: blur(40px); backdrop-filter: blur(40px); box-shadow: inset 0 0 0 1px rgba(20,21,25,0.1), 0 8px 24px rgba(0,0,0,0.16); overflow: hidden; color: #1C1C1E; } .ds-win::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 1px; background: linear-gradient(90deg, rgba(255,246,234,0), #FFF6EA 50%, rgba(255,246,234,0)); } .ds-win-side { width: 160px; padding: 52px 12px 12px; display: flex; flex-direction: column; gap: 2px; background: rgba(255,255,255,0.4); box-shadow: inset -1px 0 0 rgba(20,21,25,0.1); } .ds-win-item { height: 28px; display: flex; align-items: center; padding: 0 10px; border-radius: 999px; font: 500 13px/16px -apple-system, BlinkMacSystemFont, 'SF Pro Rounded', ui-rounded, system-ui, sans-serif; } .ds-win-item.ds-on { background: rgba(20,21,25,0.08); } .ds-win-main { flex: 1; padding: 20px; } .ds-win-title { font: 600 22px/28px -apple-system, BlinkMacSystemFont, 'SF Pro Rounded', ui-rounded, system-ui, sans-serif; margin-bottom: 16px; } .ds-win-panel { border-radius: 14px; background: rgba(255,255,255,0.85); box-shadow: inset 0 0 0 1px rgba(20,21,25,0.1); } .ds-win-row { display: flex; align-items: center; justify-content: space-between; min-height: 44px; padding: 0 12px; font: 500 13px/16px -apple-system, BlinkMacSystemFont, 'SF Pro Rounded', ui-rounded, system-ui, sans-serif; } .ds-win-row + .ds-win-row { box-shadow: inset 0 1px 0 rgba(20,21,25,0.1); } .ds-win-knob { width: 38px; height: 22px; border-radius: 999px; background: #1C1C1E; } .ds-win-pop { height: 28px; display: inline-flex; align-items: center; padding: 0 12px; border-radius: 999px; background: rgba(255,255,255,0.85); box-shadow: inset 0 0 0 1px rgba(20,21,25,0.22); }"
+      "description": "Shell material, 16 pt corners, a 184 pt sidebar of four panes with 52 pt top padding and the status line at its foot, a raised panel of 44 pt rows, resting lit top edge. Shown small; the real window is 720 x 520 pt.",
+      "html": "<div class=\"ds-desk\"><div class=\"ds-win\"><div class=\"ds-win-side\"><button class=\"ds-win-item ds-selected\" aria-current=\"page\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"8\" cy=\"8\" r=\"2.2\"/><path d=\"M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.4 3.4l1.4 1.4M11.2 11.2l1.4 1.4M3.4 12.6l1.4-1.4M11.2 4.8l1.4-1.4\"/></svg><span>General</span></button><button class=\"ds-win-item\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M7 2l1.2 3.3L11.5 6.5 8.2 7.7 7 11 5.8 7.7 2.5 6.5 5.8 5.3z\"/><path d=\"M12 10l.5 1.5L14 12l-1.5.5L12 14l-.5-1.5L10 12l1.5-.5z\"/></svg><span>Cleanup</span></button><button class=\"ds-win-item\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M8 4c-1.5-1-3.5-1.3-5.5-1v9.5c2-.3 4 0 5.5 1 1.5-1 3.5-1.3 5.5-1V3c-2-.3-4 0-5.5 1zM8 4v9.5\"/></svg><span>Words</span></button><button class=\"ds-win-item\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"3.5\" y=\"7\" width=\"9\" height=\"6.5\" rx=\"1.5\"/><path d=\"M5.5 7V5a2.5 2.5 0 015 0v2\"/></svg><span>Permissions</span></button><div class=\"ds-win-status\"><span class=\"ds-win-dot\"></span><span class=\"ds-win-label\">Ready</span><span class=\"ds-win-key\">Fn</span></div></div><div class=\"ds-win-main\"><div class=\"ds-win-title\">General</div><div class=\"ds-win-panel\"><div class=\"ds-win-row\"><span><span class=\"ds-win-label\">Launch at login</span><span class=\"ds-win-detail\">Start Fluidity when you log in.</span></span><button class=\"ds-toggle\" role=\"switch\" aria-checked=\"true\" aria-label=\"Launch at login\"><span class=\"ds-knob\"></span></button></div><div class=\"ds-win-row\"><span><span class=\"ds-win-label\">Keep the mic ready</span><span class=\"ds-win-detail\">Starts faster; the mic stays open.</span></span><button class=\"ds-toggle\" role=\"switch\" aria-checked=\"false\" aria-label=\"Keep the mic ready\"><span class=\"ds-knob\"></span></button></div></div></div></div></div>",
+      "css": ".ds-desk { background: linear-gradient(135deg, #DCE6F2, #F3E7DA); padding: 24px; border-radius: 12px; display: inline-block; } .ds-win { position: relative; display: flex; width: 560px; min-height: 300px; border-radius: 16px; background: rgba(255,255,255,0.72); -webkit-backdrop-filter: blur(40px); backdrop-filter: blur(40px); box-shadow: inset 0 0 0 1px rgba(20,21,25,0.1); overflow: hidden; color: #1C1C1E; } .ds-win::before { content: ''; position: absolute; left: 16px; right: 16px; top: 0; height: 1px; background: linear-gradient(90deg, rgba(255,246,234,0), #FFF6EA 50%, rgba(255,246,234,0)); } .ds-win-side { box-sizing: border-box; width: 184px; padding: 52px 12px 12px; display: flex; flex-direction: column; gap: 2px; background: rgba(255,255,255,0.4); box-shadow: inset -1px 0 0 rgba(20,21,25,0.1); } .ds-win-item { display: flex; align-items: center; gap: 8px; height: 28px; padding: 0 8px; border: 0; border-radius: 999px; background: transparent; color: #1C1C1E; text-align: left; font: 500 13px/16px -apple-system, BlinkMacSystemFont, 'SF Pro Rounded', ui-rounded, system-ui, sans-serif; cursor: pointer; } .ds-win-item:hover { background: rgba(20,21,25,0.04); } .ds-win-item.ds-selected { background: rgba(20,21,25,0.08); } .ds-win-item:focus-visible { outline: 2px solid rgba(28,28,30,0.6); outline-offset: 1px; } .ds-win-status { margin-top: auto; display: flex; align-items: center; gap: 8px; height: 28px; padding: 0 8px; border-radius: 999px; } .ds-win-dot { width: 8px; height: 8px; border-radius: 50%; background: #6F6A62; } .ds-win-key { margin-left: auto; color: #6F6A62; font: 400 11px/14px -apple-system, BlinkMacSystemFont, 'SF Pro', system-ui, sans-serif; } .ds-win-main { flex: 1; padding: 20px; } .ds-win-title { font: 600 22px/28px -apple-system, BlinkMacSystemFont, 'SF Pro Rounded', ui-rounded, system-ui, sans-serif; margin-bottom: 16px; } .ds-win-panel { border-radius: 14px; background: rgba(255,255,255,0.85); box-shadow: inset 0 0 0 1px rgba(20,21,25,0.1); } .ds-win-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; box-sizing: border-box; padding: 8px 12px; } .ds-win-row + .ds-win-row { box-shadow: inset 0 1px 0 rgba(20,21,25,0.1); } .ds-win-label { display: block; font: 500 13px/16px -apple-system, BlinkMacSystemFont, 'SF Pro Rounded', ui-rounded, system-ui, sans-serif; } .ds-win-detail { display: block; margin-top: 2px; color: #6F6A62; font: 400 12px/16px -apple-system, BlinkMacSystemFont, 'SF Pro', system-ui, sans-serif; } .ds-toggle { flex: none; box-sizing: border-box; width: 38px; height: 22px; padding: 2px; border: 0; border-radius: 999px; background: #1C1C1E; cursor: pointer; transition: background 0.13s ease-in-out; } .ds-knob { display: block; width: 18px; height: 18px; border-radius: 50%; background: #FFFFFF; box-shadow: 0 1px 1px rgba(0,0,0,0.22); transform: translateX(16px); transition: transform 0.13s ease-in-out; } .ds-toggle[aria-checked='false'] { background: rgba(20,21,25,0.08); box-shadow: inset 0 0 0 1px rgba(20,21,25,0.1); } .ds-toggle[aria-checked='false'] .ds-knob { transform: translateX(0); } .ds-toggle:focus-visible { outline: 2px solid rgba(28,28,30,0.6); outline-offset: 1px; }"
     }
   ],
   "narrative": {
     "northStar": "Bright future",
-    "overview": "Fluidity shows one thing on screen: a small near-black pill, docked 12 pt above the bottom edge of the screen, that appears only while you dictate. Its edge is a thin ring of ivory light that brightens, drifts and blooms with your voice. Your words appear inside the pill, or in a bubble that splits off above it. When you let go, the light travels inward and becomes one line through the centre while the text is cleaned up. When the paste lands, the line turns mint green, holds for 260 ms, and the pill collapses and is gone.\n\nThe shape and motion come from the iPhone's Dynamic Island. The pill's sizes and springs, and the way the bubble splits off and merges back, all use values read from SpringBoard, so it moves like a system part of the Mac rather than an app's window. The body stays the same near-black on any background, and the light is the only colour.\n\nThe app around the pill, its settings window and menu bar popover, follows the direction the Figma file names \"Glass\". Its shell is macOS's own translucent material, so it floats over other apps the way the pill does, and its only colour is light caught on edges: a 1 pt lit top edge on every floating panel that brightens to the pill's ivory rim while the mic is live. Type, palette, density and the lit top edge are Fluidity's own; navigation and controls are standard macOS.",
+    "overview": "Fluidity shows one thing on screen: a small near-black pill, docked 12 pt above the bottom of the visible screen area, so above the Dock when the Dock is shown, that appears only while you dictate. Its edge is a thin ring of ivory light that brightens, drifts and blooms with your voice. Your words appear inside the pill, or in a bubble that splits off above it. When you let go, the light travels inward and becomes one line through the centre while the text is cleaned up. When the paste lands, the line turns mint green, holds for 260 ms, and the pill collapses and is gone.\n\nThe shape and motion come from the iPhone's Dynamic Island. The pill's sizes and springs, and the way the bubble splits off and merges back, all use values read from SpringBoard, so it moves like a system part of the Mac rather than an app's window. The body stays the same near-black on any background, and the light is the only colour.\n\nThe app around the pill, its settings window, menu bar popover and first-run window, follows the direction the Figma file names \"Glass\". Its shell is macOS's own translucent material, so it floats over other apps the way the pill does, and its only colour is light caught on edges: a 1 pt lit top edge on every floating panel that brightens to the pill's ivory rim while the mic is live. Type, palette, density, controls and the lit top edge are Fluidity's own; each control still reports to VoiceOver as the macOS control for its job.",
     "keyCharacteristics": [
       "One near-black capsule; colour comes only from the light around its edge.",
       "Ivory light by default; mint for a paste that landed, amber for a problem, soft orange for a retry that failed again.",
@@ -1113,31 +1106,32 @@
     ],
     "rules": [],
     "dos": [
-      "**Do** keep the pill and every bubble `pill-body` on every background; colour lives only in the light.",
-      "**Do** use the Dynamic Island springs above for every size, position and merge change.",
-      "**Do** switch from ivory to mint at once when a paste lands, and hold green for 260 ms.",
-      "**Do** scale any distance taken from the Dynamic Island by the pill's height ÷ 36.67.",
-      "**Do** honour Reduce Motion exactly as described above.",
-      "**Do** build the shell of the window, the popover and an open pop-up menu from one material: `app-window` over a 40 pt background blur with Elevation/Float.",
-      "**Do** draw the lit top edge on floating panels only: the window, the popover, an open pop-up menu, a focused text field or shortcut recorder.",
-      "**Do** make every control a capsule, radius half its height.",
-      "**Do** keep one filled primary button per pane, bottom right of its section.",
-      "**Do** use standard macOS navigation and controls: sidebar, toggle, pop-up button, segmented control, text field."
+      "Do keep the pill and every bubble `pill-body` on every background; colour lives only in the light.",
+      "Do use the Dynamic Island springs above for every size, position and merge change.",
+      "Do switch from ivory to mint at once when a paste lands, and hold green for 260 ms.",
+      "Do scale any distance taken from the Dynamic Island by the pill's height ÷ 36.67.",
+      "Do honour Reduce Motion exactly as described above.",
+      "Do build the shell of the window, the popover and the first-run window from one material: `app-window` over macOS's behind-window material, with no fixed blur.",
+      "Do draw the lit top edge on floating panels only: the window, the popover, the first-run window, a focused text field or shortcut recorder.",
+      "Do make every control a capsule, except history rows (10 pt corners) and the rules editor and keycaps (8 pt).",
+      "Do make every control the app draws report to VoiceOver as the native control for its job.",
+      "Do opt every focusable control into the Glass focus ring; the system ring is off.",
+      "Do keep at most one filled button per window."
     ],
     "donts": [
-      "**Don't** use the Ember, Rose quartz or Tide rim colours; Ivory is the only rim colour set.",
-      "**Don't** add a drop shadow, a border or a fill colour to the pill.",
-      "**Don't** let the rim exceed 1.5 pt or its halo 3 pt.",
-      "**Don't** scale or bounce the pill to say it can't hear you; pulse the light instead.",
-      "**Don't** keep the pill on screen when the user isn't dictating.",
-      "**Don't** fade between the ivory and a state colour; it passes through grey.",
-      "**Don't** put a blurred or frosted panel inside the shell; raised panels are plain fills.",
-      "**Don't** draw the lit top edge on rows, raised panels, buttons or the sidebar.",
-      "**Don't** set secondary text in a neutral grey; use `app-text-secondary`.",
-      "**Don't** use `app-state-done-light` for text; at 4.11:1 it colours icons only.",
-      "**Don't** add another colour of light; ivory is the only light, and mint, amber and soft orange appear only for states.",
-      "**Don't** fade the lit top edge or the status dot between ivory and a state colour; switch at once, as on the pill.",
-      "**Don't** replace a macOS control or the sidebar with a custom one."
+      "Don't use the Ember, Rose quartz or Tide rim colours; Ivory is the only rim colour set.",
+      "Don't add a drop shadow, a border or a fill colour to the pill.",
+      "Don't widen the rim past 1.2 pt plus 0.95 pt of voice, or its halo past 3 pt outside the collapse.",
+      "Don't scale or bounce the pill to say it can't hear you; pulse the light instead.",
+      "Don't keep the pill on screen when the user isn't dictating.",
+      "Don't blend ivory into mint; switch at once. Amber eases in over 0.28 s and orange over 0.06 s, and no change may pass through grey.",
+      "Don't put a blurred or frosted panel inside the shell; raised panels are plain fills.",
+      "Don't draw the lit top edge on rows, raised panels, buttons, the sidebar or the rules editor.",
+      "Don't set secondary text in a neutral grey; use `app-text-secondary`.",
+      "Don't use `app-state-done-light` for text; at 4.11:1 it colours icons only.",
+      "Don't add another colour of light; ivory is the only light, and mint and amber appear only for states.",
+      "Don't fade the lit top edge or the status dot between ivory and a state colour; switch at once.",
+      "Don't add a drop shadow of your own; the system window shadow is the only one."
     ]
   }
 }
