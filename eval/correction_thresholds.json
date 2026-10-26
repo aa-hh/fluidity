@@ -1,0 +1,8 @@
+{
+  "max_span_words": 3,
+  "max_changed_share": 0.30,
+  "max_spans": 4,
+  "min_similarity": 0.5,
+  "min_survive_share": 0.5,
+  "fillers": ["um", "uh", "like", "you know", "I mean", "er", "ah"]
+}

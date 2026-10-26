@@ -21,6 +21,8 @@ scoring. The scripts live here; the data never does.
   reference is model output, and scoring a model against it measures
   agreement, not accuracy.
 - Runs happen on this Mac: the mule cannot see the `Space` drive.
+- **Correction thresholds live in `correction_thresholds.json`, never in
+  code**, so changing one re-sorts every past dictation.
 
 ## Map
 
@@ -30,3 +32,5 @@ scoring. The scripts live here; the data never does.
 - `review_page.html` → template for the page where Alec settles each mark.
 - `test_draft_refs.py` → regression tests for the draft alignment.
 - `test_build_testset.py` → tests that the split holds and clips route by source.
+- `sort_corrections.py` → sorts user edits into categories, writes training rows.
+- `test_sort_corrections.py` → one made-up dictation per category and rule.
