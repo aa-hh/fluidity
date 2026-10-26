@@ -161,13 +161,12 @@ private struct HistoryRow: View {
                         .lineLimit(2)
                         .truncationMode(.tail)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                    HStack(spacing: 8) {
-                        Text(meta).font(GlassTheme.detail).foregroundStyle(GlassTheme.textSecondary)
-                        Spacer(minLength: 0)
-                        if isHovering || isFocused {
-                            Text("Click to paste").font(GlassTheme.small).foregroundStyle(GlassTheme.textSecondary)
-                        }
-                    }
+                    // One line, so the row never changes height.
+                    Text(meta)
+                        .font(GlassTheme.detail)
+                        .foregroundStyle(GlassTheme.textSecondary)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
                     if let note {
                         Text(note).font(GlassTheme.small).foregroundStyle(GlassTheme.textSecondary)
                     }
@@ -176,6 +175,7 @@ private struct HistoryRow: View {
                 .glassFocusRing(RoundedRectangle(cornerRadius: GlassTheme.innerRadius, style: .continuous))
             }
             .buttonStyle(.plain)
+            .help("Click to paste")
             .accessibilityLabel("Paste again: \(text), \(meta)")
             .accessibilityAction(named: "Copy", copy)
 

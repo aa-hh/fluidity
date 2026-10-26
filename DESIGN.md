@@ -420,7 +420,7 @@ Each control is drawn by the app in Glass colours and reports to VoiceOver as th
 #### Menu bar popover
 - `popover`: shell material, system shadow, resting lit top edge; the edge goes live while the mic is live.
 - Status row: 8 pt dot, status in `app-label`, hint in `app-small` secondary text at the right ("Let go to paste" while holding, "Tap <key> to stop" hands-free, "Tap or hold <key>" when ready), then the optional detail line and fix button.
-- History row (`history-row`): the transcript in `app-transcript`, at most 2 lines; a meta line "<App> · <time>" in `app-detail` secondary text; "Click to paste" in `app-small` on hover or focus; an optional note in `app-small` ("Not pasted", "Raw transcript · …"). A 24 pt copy button is always visible and shows an `app-state-done` checkmark for 260 ms after a copy. Fill: `app-hover` on hover (`history-row-hover`), animated over 130 ms, `app-selected` when focused. Arrows move, Return pastes, Command-C copies.
+- History row (`history-row`): the transcript in `app-transcript`, at most 2 lines; a meta line "<App> · <time>" in `app-detail` secondary text, kept to one line (cut in the middle when too long) so the row never changes height; a "Click to paste" tooltip on the row; an optional note in `app-small` ("Not pasted", "Raw transcript · …"). A 24 pt copy button is always visible and shows an `app-state-done` checkmark for 260 ms after a copy. Fill: `app-hover` on hover (`history-row-hover`), animated over 130 ms, `app-selected` when focused. Arrows move, Return pastes, Command-C copies.
 - Settings… (⌘,) and Quit Fluidity (⌘Q) rows: 28 pt capsules, shortcut in `app-small` secondary text, `app-selected` on hover with no animation.
 - The panel closes at once, with no animation.
 
