@@ -13,7 +13,7 @@ Job and audience: heavy typists, developers, people who cannot type easily, priv
 
 Scope: the settings window, the menu bar popover, and the first-run permission check. Version 1 panes: General, Cleanup, Words, Permissions. Models (the model library) and a full history window arrive in version 2 (AA-296). The recording pill is designed and approved separately on the "Recording pill: Rim (approved)" Figma page and is not touched by this brief.
 
-Source of truth: Figma file 5JcAX6bwl48LqQhqcUuGOJ, pages Tokens, Atoms and Style Guide (the former "D4 · Glass" direction, chosen 23 Oct 2026 from five candidates: Lantern, Typeset, Studio, Glass, Signal).
+Source of truth: the published library, Figma file 5JcAX6bwl48LqQhqcUuGOJ, pages Tokens, Atoms and Style Guide, with screens in the separate file jQqsc13MjOVaVST36jaxd8 (the former "D4 · Glass" direction, chosen 23 Oct 2026 from five candidates: Lantern, Typeset, Studio, Glass, Signal).
 
 Product decisions this brief follows (PRODUCT.md, Linear AA-296 and AA-298): the app lives in the menu bar with no Dock icon; one customisable key starts dictation (tap for hands-free, hold to talk); version 1 ships Parakeet TDT v2 only, so there is no model picker; the popover lists the last 20 or so dictations, each one click to copy or paste again.
 
