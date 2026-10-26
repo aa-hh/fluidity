@@ -10,7 +10,6 @@ by ear. Writes test/references.draft.jsonl and test/review.html.
 """
 import argparse
 import difflib
-import html
 import json
 import re
 from pathlib import Path
@@ -72,7 +71,8 @@ def draft(wispr, hyps):
         else:
             majority = [v for v in values if values.count(v) >= 2]
             chosen = majority[0] if majority else options["wispr"]
-            segments.append({**options, "chosen": chosen, "majority": bool(majority)})
+            at = {m: maps[m][0][a] for m in hyps}  # each model's word index where the spot starts
+            segments.append({**options, "chosen": chosen, "majority": bool(majority), "at": at})
         pos = b
     if pos < len(wispr):
         segments.append(" ".join(wispr[pos:]))
@@ -80,25 +80,40 @@ def draft(wispr, hyps):
     return text.split(), segments
 
 
+def word_starts(transcript_json):
+    """Start time of each normalised word in a fluidaudiocli transcript, or None
+    when its word timings don't line up with its text."""
+    d = json.loads(transcript_json.read_text())
+    starts = [t["startTime"] for t in d.get("wordTimings", []) for _ in words(t["word"])]
+    return starts if len(starts) == len(words(d["text"])) else None
+
+
+def segment_times(wispr, v2, segments, starts):
+    """Start time of each word in the draft, laid out like segments: a list of
+    times for an agreed segment, one time for a dispute. Agreed words are
+    words v2 also heard, so their time is v2's time for that word."""
+    lo, _ = boundary_map(wispr, v2)
+    out, pos = [], 0
+    for s in segments:
+        if isinstance(s, str):
+            n = len(s.split())
+            out.append([starts[min(lo[k], len(starts) - 1)] for k in range(pos, pos + n)] if starts else [None] * n)
+        else:
+            n = len(s["wispr"].split())
+            out.append(s["t"])
+        pos += n
+    return out
+
+
+REVIEW_PAGE = Path(__file__).with_name("review_page.html")
+
+
 def review_html(rows):
-    parts = ["<!doctype html><meta charset=utf-8><title>Test set review</title>",
-             "<style>body{font:15px/1.6 -apple-system,sans-serif;max-width:900px;margin:2em auto;padding:0 16px}"
-             ".clip{border-top:1px solid #ccc;padding:1em 0}.d{background:#ffe08a;border-radius:3px;padding:0 3px}"
-             ".d.nomaj{background:#ff9f8a}.opts{font-size:12px;color:#555}</style>",
-             f"<h1>Test set review</h1><p>{len(rows)} clips. Yellow: models disagreed, majority shown. "
-             "Red: no majority, Wispr shown. Hover a mark for all three versions.</p>"]
-    for r in rows:
-        body = []
-        for s in r["segments"]:
-            if isinstance(s, str):
-                body.append(html.escape(s))
-                continue
-            title = " | ".join(f"{k}: {s[k] or '(nothing)'}" for k in ("wispr",) + MODELS)
-            cls = "d" if s["majority"] else "d nomaj"
-            body.append(f'<span class="{cls}" title="{html.escape(title)}">{html.escape(s["chosen"] or "∅")}</span>')
-        parts.append(f'<div class="clip"><b>{r["id"]}</b> · {len(r["disputes"])} marked<br>'
-                     f'<audio controls preload=none src="{html.escape(r["wav"])}"></audio><p>{" ".join(body)}</p></div>')
-    return "\n".join(parts)
+    data = [{"id": r["id"], "wav": r["wav"], "segments": r["segments"], "times": r["times"]} for r in rows]
+    # Embedded as JSON and rendered by the page's script with textContent, so
+    # transcript text never becomes markup. "</" is escaped to keep the
+    # script element from closing early.
+    return REVIEW_PAGE.read_text().replace("/*DATA*/[]", json.dumps(data).replace("</", "<\\/"))
 
 
 def main():
@@ -115,10 +130,15 @@ def main():
             print(f"skipped {clip['id']}: no {', '.join(missing)} transcript")
             continue
         hyps = {m: words(p.read_text()) for m, p in paths.items()}
-        text, segments = draft(words(clip["wispr_asr"]), hyps)
+        wispr = words(clip["wispr_asr"])
+        text, segments = draft(wispr, hyps)
         disputes = [s for s in segments if not isinstance(s, str)]
+        starts = word_starts(test / "transcripts" / "v2" / f"{clip['id']}.json")
+        for d in disputes:
+            d["t"] = starts[min(d["at"]["v2"], len(starts) - 1)] if starts else None
         rows.append({"id": clip["id"], "wav": clip["wav"], "draft": " ".join(text),
-                     "disputes": disputes, "segments": segments})
+                     "disputes": disputes, "segments": segments,
+                     "times": segment_times(wispr, hyps["v2"], segments, starts)})
     with (test / "references.draft.jsonl").open("w") as f:
         for r in rows:
             f.write(json.dumps({k: r[k] for k in ("id", "wav", "draft", "disputes")}) + "\n")
