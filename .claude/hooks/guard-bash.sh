@@ -8,7 +8,7 @@
 #         git push to main) — the owner approves every merge
 #
 # Edit BARE_CMDS for your stack (an extended regex matched at a command start).
-BARE_CMDS='(npm (test|run build)|pnpm (test|build)|yarn (test|build)|pytest|go (test|build)|cargo (test|build)|swift (test|build|run))'
+BARE_CMDS='(npm (test|run build)|pnpm (test|build)|yarn (test|build)|pytest|go (test|build)|cargo (test|build)|swift (test|build|run)|xcodebuild)'
 
 cmd=$(python3 -c 'import json,sys; print(json.load(sys.stdin).get("tool_input",{}).get("command",""))' 2>/dev/null) || exit 0
 

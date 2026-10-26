@@ -22,10 +22,7 @@ let package = Package(
             dependencies: [.product(name: "FluidAudio", package: "FluidAudio")]
         ),
         .target(name: "FluidityTestSupport", path: "Tests/TestSupport"),
-        .testTarget(
-            name: "DictationTests",
-            dependencies: ["FluidityCore", "FluidityTestSupport", .product(name: "FluidAudio", package: "FluidAudio")]
-        ),
+        .testTarget(name: "DictationTests", dependencies: ["FluidityCore", "FluidityTestSupport"]),
         .testTarget(name: "AudioTests", dependencies: ["FluidityCore", "FluidityTestSupport"]),
         .testTarget(name: "CleanupTests", dependencies: ["FluidityCore", "FluidityTestSupport"]),
         .testTarget(name: "FieldTests", dependencies: ["FluidityCore", "FluidityTestSupport"]),
