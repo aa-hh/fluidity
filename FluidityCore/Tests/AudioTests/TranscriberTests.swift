@@ -118,6 +118,22 @@ struct TranscriberTests {
         #expect(await previews.next() == nil)
     }
 
+    @Test func theFinalPassWaitsForTheModelToLoad() async throws {
+        // Running the final pass without waiting for `prepare`, so the engine throws not loaded, turns this red.
+        let engine = FakeSpeechEngine()
+        let (transcriber, _) = makeTranscriber(engine: engine)
+        engine.hold()
+        let preparing = Task { try await transcriber.prepare() }
+        await settle()
+        let finishing = Task { try await transcriber.finish(recording: oneSecond) }
+        await settle()
+        #expect(engine.audioLengths.isEmpty)
+
+        engine.release()
+        try await preparing.value
+        #expect(try await finishing.value.text == "heard 16000")
+    }
+
     @Test func aNewRecordingWaitsForTheLastFinalPass() async throws {
         // Letting a new recording's preview pass start while the last final pass is on the engine turns this red.
         let engine = FakeSpeechEngine()
@@ -190,6 +206,7 @@ extension TranscriberTests {
         private var running = 0
         private var lengths: [Int] = []
         private var most = 0
+        private var loaded = true
 
         init(work: @escaping @Sendable () async -> Void = {}) {
             (started, startedContinuation) = AsyncStream.makeStream(of: Int.self)
@@ -210,15 +227,28 @@ extension TranscriberTests {
             for continuation in waiting { continuation.resume() }
         }
 
-        func load(progress: @escaping @Sendable (Double) -> Void) async throws {}
+        /// Stays unloaded while held, like a slow first load of the real model.
+        func load(progress: @escaping @Sendable (Double) -> Void) async throws {
+            lock.withLock { loaded = false }
+            await parkWhileHeld()
+            lock.withLock { loaded = true }
+        }
 
         func transcribe(_ audio: [Float]) async throws -> Transcript {
+            guard lock.withLock({ loaded }) else { throw FluidAudioEngine.EngineError.notLoaded }
             lock.withLock {
                 lengths.append(audio.count)
                 running += 1
                 most = max(most, running)
             }
             startedContinuation.yield(audio.count)
+            await parkWhileHeld()
+            await work()
+            lock.withLock { running -= 1 }
+            return Transcript(text: "heard \(audio.count)", wordTimings: [])
+        }
+
+        private func parkWhileHeld() async {
             await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
                 let parked = lock.withLock {
                     if holding { held.append(continuation) }
@@ -226,9 +256,6 @@ extension TranscriberTests {
                 }
                 if !parked { continuation.resume() }
             }
-            await work()
-            lock.withLock { running -= 1 }
-            return Transcript(text: "heard \(audio.count)", wordTimings: [])
         }
     }
 

@@ -68,6 +68,8 @@ public actor Transcriber {
     private var runningPass: Task<Void, Never>?
     /// Set while a final pass or its recheck is on the engine; a new recording's preview passes wait until it clears.
     private var finalPassRunning = false
+    /// The model load `prepare` started. The final pass waits for it, so a dictation made just after launch is not lost.
+    private var loading: Task<Void, any Error>?
 
     public init(
         engine: any SpeechEngine,
@@ -83,7 +85,9 @@ public actor Transcriber {
 
     /// Loads the models, downloading them on first launch; `progress` runs from 0 to 1.
     public func prepare(progress: @escaping @Sendable (Double) -> Void = { _ in }) async throws {
-        try await engine.load(progress: progress)
+        let load = Task { [engine] in try await engine.load(progress: progress) }
+        loading = load
+        try await load.value
     }
 
     /// Starts a recording and returns its live preview, which ends on `finish` or `cancel`.
@@ -113,6 +117,7 @@ public actor Transcriber {
     /// Ends the live preview and runs the final pass on `recording`, which includes the tail after release.
     public func finish(recording: [Float], wordList: [String] = []) async throws -> RawTranscript {
         endPreviews()
+        _ = await loading?.result
         while let pass = runningPass { await pass.value }
         finalPassRunning = true
         defer { finalPassRunning = false }
