@@ -43,6 +43,11 @@ for m in ['a', 'b160', 'b320', 'ab160', 'ab320', 'u320', 'u640', 'u1120', 'ufina
     if ep:
         print("  streaming process per 100 ms buffer:", ms(ep), " worst lag behind audio p90/max:",
               f"{q([r['eouLagMax'] for r in c],.9)*1000:.0f} / {max(r['eouLagMax'] for r in c)*1000:.0f} ms")
+    if m.startswith('u') and ep:
+        # Unified only runs a window every chunk; the other calls return at once.
+        win = [x for x in ep if x > 0.005]
+        print("  Unified compute per window (calls over 5 ms):", ms(win), "n=", len(win),
+              " finish() at release:", ms([r['eouFinishSec'] for r in c]))
     wc = [r for r in c if r['refWords'] > 0]
     print("  live vs final WER (pooled):", f"{100*sum(r['liveEdits'] for r in wc)/sum(r['refWords'] for r in wc):.1f}%",
           " per-clip median:", f"{100*st.median(r['liveEdits']/r['refWords'] for r in wc):.1f}%",

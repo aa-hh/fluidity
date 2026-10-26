@@ -52,6 +52,7 @@ symbol you cannot find in source, believe the source and fix the doc.
 - `docs/review/` → instructions for each branch-review pass.
 - `eval/` → builds the sealed speech test set and scores models against it.
 - `.scratch/` → research write-ups and notes linked from Linear issues; never tickets or status.
+- `spike/` → one-off measurement harnesses linked from Linear issues; not built or tested by the wrappers.
 
 ## Rules (all targets)
 
