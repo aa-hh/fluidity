@@ -70,7 +70,8 @@ struct WordsPane: View {
                 HStack(spacing: 8) {
                     Text("Deleted \u{201C}\(lastDeleted)\u{201D}.")
                         .font(GlassTheme.detail).foregroundStyle(GlassTheme.textSecondary)
-                    Button("Undo") { restore(lastDeleted) }.buttonStyle(.glassQuiet)
+                        .lineLimit(1).truncationMode(.middle)
+                    Button("Undo") { restore(lastDeleted) }.buttonStyle(.glassQuiet).fixedSize()
                 }
                 .padding(.horizontal, 4)
             }
@@ -136,6 +137,7 @@ private struct WordRow: View {
     var body: some View {
         HStack(spacing: 12) {
             Text(word).font(GlassTheme.body).foregroundStyle(GlassTheme.textPrimary)
+                .lineLimit(1)
                 .frame(maxWidth: .infinity, alignment: .leading)
             // Always present, so Voice Control and VoiceOver can reach it without a hover.
             Button(action: delete) {
