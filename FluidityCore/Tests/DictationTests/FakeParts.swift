@@ -5,7 +5,7 @@ import Synchronization
 import Testing
 
 /// Stands in for every part `DictationController` talks to. Each test sets the state it needs.
-final class FakeParts: AudioCapturing, Transcribing, CleaningUp, FieldReading, Finishing, Pasting,
+final class FakeParts: AudioCapturing, Transcribing, CleaningUp, FieldContextReading, Finishing, Pasting,
     EditWatching, DictationStoring, PermissionChecking {
     struct Failure: Error {}
 

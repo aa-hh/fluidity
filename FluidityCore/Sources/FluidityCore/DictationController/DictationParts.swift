@@ -28,7 +28,7 @@ public protocol CleaningUp: Sendable {
 }
 
 /// The focused text field.
-public protocol FieldReading: Sendable {
+public protocol FieldContextReading: Sendable {
     /// Nil when no text field can be read.
     func read() async -> DictationController.FieldContext?
 }

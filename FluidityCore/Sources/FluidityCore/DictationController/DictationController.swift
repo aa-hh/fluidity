@@ -26,7 +26,7 @@ public final class DictationController {
     private let audio: any AudioCapturing
     private let transcriber: any Transcribing
     private let cleanup: any CleaningUp
-    private let field: any FieldReading
+    private let field: any FieldContextReading
     private let finisher: any Finishing
     private let paster: any Pasting
     private let watcher: any EditWatching
@@ -45,7 +45,7 @@ public final class DictationController {
         audio: any AudioCapturing,
         transcriber: any Transcribing,
         cleanup: any CleaningUp,
-        field: any FieldReading,
+        field: any FieldContextReading,
         finisher: any Finishing,
         paster: any Pasting,
         watcher: any EditWatching,
