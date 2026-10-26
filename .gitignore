@@ -4,3 +4,7 @@
 .review-pending/
 # Worktrees live here (CLAUDE.md, "Work in worktrees").
 .claude/worktrees/
+# Build products, Xcode per-user state and SwiftPM caches.
+.build/
+xcuserdata/
+.swiftpm/

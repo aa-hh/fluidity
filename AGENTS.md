@@ -44,6 +44,8 @@ symbol you cannot find in source, believe the source and fix the doc.
 
 <!-- One line per top-level folder: path → what it is. Each folder with
      rules of its own gets an AGENTS.md. -->
+- `Fluidity/` → the app target: only what needs the running app.
+- `FluidityCore/` → all logic, behind protocols, tested with fakes.
 - `scripts/` → the only sanctioned way to build, test, review and land.
 - `.githooks/` → commit and push guards; settings in `project.conf`.
 - `docs/review/` → instructions for each branch-review pass.
