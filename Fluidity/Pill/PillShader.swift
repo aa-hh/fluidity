@@ -75,7 +75,9 @@ nonisolated enum PillShader {
     #define U_BUBBLE_Y 183
     #define U_BUBBLE_RADIUS 184
     #define U_BUBBLE_LIGHT 185
-    #define U_COUNT 186
+    #define U_ICON_TURN 186
+    #define U_LINE_DISABLED 187
+    #define U_COUNT 188
 
     constant float TAU = 6.28318530718;
     constant float PI_F = 3.14159265359;
@@ -150,8 +152,18 @@ nonisolated enum PillShader {
     // distance exactly, so the approved rim is unchanged.
     static float cover(float d, float sigma) { return 1.0 / (1.0 + exp(clamp(1.702 * d / sigma, -60.0, 60.0))); }
 
-    // The bubble's icon as a distance in units of its radius: send arrow (up), mic.slash, lock.
-    static float iconDistance(float2 a, float kind) {
+    // The bubble's icon as a distance in units of its radius: send arrow (up), mic.slash, lock, loading arc.
+    static float iconDistance(float2 a, float kind, float turn) {
+        if (kind > 2.5) {
+            // Three quarters of a circle from the top, clockwise, turned by `turn` (0...1).
+            float t = TAU * turn;
+            float2 q = float2(cos(t) * a.x + sin(t) * a.y, -sin(t) * a.x + cos(t) * a.y);
+            float radius = 0.36;
+            float angle = atan2(q.x, -q.y);
+            if (angle < 0.0) { angle += TAU; }
+            if (angle <= 0.75 * TAU) { return abs(length(q) - radius); }
+            return min(length(q - float2(0.0, -radius)), length(q - float2(-radius, 0.0)));
+        }
         if (kind < 0.5) {
             return min(segmentDistance(a, float2(0.0, 0.42), float2(0.0, -0.42)),
                        min(segmentDistance(a, float2(0.0, -0.42), float2(-0.34, -0.08)), segmentDistance(a, float2(0.0, -0.42), float2(0.34, -0.08))));
@@ -365,6 +377,11 @@ nonisolated enum PillShader {
             if (amp > 0.02) {
                 innerC = whiten(tint(u, lineHue, lineTone), doneT >= 0.0 ? 0.0 : max(0.0, max(amp, lineTone) - 0.95) * 1.5);
                 innerA = pow(min(1.3, amp), 1.2) * 0.9 * u[U_CORE_ON] * (0.6 + 0.4 * strength);
+                if (doneT < 0.0 && u[U_LINE_DISABLED] > 0.0) {
+                    // The speech model is still loading: a dim grey line, like a disabled control.
+                    innerC = mix(innerC, float3(dot(innerC, float3(0.299, 0.587, 0.114))), 0.85 * u[U_LINE_DISABLED]);
+                    innerA *= 1.0 - 0.65 * u[U_LINE_DISABLED];
+                }
             }
         }
 
@@ -376,7 +393,7 @@ nonisolated enum PillShader {
             // The bubble's icon, like an SF Symbol: a 1.6 pt stroke with round caps.
             float iconRadius = 0.5 * min(u[U_BUBBLE + 1], u[U_BUBBLE + 2]) * (0.86 + 0.14 * u[U_ICON]);
             float2 a = pb / iconRadius + float2(0.0, 0.08 * (1.0 - u[U_ICON]));
-            float dIcon = iconDistance(a, u[U_ICON_KIND]);
+            float dIcon = iconDistance(a, u[U_ICON_KIND], u[U_ICON_TURN]);
             float stroke = 0.8 / iconRadius, edge = aa / iconRadius;
             float iconA = (1.0 - smoothstep(stroke - edge, stroke + edge, dIcon)) * u[U_ICON] * bodyA;
             colour = colour * (1.0 - iconA) + whiten(tint(u, hueB, 0.9), 0.3) * iconA;

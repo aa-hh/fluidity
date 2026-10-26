@@ -5,8 +5,8 @@ import FluidityCore
 ///
 /// Launch with `FLUIDITY_PILL_PREVIEW` set to listening, finishing, cleaning,
 /// pasted, pastedRawTranscript, nowhereToPaste, cancelled, microphoneMissing,
-/// accessibilityMissing, micSilent, recordingLimitNear or
-/// recordingStoppedAtLimit, and optionally `FLUIDITY_PILL_WORDS` to inPill,
+/// accessibilityMissing, micSilent, recordingLimitNear,
+/// recordingStoppedAtLimit or modelLoading, and optionally `FLUIDITY_PILL_WORDS` to inPill,
 /// above or off. Most states follow two seconds of made-up speech; pasted and
 /// cancelled repeat every five seconds. A click on the retry bubble fails.
 @MainActor
@@ -17,6 +17,8 @@ enum PillPreview {
         var repeatsEvery: Double?
         /// The made-up voice: silent after the listening part, or still speaking.
         var speaksAfter: Bool?
+        /// Seconds from the start during which the speech model is still loading.
+        var loadingUntil: Double?
     }
 
     private static let sentence = "so this is how the words look while you are still talking to the pill".split(separator: " ")
@@ -59,6 +61,8 @@ enum PillPreview {
         case "micSilent": return Script(then: [(0, .micSilent)], speaksAfter: false)
         case "recordingLimitNear": return Script(then: [(0, .recordingLimitNear)], speaksAfter: true)
         case "recordingStoppedAtLimit": return Script(then: [(0, .recordingStoppedAtLimit)])
+        case "modelLoading":
+            return Script(then: [(0, .finishing), (2.8, .pasted(text: pasted)), (3.4, .hidden)], repeatsEvery: 7, loadingUntil: 4.5)
         default: return nil
         }
     }
@@ -76,8 +80,11 @@ enum PillPreview {
             t = 0
         }
         let listening = Self.script.listensFor ?? 0
+        let loading = Self.script.loadingUntil.map { t < $0 } ?? false
+        if pill.isModelLoading != loading { pill.isModelLoading = loading }
         if t < listening {
-            let count = min(Self.sentence.count, Int(t / 0.22) + 1)
+            // No live words come while the speech model loads.
+            let count = loading ? 0 : min(Self.sentence.count, Int(t / 0.22) + 1)
             pill.show(.listening(preview: Self.sentence.prefix(count).joined(separator: " "), mode: .held))
             pill.feed(Self.voice(loud: 1))
             return

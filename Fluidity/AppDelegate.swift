@@ -261,6 +261,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func loadModel() async {
+        PillPresenter.shared.isModelLoading = true
+        defer { PillPresenter.shared.isModelLoading = false }
         do {
             try await transcriber.prepare { progress in
                 Task { @MainActor in self.firstRunModel.modelProgress = progress }

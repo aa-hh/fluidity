@@ -46,6 +46,14 @@ final class PillPresenter {
     var liveWords: LiveWords = .inPill {
         didSet { self.fitPanel() }
     }
+    /// The speech model is still loading: while the pill shows, a bubble with a turning arc waits
+    /// beside it and the centre line is dim and grey until the model is ready.
+    var isModelLoading = false {
+        didSet {
+            self.simulation.modelLoading = self.isModelLoading
+            self.wake()
+        }
+    }
 
     /// Splits the microphone's audio into the rim's voice bands.
     nonisolated let audio = RimAudioAnalyzer()

@@ -35,7 +35,9 @@ nonisolated enum RimUniform {
     static let waveAmount = 116, waveOpacity = 117, waveHeight = 118, wave = 119
     /// The bubble's centre below the pill's (negative is above), its corner cap and how bright its ring is.
     static let bubbleY = RimUniform.wave + RimWaveform.sampleCount, bubbleRadius = RimUniform.bubbleY + 1, bubbleLight = RimUniform.bubbleY + 2
-    static let count = RimUniform.bubbleLight + 1
+    /// How far the bubble's loading arc has turned, and whether the centre line shows as disabled.
+    static let iconTurn = RimUniform.bubbleLight + 1, lineDisabled = RimUniform.bubbleLight + 2
+    static let count = RimUniform.lineDisabled + 1
 
     static let maxBlooms = 6
     static let maxLineBlooms = 4
@@ -137,6 +139,8 @@ nonisolated struct RimSimulation {
 
     /// What the amber pill's bubble holds: the lost mic's fix, or a lock for a revoked permission.
     var problem: RimBubble.Kind = .microphone
+    /// The speech model is still loading: a bubble with a turning arc waits beside the pill and the centre line shows as disabled.
+    var modelLoading = false
 
     /// Live words go in the pill, so it shows no waveform while listening.
     var liveWordsInPill = false
@@ -187,7 +191,7 @@ nonisolated struct RimSimulation {
         let level: Float = listening ? f.level : 0
         let idleActivity = rimClamp(p.idleActivity, 0, 1)
 
-        self.bubble.update(dt: dt, state: state, previous: previous, params: p, reduced: reduced, problem: self.problem)
+        self.bubble.update(dt: dt, state: state, previous: previous, params: p, reduced: reduced, problem: self.problem, loading: self.modelLoading)
         self.bubbleClock = state == previous ? self.bubbleClock + dt : 0
         self.updateNudge(dt: dt, state: state, speech: f.speech)
 
@@ -550,6 +554,9 @@ nonisolated struct RimSimulation {
         u[RimUniform.icon] = self.bubble.icon
         u[RimUniform.hoverGlow] = p.hoverGlow
         u[RimUniform.iconKind] = self.bubble.kind.icon
+        u[RimUniform.iconTurn] = self.bubble.turn
+        // Switches at once when the model is ready, as ivory turns mint at once.
+        u[RimUniform.lineDisabled] = self.modelLoading ? 1 : 0
         u[RimUniform.melt] = self.meltAmount
         u[RimUniform.meltSigma] = p.blobRadius * h / RimSpring.islandHeight
         u[RimUniform.meltFade] = self.fluid.isOn ? RimFluidCollapse.meltFade : 1
