@@ -221,6 +221,7 @@ def sort_dictation(rec, th):
     kept = sum(i2 - i1 for tag, i1, i2, _, _ in ops if tag == "equal")
     if not f.words or (n and kept / n < th["min_survive_share"]):
         span(3, 0, n, 0, len(f.words))
+        res["speech"] = None  # the user rejected this transcript, so nothing confirms it
         return finish()
 
     first = len(spans)

@@ -95,6 +95,12 @@ class DictationTest(unittest.TestCase):
         self.assertEqual(rows["cleanup"][0]["target"], raw.replace("um ", ""))
         self.assertEqual([s["category"] for s in rows["corrections"][0]["spans"]], [5, 9])
 
+    # Turns red if a wiped dictation's raw transcript goes into the speech-to-text set.
+    def test_wiped_dictation_stays_out_of_speech(self):
+        _, rows = run_folder([rec("purple walrus dances", "")])
+        self.assertEqual(rows["speech_to_text"], [])
+        self.assertEqual(rows["corrections"][0]["spans"][0]["category"], 3)
+
     # Turns red if the category-8 fix stops reaching the speech-to-text target.
     def test_misheard_fix_reaches_speech_target(self):
         _, rows = run_folder([rec("meet me at the pier", "meet me at the peer")])
