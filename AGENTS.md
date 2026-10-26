@@ -50,6 +50,7 @@ symbol you cannot find in source, believe the source and fix the doc.
 - `scripts/` → the only sanctioned way to build, test, review and land.
 - `.githooks/` → commit and push guards; settings in `project.conf`.
 - `docs/review/` → instructions for each branch-review pass.
+- `eval/` → builds the sealed speech test set and scores models against it.
 - `.scratch/` → research write-ups and notes linked from Linear issues; never tickets or status.
 
 ## Rules (all targets)
