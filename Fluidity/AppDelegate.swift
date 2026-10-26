@@ -48,7 +48,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             client: CleanupClient(session: URLSession(configuration: .ephemeral), keyStore: keychain, networkMonitor: NetworkMonitor()),
             settings: settings)
         let fluid = FluidAudioEngine()
-        let engines: [SpeechModelID: any SpeechEngine] = [.parakeetTDTv2: fluid]
+        let engines: [SpeechModelID: any SpeechEngine] = [
+            .parakeetTDTv2: fluid, .appleBuiltIn: AppleSpeechEngine(), .parakeetUnified: UnifiedEngine(),
+        ]
         let downloads = ModelDownloads(fetcher: FluidAudioModelFetcher(), network: NetworkMonitor(), inUse: { settings.speechModel })
         // A chosen model that is no longer on this Mac falls back to the default.
         var chosen = settings.speechModel
