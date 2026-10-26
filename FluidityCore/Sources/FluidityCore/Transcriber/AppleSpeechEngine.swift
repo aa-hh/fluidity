@@ -21,10 +21,16 @@ public actor AppleSpeechEngine: StreamingSpeechEngine {
     private static let inputFormat = AVAudioFormat(
         commonFormat: .pcmFormatFloat32, sampleRate: 16_000, channels: 1, interleaved: false)!
 
+    private let loads = SingleFlight()
+
     public init() {}
 
     /// Installs the locale's speech assets the first time; macOS keeps them after that.
     public func load(progress: @escaping @Sendable (Double) -> Void) async throws {
+        try await loads.run { try await self.loadOnce(progress: progress) }
+    }
+
+    private func loadOnce(progress: @escaping @Sendable (Double) -> Void) async throws {
         guard transcriber == nil else { return progress(1) }
         // `supportedLocale(equivalentTo:)` picks a different English region from run to run, so try exact matches first.
         let locale: Locale

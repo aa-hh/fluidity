@@ -31,6 +31,17 @@ extension DictationController.Phase {
         case .ready, .pasting, .watching: false
         }
     }
+
+    /// Whether the open compare window gets this decision. It does only while no dictation runs, so a dictation
+    /// in progress keeps its key and Escape; paste-again always belongs to dictation.
+    public func passesToCompare(_ decision: HotkeyDecision) -> Bool {
+        decision != .pasteAgain && !isDictating
+    }
+
+    /// Whether `Hotkey.isRecording` must be true, given the open compare window's phase (nil when it is closed).
+    public func takesEscape(comparing: CompareSession.Phase?) -> Bool {
+        takesEscape || (!isDictating && comparing == .listening)
+    }
 }
 
 extension DictationController {

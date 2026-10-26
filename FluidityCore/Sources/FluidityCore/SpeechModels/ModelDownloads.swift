@@ -41,22 +41,31 @@ public final class ModelDownloads {
     public private(set) var failure: (model: SpeechModelID, reason: DownloadFailure)?
     /// The model whose download finished most recently, until `clearLastFinished`.
     public private(set) var lastFinished: SpeechModelID?
+    /// Models that cannot be deleted because dictation needs them: the chosen one, the one still dictating
+    /// while a switch loads, and any a switch is loading. The app shell keeps it current.
+    @ObservationIgnored public var inUse: Set<SpeechModelID> = []
 
     @ObservationIgnored private let fetcher: any ModelFetching
     @ObservationIgnored private let network: any NetworkMonitoring
-    @ObservationIgnored private let inUse: @Sendable () -> SpeechModelID
     @ObservationIgnored private var tasks: [SpeechModelID: Task<Void, Never>] = [:]
     @ObservationIgnored private var openInCompare: Set<SpeechModelID> = []
 
-    public init(fetcher: any ModelFetching, network: any NetworkMonitoring, inUse: @escaping @Sendable () -> SpeechModelID) {
+    public init(fetcher: any ModelFetching, network: any NetworkMonitoring) {
         self.fetcher = fetcher
         self.network = network
-        self.inUse = inUse
         for model in SpeechModel.all {
-            states[model.id] = switch model.install {
-            case .partOfMacOS: .partOfMacOS
-            case .download: fetcher.isInstalled(model.id) ? .installed : .notInstalled
-            }
+            if case .partOfMacOS = model.install { states[model.id] = .partOfMacOS }
+        }
+        refreshInstalled()
+    }
+
+    /// Reads again which models are on disk, for one downloaded outside `download`, such as by an engine's first load.
+    /// A download in progress keeps its state.
+    public func refreshInstalled() {
+        for model in SpeechModel.all {
+            guard case .download = model.install else { continue }
+            if case .downloading = states[model.id] { continue }
+            states[model.id] = fetcher.isInstalled(model.id) ? .installed : .notInstalled
         }
     }
 
@@ -95,10 +104,16 @@ public final class ModelDownloads {
 
     public func delete(_ id: SpeechModelID) throws(DeleteRefusal) {
         if case .partOfMacOS = SpeechModel.model(id).install { throw .partOfMacOS }
-        if id == inUse() { throw .inUse }
+        if inUse.contains(id) { throw .inUse }
         if case .downloading = states[id] { throw .downloading }
         if openInCompare.contains(id) { throw .openInCompare }
-        try? fetcher.removeFiles(for: id)
+        do {
+            try fetcher.removeFiles(for: id)
+        } catch {
+            // Files that could not be removed may still be whole, so the model stays installed.
+            failure = (id, .other(String(describing: error)))
+            return
+        }
         states[id] = .notInstalled
     }
 

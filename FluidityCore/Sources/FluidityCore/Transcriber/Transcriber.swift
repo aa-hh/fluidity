@@ -75,6 +75,9 @@ public actor Transcriber {
     private var recording: [Float] = []
     private var recordingNumber = 0
     private var speechHeard = false
+    /// From `startRecording` until that recording's `finish` or `cancel`. Outlasts the live preview, which ends
+    /// at key release before `finish` arrives, so a switch cannot land in between.
+    private var recordingOpen = false
     private var preview: AsyncStream<String>.Continuation?
     private var ticker: Task<Void, Never>?
     /// The preview pass on the engine, possibly left over from a recording that already ended.
@@ -83,11 +86,13 @@ public actor Transcriber {
     private var finalPassRunning = false
     /// The model load `prepare` started. The final pass waits for it, so a dictation made just after launch is not lost.
     private var loading: Task<Void, any Error>?
-    /// The streaming engine the current recording is fed to, until `finish` or `cancel` takes it.
+    /// The streaming engine the current recording is fed to, until `finish` or `cancel` takes it. It outlives the
+    /// live preview: the final pass still needs it after the preview ends.
     private var stream: (any StreamingSpeechEngine)?
-    /// The chain of `startStream`, `feed` and `cancelStream` calls, so they reach the engine in order.
+    /// The chain of every call on a streaming engine, so none starts before the one before it ends.
     private var feeder: Task<Void, Never>?
-    /// Samples of the recording the feeder chain has been given.
+    /// Samples of the streamed recording the engine has been fed; reset inside the chain, so a late feed
+    /// from the recording before cannot count towards this one.
     private var fedSamples = 0
     /// Bumped by each `switchEngine`, so an older switch still waiting gives up.
     private var switchNumber = 0
@@ -122,7 +127,7 @@ public actor Transcriber {
         let number = switchNumber
         wakeSwitches()
         try await newEngine.load(progress: { _ in })
-        while preview != nil || finalPassRunning || runningPass != nil {
+        while recordingOpen || stream != nil || finalPassRunning || runningPass != nil {
             guard number == switchNumber else { throw CancellationError() }
             await withCheckedContinuation { switchWaiters.append($0) }
         }
@@ -140,18 +145,21 @@ public actor Transcriber {
         recording = []
         speechHeard = false
         recordingNumber += 1
-        let (stream, continuation) = AsyncStream.makeStream(of: String.self, bufferingPolicy: .bufferingNewest(1))
+        recordingOpen = true
+        let (previews, continuation) = AsyncStream.makeStream(of: String.self, bufferingPolicy: .bufferingNewest(1))
         preview = continuation
+        // A stream left by a recording that was neither finished nor cancelled ends before the new one starts.
+        cancelStream()
         if let streaming = engine as? any StreamingSpeechEngine {
             // Streaming engines report their own partials and need no voice check.
-            self.stream = streaming
-            fedSamples = 0
+            stream = streaming
             let previous = feeder
             feeder = Task {
                 await previous?.value
+                fedSamples = 0
                 try? await streaming.startStream { continuation.yield($0) }
             }
-            return stream
+            return previews
         }
         let ticker = Task { [weak self, clock] in
             while true {
@@ -163,7 +171,7 @@ public actor Transcriber {
         self.ticker = ticker
         // Stops the passes as soon as nobody reads the preview, without waiting for `cancel` to reach this actor.
         continuation.onTermination = { _ in ticker.cancel() }
-        return stream
+        return previews
     }
 
     /// Adds 16 kHz mono audio to the recording the live preview reads.
@@ -183,6 +191,7 @@ public actor Transcriber {
         endPreviews()
         // Set before the first wait, so a switch cannot swap the engine under this final pass.
         finalPassRunning = true
+        recordingOpen = false
         defer {
             finalPassRunning = false
             wakeSwitches()
@@ -192,15 +201,23 @@ public actor Transcriber {
 
         let streaming = stream
         stream = nil
+        let engine = engine
         var transcript = Transcript(text: "", wordTimings: [])
         let transcriptionTime = try await clock.measure {
-            if let streaming {
-                await feeder?.value
-                if fedSamples < recording.count { try await streaming.feed(Array(recording[fedSamples...])) }
-                transcript = try await streaming.finishStream()
-            } else {
+            guard streaming != nil || engine is any StreamingSpeechEngine else {
                 transcript = try await engine.transcribe(recording)
+                return
             }
+            // Joins the chain, so a feed still running ends first and a later cancel or start waits for this pass.
+            let previous = feeder
+            let pass = Task {
+                await previous?.value
+                guard let streaming else { return try await engine.transcribe(recording) }
+                if fedSamples < recording.count { try await streaming.feed(Array(recording[fedSamples...])) }
+                return try await streaming.finishStream()
+            }
+            feeder = Task { _ = await pass.result }
+            transcript = try await pass.value
         }
 
         var wordListRecheckTime: TimeInterval?
@@ -223,19 +240,33 @@ public actor Transcriber {
         )
     }
 
-    /// Stops the live preview and drops the recording; nothing is transcribed.
-    public func cancel() {
+    /// Ends the live preview only. A streaming engine's stream stays open for `finish`, or for `cancel` when
+    /// no final pass follows.
+    public func endPreview() {
+        endPreviews()
+        wakeSwitches()
+    }
+
+    /// Stops the live preview and drops the recording; nothing is transcribed. Returns once a streaming engine
+    /// has ended the stream, so a caller can start another stream on the same engine after it.
+    public func cancel() async {
         endPreviews()
         recording = []
-        if let streaming = stream {
-            stream = nil
-            let previous = feeder
-            feeder = Task {
-                await previous?.value
-                await streaming.cancelStream()
-            }
-        }
+        recordingOpen = false
+        cancelStream()
         wakeSwitches()
+        let chain = feeder
+        await chain?.value
+    }
+
+    private func cancelStream() {
+        guard let streaming = stream else { return }
+        stream = nil
+        let previous = feeder
+        feeder = Task {
+            await previous?.value
+            await streaming.cancelStream()
+        }
     }
 
     /// Lets every waiting switch check again whether the engine is free.
@@ -276,6 +307,22 @@ public actor Transcriber {
         if let text = try? await engine.transcribe(audio).text {
             preview.yield(text)
         }
+    }
+}
+
+/// Runs one job at a time: a caller that arrives while it runs waits for that run instead of starting another,
+/// so two loads of one engine never build two models.
+public actor SingleFlight {
+    private var running: Task<Void, any Error>?
+
+    public init() {}
+
+    public func run(_ job: @escaping @Sendable () async throws -> Void) async throws {
+        if let running { return try await running.value }
+        let task = Task { try await job() }
+        running = task
+        defer { running = nil }
+        try await task.value
     }
 }
 

@@ -1,6 +1,7 @@
 import FluidityCore
 import FluidityTestSupport
 import Foundation
+import Synchronization
 import Testing
 
 @Suite(.timeLimit(.minutes(1)))
@@ -220,6 +221,33 @@ struct TranscriberTests {
         #expect(old.audioLengths == [16_000])
     }
 
+    @Test func aSwitchWaitsPastTheEndOfThePreviewForTheFinalPass() async throws {
+        // Letting a switch land when the live preview ends at key release, before `finish` arrives, turns this red.
+        let old = FakeSpeechEngine()
+        let new = FakeSpeechEngine()
+        let (transcriber, _) = makeTranscriber(engine: old)
+        _ = await transcriber.startRecording()
+        await transcriber.append(chunk: oneSecond)
+        let landed = Mutex(false)
+        let switching = Task {
+            let replaced = try await transcriber.switchEngine(to: new, model: .parakeetUnified)
+            landed.withLock { $0 = true }
+            return replaced
+        }
+        await settle()
+        await transcriber.endPreview()
+        await advance(by: .milliseconds(500))
+        await settle()
+        #expect(!landed.withLock { $0 })
+
+        let raw = try await transcriber.finish(recording: oneSecond)
+        #expect(raw.model == .parakeetTDTv2)
+        #expect(old.audioLengths == [16_000])
+        #expect(new.audioLengths.isEmpty)
+        let replaced = try await switching.value
+        #expect(replaced as AnyObject === old)
+    }
+
     @Test func aSwitchWhileIdleTakesEffectForTheNextPass() async throws {
         // Leaving the old engine in place after a switch with nothing recording turns this red.
         let old = FakeSpeechEngine()
@@ -267,6 +295,29 @@ struct TranscriberTests {
         #expect(first.audioLengths.isEmpty)
     }
 
+    @Test func aLoadArrivingDuringALoadWaitsForIt() async throws {
+        // Letting a second load start while the first runs, which builds a second model and leaks one, turns this red.
+        let flight = SingleFlight()
+        let runs = Mutex(0)
+        let (gate, opener) = AsyncStream.makeStream(of: Void.self)
+        let first = Task {
+            try await flight.run {
+                runs.withLock { $0 += 1 }
+                for await _ in gate { break }
+            }
+        }
+        await settle()
+        let second = Task { try await flight.run { runs.withLock { $0 += 1 } } }
+        await settle()
+        opener.yield()
+        try await first.value
+        try await second.value
+        #expect(runs.withLock { $0 } == 1)
+
+        try await flight.run { runs.withLock { $0 += 1 } }
+        #expect(runs.withLock { $0 } == 2)
+    }
+
     // MARK: Streaming engines
 
     @Test func aStreamingEngineIsFedEveryChunkAndDrivesThePreview() async throws {
@@ -300,6 +351,40 @@ struct TranscriberTests {
         _ = try await transcriber.finish(recording: chunk + tail)
         #expect(engine.fedChunks == [chunk, tail])
         #expect(engine.streamCalls == ["start", "finish"])
+    }
+
+    @Test func streamCallsNeverOverlapAndCountOnlyTheirRecording() async throws {
+        // Letting finish or the next recording's start reach the engine before a slow feed ends, or resetting the fed count
+        // outside the chain so the tail is fed twice, turns this red.
+        let engine = FakeStreamingEngine()
+        let (transcriber, _) = makeTranscriber(engine: engine, model: .parakeetUnified)
+        let chunk = [Float](repeating: 0.1, count: 4)
+        _ = await transcriber.startRecording()
+        engine.holdFeeds()
+        await transcriber.append(chunk: chunk)
+        await settle()
+        let finishing = Task { try await transcriber.finish(recording: chunk + [0.3]) }
+        await settle()
+        _ = await transcriber.startRecording()
+        await settle()
+        #expect(engine.streamCalls == ["start"])
+
+        engine.releaseFeeds()
+        #expect(try await finishing.value.text == "streamed")
+        await settle()
+        #expect(engine.streamCalls == ["start", "finish", "start"])
+        #expect(engine.fedChunks == [chunk, [0.3]])
+    }
+
+    @Test func aStreamLeftOpenIsCancelledBeforeTheNextStarts() async {
+        // Starting a recording without ending the stream of one that was never finished or cancelled turns this red.
+        let engine = FakeStreamingEngine()
+        let (transcriber, _) = makeTranscriber(engine: engine, model: .parakeetUnified)
+        _ = await transcriber.startRecording()
+        await transcriber.endPreview()
+        _ = await transcriber.startRecording()
+        await settle()
+        #expect(engine.streamCalls == ["start", "cancel", "start"])
     }
 
     @Test func cancelEndsTheStreamWithoutFinishingIt() async {

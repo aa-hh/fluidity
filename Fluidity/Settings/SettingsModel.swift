@@ -4,13 +4,22 @@ import Observation
 import SwiftUI
 
 enum SettingsPane: String, CaseIterable, Identifiable {
-    case general, cleanup, words, permissions
+    case general, speechModel, cleanup, words, permissions
 
     var id: Self { self }
-    var title: String { rawValue.capitalized }
+    var title: String {
+        switch self {
+        case .general: "General"
+        case .speechModel: "Speech model"
+        case .cleanup: "Cleanup"
+        case .words: "Words"
+        case .permissions: "Permissions"
+        }
+    }
     var symbol: String {
         switch self {
         case .general: "gearshape"
+        case .speechModel: "mic"
         case .cleanup: "sparkles"
         case .words: "book"
         case .permissions: "lock"
@@ -77,10 +86,14 @@ final class SettingsModel {
 
     var speechModel: SpeechModelID = .parakeetTDTv2
     var modelStates: [SpeechModelID: ModelState] = [:]
-    /// The last download that failed, and why.
+    /// Models dictation needs now: the chosen one, the one still dictating while a switch loads, and any a switch is loading.
+    var modelsInUse: Set<SpeechModelID> = []
+    /// The last download or delete that failed, and why.
     var downloadFailure: (SpeechModelID, DownloadFailure)? = nil
     /// A model whose download just finished, offered for use until the shell clears it.
     var readyModel: SpeechModelID? = nil
+    /// Models the open compare window holds, which can't be deleted until it closes.
+    var modelsInCompare: Set<SpeechModelID> = []
 
     // MARK: Permissions
 

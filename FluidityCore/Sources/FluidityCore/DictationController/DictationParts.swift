@@ -18,6 +18,8 @@ public protocol Transcribing: Sendable {
     func preview(_ audio: AsyncStream<[Float]>) -> AsyncStream<String>
     /// The final pass over the whole recording.
     func transcribe(_ recording: DictationController.Recording) async throws -> DictationController.Transcript
+    /// Drops the recording whose preview ended when no final pass follows, as on Escape.
+    func cancel() async
 }
 
 /// Cleanup of the raw transcript.

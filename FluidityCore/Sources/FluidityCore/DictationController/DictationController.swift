@@ -171,6 +171,7 @@ public final class DictationController {
         let recording = await audio.stop()
         log.notice("run: recording has \(recording.samples.count, privacy: .public) samples")
         guard !Task.isCancelled else {
+            await transcriber.cancel()
             await store.dictationCancelled(recording)
             return
         }
@@ -391,7 +392,8 @@ public final class DictationController {
 }
 
 extension DictationController.Phase {
-    var isDictating: Bool {
+    /// From key down until the paste, while the microphone, the speech model or the paste is busy with a dictation.
+    public var isDictating: Bool {
         switch self {
         case .recording, .finishing, .cleaning, .pasting: true
         case .ready, .watching: false

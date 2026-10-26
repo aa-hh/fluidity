@@ -5,6 +5,10 @@ import SwiftUI
 /// Opens one window with sample data so its look can be checked by eye:
 /// `FLUIDITY_PREVIEW=settings|popover|firstrun`, optionally `FLUIDITY_PREVIEW_APPEARANCE=light|dark`.
 /// Prints the window number so `screencapture -l <number>` can capture it.
+/// With `FLUIDITY_PREVIEW_OUT=<path.png>`, `settings` (with `FLUIDITY_PREVIEW_PANE` and
+/// `FLUIDITY_PREVIEW_STATE=default|downloading|failed|ready`) and `compare`
+/// (`FLUIDITY_PREVIEW_STATE=idle|notOnThisMac|result`) draw into a window never shown,
+/// write it as a PNG and quit.
 @MainActor
 enum WindowPreview {
     private static var retained: [AnyObject] = []
@@ -20,6 +24,19 @@ enum WindowPreview {
         }
         let settings = sampleSettings()
         retained.append(settings)
+        if let out = environment["FLUIDITY_PREVIEW_OUT"] {
+            let state = environment["FLUIDITY_PREVIEW_STATE"] ?? ""
+            switch which {
+            case "settings":
+                if let pane = environment["FLUIDITY_PREVIEW_PANE"].flatMap(SettingsPane.init(rawValue:)) { settings.pane = pane }
+                renderSettings(settings, state: state, to: out)
+            case "compare":
+                Task { await renderCompare(state: state, to: out) }
+            default:
+                break
+            }
+            return
+        }
         let number: Int?
         switch which {
         case "settings":
@@ -52,6 +69,103 @@ enum WindowPreview {
             number = nil
         }
         if let number { print("FLUIDITY_PREVIEW window \(number)") }
+    }
+
+    // MARK: Offscreen render
+
+    /// The Speech model pane's sample states. A failure is set after the first layout,
+    /// because the pane shows only failures that happen while it is open.
+    private static func renderSettings(_ settings: SettingsModel, state: String, to path: String) {
+        settings.speechModel = .parakeetTDTv2
+        settings.modelStates = [.parakeetTDTv2: .installed, .appleBuiltIn: .partOfMacOS, .parakeetUnified: .notInstalled]
+        switch state {
+        case "downloading": settings.modelStates[.parakeetUnified] = .downloading(downloadedBytes: 212_000_000, totalBytes: 565_000_000)
+        case "ready":
+            settings.modelStates[.parakeetUnified] = .installed
+            settings.readyModel = .parakeetUnified
+        default: break
+        }
+        let view = NSHostingView(rootView: SettingsView(model: settings))
+        render(view, size: NSSize(width: 848, height: 600), to: path) {
+            if state == "failed" { settings.downloadFailure = (.parakeetUnified, .offline) }
+        }
+    }
+
+    private static func renderCompare(state: String, to path: String) async {
+        let left = SampleSpeech(text: "Move the standup to 10:30 and tell Priya the build is green again.")
+        let right = SampleSpeech(text: "Move the stand-up to 10:30 and tell Pria the build is green again.")
+        let session = CompareSession(
+            audio: SampleMicrophone(),
+            makeTranscriber: { id in
+                let engine = id == .parakeetTDTv2 ? left : right
+                return Transcriber(engine: engine, model: id, voiceDetector: engine, rechecker: engine)
+            })
+        session.choose(left: .parakeetTDTv2, right: state == "notOnThisMac" ? .parakeetUnified : .appleBuiltIn)
+        let model = CompareModel(session: session)
+        model.dictationKey = "Right Option"
+        model.modelStates = [.parakeetTDTv2: .installed, .appleBuiltIn: .partOfMacOS, .parakeetUnified: .notInstalled]
+        model.loaded = [.parakeetTDTv2, .appleBuiltIn]
+        retained.append(model)
+        if state == "result" {
+            session.start()
+            await session.stop()
+        }
+        let view = NSHostingView(rootView: CompareView(model: model))
+        view.frame.size = NSSize(width: 760, height: 600)
+        view.layoutSubtreeIfNeeded()
+        render(view, size: NSSize(width: 760, height: view.fittingSize.height), to: path) {}
+    }
+
+    /// Lays `view` out in a window that is never ordered front, lets SwiftUI settle,
+    /// writes its drawing to `path` as a PNG and quits.
+    private static func render(_ view: NSView, size: NSSize, to path: String, afterLayout: @escaping () -> Void) {
+        let window = NSWindow(
+            contentRect: NSRect(origin: .zero, size: size),
+            styleMask: [.titled, .fullSizeContentView], backing: .buffered, defer: false)
+        window.titlebarAppearsTransparent = true
+        window.isOpaque = false
+        window.backgroundColor = .clear
+        window.isReleasedWhenClosed = false
+        window.contentView = view
+        view.layoutSubtreeIfNeeded()
+        retained.append(window)
+        afterLayout()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            view.layoutSubtreeIfNeeded()
+            var code: Int32 = 1
+            if let bitmap = view.bitmapImageRepForCachingDisplay(in: view.bounds) {
+                view.cacheDisplay(in: view.bounds, to: bitmap)
+                if let png = bitmap.representation(using: .png, properties: [:]),
+                   (try? png.write(to: URL(fileURLWithPath: path))) != nil {
+                    print("FLUIDITY_PREVIEW wrote \(path)")
+                    code = 0
+                }
+            }
+            exit(code)
+        }
+    }
+
+    /// A model that hears `text` in any recording, for the compare preview.
+    private struct SampleSpeech: StreamingSpeechEngine, VoiceDetecting, WordListRechecking {
+        let text: String
+        func load(progress: @escaping @Sendable (Double) -> Void) async throws {}
+        func transcribe(_ audio: [Float]) async throws -> Transcript { Transcript(text: text, wordTimings: []) }
+        func unload() async {}
+        func startStream(partial: @escaping @Sendable (String) -> Void) async throws {}
+        func feed(_ chunk: [Float]) async throws {}
+        func finishStream() async throws -> Transcript { Transcript(text: text, wordTimings: []) }
+        func cancelStream() async {}
+        func hasSpeech(in audio: [Float]) async throws -> Bool { true }
+        func hasCandidates(in transcript: Transcript, wordList: [String]) async -> Bool { false }
+        func recheck(_ transcript: Transcript, audio: [Float], wordList: [String]) async -> Transcript { transcript }
+    }
+
+    /// Two seconds of silence, for the compare preview's recording.
+    private struct SampleMicrophone: AudioCapturing {
+        func start() async throws -> AsyncStream<[Float]> { AsyncStream { $0.finish() } }
+        func stop() async -> DictationController.Recording {
+            DictationController.Recording(samples: Array(repeating: 0, count: 32_000), sampleRate: 16_000)
+        }
     }
 
     private final class SampleShortcuts: ShortcutStoring {

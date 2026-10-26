@@ -199,8 +199,8 @@ components:
     backgroundColor: "{colors.app-window-light}"
     textColor: "{colors.app-text-primary-light}"
     rounded: "{rounded.app-window}"
-    width: "720px"
-    height: "520px"
+    width: "848px"
+    height: "600px"
   first-run-window:
     backgroundColor: "{colors.app-window-light}"
     textColor: "{colors.app-text-primary-light}"
@@ -295,7 +295,7 @@ SF Pro Rounded for anything you click or scan, matching the capsule controls; SF
 - **Scaling rule:** distances copied from the Dynamic Island are in island points and scale by the pill's height ÷ 36.67 (the island's resting height). The retry gap, the shake distance and the merge blur all follow it.
 
 ### App surfaces
-- **Settings window:** 720 × 520 pt. The sidebar (`app-size-sidebar`, `GlassTheme.sidebarWidth`) has 12 pt padding at the sides and bottom and 52 pt at the top, which leaves room for the system window buttons. Four panes sit 2 pt apart (General, Cleanup, Words, Permissions), each a 28 pt capsule with a 16 pt SF Symbol (`gearshape`, `sparkles`, `book`, `lock`), an 8 pt gap and 8 pt side padding. At its foot, the status line: an 8 pt status dot, the short status in `app-label`, then the dictation key's name in `app-small` secondary text at the right, 8 pt gaps and side padding; it becomes a button with a hover capsule when a fix exists. The content pane has 20 pt padding and 16 pt between the title and each group. Switching panes is a 130 ms cross-fade; Command-1 to 4 and the up and down arrows change pane.
+- **Settings window:** 848 × 600 pt. The sidebar (`app-size-sidebar`, `GlassTheme.sidebarWidth`) has 12 pt padding at the sides and bottom and 52 pt at the top, which leaves room for the system window buttons. Five panes sit 2 pt apart (General, Speech model, Cleanup, Words, Permissions), each a 28 pt capsule with a 16 pt SF Symbol (`gearshape`, `mic`, `sparkles`, `book`, `lock`), an 8 pt gap and 8 pt side padding. At its foot, the status line: an 8 pt status dot, the short status in `app-label`, then the dictation key's name in `app-small` secondary text at the right, 8 pt gaps and side padding; it becomes a button with a hover capsule when a fix exists. The content pane has 20 pt padding and 16 pt between the title and each group. Switching panes is a 130 ms cross-fade; Command-1 to 5 and the up and down arrows change pane.
 - **Groups:** a section header (title, then description 2 pt below, both inset 4 pt), then a raised panel 8 pt below holding the rows. The Cleanup pane has no section header.
 - **Rows:** at least 44 pt tall (`app-size-row-min`, `GlassTheme.rowMinHeight`), 8 pt top and bottom and 12 pt side padding, 12 pt between the text and the control at the right end, a 1 pt rule between rows. Title and detail sit 2 pt apart. A row may carry a 20 pt leading status icon 12 pt before the text, and an error line between the title and detail.
 - **Controls:** 28 pt tall (`app-size-control-m`, `GlassTheme.controlHeight`); toggles 38 × 22 pt; the General pane's rows are Dictation key, Paste last transcript, Live words and Launch at login. The settings panes have no filled button; the only primary button is Done on the first-run window.

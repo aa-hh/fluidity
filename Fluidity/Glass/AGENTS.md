@@ -30,9 +30,9 @@ Views only: no decisions about dictation, cleanup or permissions.
 - `GlassTheme` → colours, type, sizes and motion from `DESIGN.md`.
 - `GlassComponents.swift` → shell, panel, row, buttons, toggle, segmented control, focus ring, field chrome.
 - `AppStatus` → what the status line and popover status row say.
-- `SettingsModel`, `SettingsWindow` → settings state and the 720 × 520 window.
+- `SettingsModel`, `SettingsWindow` → settings state and the 848 × 600 window.
 - `PopoverModel`, `PopoverView` → history and the 280 pt popover.
 - `MenuBarItem` → the status item and the clear panel that hosts `PopoverView`.
 - `MenuBarIcon` → template image for each `MenuBarState`.
-- `FirstRunModel`, `FirstRunWindow` → the 540 pt first-run check.
+- `FirstRunModel`/`FirstRunWindow`, `CompareModel`/`CompareWindow` → 540 pt first-run check, compare window.
 - `WindowPreview` → `FLUIDITY_PREVIEW` sample windows.

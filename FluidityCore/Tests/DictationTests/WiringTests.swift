@@ -265,6 +265,65 @@ func previewPassesStopWhenThePreviewIsNoLongerRead() async {
     #expect(engine.passes == passes)
 }
 
+/// Records every call on the stream in the order it reached the engine.
+private final class StreamCallsEngine: StreamingSpeechEngine, VoiceDetecting, WordListRechecking {
+    private let state = Mutex<[String]>([])
+    var calls: [String] { state.withLock { $0 } }
+    private func record(_ call: String) { state.withLock { $0.append(call) } }
+
+    func load(progress: @escaping @Sendable (Double) -> Void) async throws {}
+    func unload() async {}
+    func transcribe(_ audio: [Float]) async throws -> Transcript {
+        record("transcribe")
+        return Transcript(text: "whole", wordTimings: [])
+    }
+    func startStream(partial: @escaping @Sendable (String) -> Void) async throws { record("start") }
+    func feed(_ chunk: [Float]) async throws { record("feed \(chunk.count)") }
+    func finishStream() async throws -> Transcript {
+        record("finish")
+        return Transcript(text: "streamed", wordTimings: [])
+    }
+    func cancelStream() async { record("cancel") }
+    func hasSpeech(in audio: [Float]) async throws -> Bool { true }
+    func hasCandidates(in transcript: Transcript, wordList: [String]) async -> Bool { false }
+    func recheck(_ transcript: Transcript, audio: [Float], wordList: [String]) async -> Transcript { transcript }
+}
+
+/// Streams two samples through the adapter's preview, then stops reading it, as the controller does on release and on Escape.
+private func streamThenStopReading(_ engine: StreamCallsEngine) async -> TranscriberAdapter {
+    let transcriber = Transcriber(
+        engine: engine, model: .parakeetUnified, voiceDetector: engine, rechecker: engine, clock: ManualClock())
+    let adapter = TranscriberAdapter(transcriber: transcriber, wordList: { [] })
+    let (audio, microphone) = AsyncStream.makeStream(of: [Float].self)
+    let previews = adapter.preview(audio)
+    let reader = Task { for await _ in previews {} }
+    microphone.yield([0.1, 0.2])
+    await until { engine.calls == ["start", "feed 2"] }
+    reader.cancel()
+    await settle()
+    return adapter
+}
+
+@Test(.timeLimit(.minutes(1)))
+func releaseFinishesTheLiveStream() async throws {
+    // Cancelling the stream when the preview stops being read, so the final pass re-runs the whole recording, turns this red.
+    let engine = StreamCallsEngine()
+    let adapter = await streamThenStopReading(engine)
+    let transcript = try await adapter.transcribe(.init(samples: [0.1, 0.2, 0.3], sampleRate: 16_000))
+    #expect(transcript.text == "streamed")
+    #expect(engine.calls == ["start", "feed 2", "feed 1", "finish"])
+}
+
+@Test(.timeLimit(.minutes(1)))
+func escapeCancelsTheLiveStream() async {
+    // Leaving the stream open after Escape, or finishing it, turns this red.
+    let engine = StreamCallsEngine()
+    let adapter = await streamThenStopReading(engine)
+    await adapter.cancel()
+    await until { engine.calls.last == "cancel" }
+    #expect(engine.calls == ["start", "feed 2", "cancel"])
+}
+
 @Test func finalPassUsesTheWordListAndKeepsWordTimings() async throws {
     // Not passing the settings word list to the final pass, or dropping its word timings or recheck time, turns this red.
     let engine = CountingEngine()
@@ -312,6 +371,38 @@ private final class MemoryKeychain: KeychainStoring {
 func escapeIsTakenOnlyWhileItCancels(_ phase: DictationController.Phase, _ takes: Bool) {
     // Swallowing Escape in a phase where `escapePressed` does nothing turns that row red: Escape stops working in other apps.
     #expect(phase.takesEscape == takes)
+}
+
+@Test(arguments: [
+    (DictationController.Phase.ready, HotkeyDecision.keyDown, true),
+    (.ready, .cancel, true),
+    (.watching, .keyDown, true),
+    (.ready, .pasteAgain, false),
+    (.recording(.handsFree), .keyDown, false),
+    (.recording(.held), .cancel, false),
+    (.finishing, .keyDown, false),
+    (.cleaning, .cancel, false),
+    (.pasting, .keyDown, false),
+])
+func compareWindowGetsKeysOnlyBetweenDictations(_ phase: DictationController.Phase, _ decision: HotkeyDecision, _ passes: Bool) {
+    // Sending the dictation key or Escape to the compare window while a dictation runs, or paste-again ever, turns that row red.
+    #expect(phase.passesToCompare(decision) == passes)
+}
+
+@Test(arguments: [
+    (DictationController.Phase.ready, CompareSession.Phase?.some(.listening), true),
+    (.watching, .some(.listening), true),
+    (.ready, .some(.idle), false),
+    (.ready, nil, false),
+    (.recording(.held), .some(.idle), true),
+    (.pasting, .some(.listening), false),
+])
+func escapeIsTakenForWhicheverOwnsTheKeys(
+    _ phase: DictationController.Phase, _ comparing: CompareSession.Phase?, _ takes: Bool
+) {
+    // Taking Escape from the compare window's phase while a dictation owns the keys, or ignoring a comparison
+    // that is listening between dictations, turns that row red.
+    #expect(phase.takesEscape(comparing: comparing) == takes)
 }
 
 @MainActor

@@ -33,7 +33,7 @@ public struct SpeechModel: Sendable, Identifiable {
             install: .download(bytes: 443_000_000, approximate: false, folder: "parakeet-tdt-0.6b-v2-coreml"),
             figures: Figures(firstWordMs: 546, updateEveryMs: 383, liveVsFinalPercent: 1.6)),
         SpeechModel(
-            id: .appleBuiltIn, name: "Apple's built-in speech model", language: "10+ languages",
+            id: .appleBuiltIn, name: "Apple Speech", language: "10+ languages",
             install: .partOfMacOS, figures: nil),
         SpeechModel(
             id: .parakeetUnified, name: "Parakeet Unified 0.6B", language: "English",

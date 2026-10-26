@@ -9,11 +9,16 @@ public actor UnifiedEngine: StreamingSpeechEngine {
     }
 
     private var manager: StreamingUnifiedAsrManager?
+    private let loads = SingleFlight()
 
     public init() {}
 
     /// FluidAudio caches the model under Application Support, so only the first load downloads it.
     public func load(progress: @escaping @Sendable (Double) -> Void) async throws {
+        try await loads.run { try await self.loadOnce(progress: progress) }
+    }
+
+    private func loadOnce(progress: @escaping @Sendable (Double) -> Void) async throws {
         if manager != nil {
             progress(1)
             return

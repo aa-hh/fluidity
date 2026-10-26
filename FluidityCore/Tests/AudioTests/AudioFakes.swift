@@ -127,6 +127,10 @@ final class FakeStreamingEngine: StreamingSpeechEngine, @unchecked Sendable {
     private var partialSink: (@Sendable (String) -> Void)?
     private var chunks: [[Float]] = []
     private var calls: [String] = []
+    private var holdingFeeds = false
+    private var heldFeeds: [CheckedContinuation<Void, Never>] = []
+    private var holdingCancels = false
+    private var heldCancels: [CheckedContinuation<Void, Never>] = []
 
     init(result: String = "streamed") {
         self.result = result
@@ -137,6 +141,30 @@ final class FakeStreamingEngine: StreamingSpeechEngine, @unchecked Sendable {
     var streamCalls: [String] { lock.withLock { calls } }
 
     func partial(_ text: String) { lock.withLock { partialSink }?(text) }
+
+    /// Parks every feed after recording its chunk, until `releaseFeeds`, like a slow model.
+    func holdFeeds() { lock.withLock { holdingFeeds = true } }
+
+    func releaseFeeds() {
+        let waiting = lock.withLock {
+            holdingFeeds = false
+            defer { heldFeeds = [] }
+            return heldFeeds
+        }
+        for continuation in waiting { continuation.resume() }
+    }
+
+    /// Parks every cancel until `releaseCancels`; "cancel" is recorded when it ends.
+    func holdCancels() { lock.withLock { holdingCancels = true } }
+
+    func releaseCancels() {
+        let waiting = lock.withLock {
+            holdingCancels = false
+            defer { heldCancels = [] }
+            return heldCancels
+        }
+        for continuation in waiting { continuation.resume() }
+    }
 
     func load(progress: @escaping @Sendable (Double) -> Void) async throws {}
     func unload() async {}
@@ -153,12 +181,30 @@ final class FakeStreamingEngine: StreamingSpeechEngine, @unchecked Sendable {
         }
     }
 
-    func feed(_ chunk: [Float]) async throws { lock.withLock { chunks.append(chunk) } }
+    func feed(_ chunk: [Float]) async throws {
+        lock.withLock { chunks.append(chunk) }
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            let parked = lock.withLock {
+                if holdingFeeds { heldFeeds.append(continuation) }
+                return holdingFeeds
+            }
+            if !parked { continuation.resume() }
+        }
+    }
 
     func finishStream() async throws -> Transcript {
         lock.withLock { calls.append("finish") }
         return Transcript(text: result, wordTimings: [])
     }
 
-    func cancelStream() async { lock.withLock { calls.append("cancel") } }
+    func cancelStream() async {
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            let parked = lock.withLock {
+                if holdingCancels { heldCancels.append(continuation) }
+                return holdingCancels
+            }
+            if !parked { continuation.resume() }
+        }
+        lock.withLock { calls.append("cancel") }
+    }
 }

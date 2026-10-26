@@ -258,7 +258,7 @@ struct DictationControllerTests {
     }
 
     // Turns red if Escape at any step before pasting saves or pastes something, leaves the microphone on,
-    // skips the cancelled state, or leaves it up past 120 ms.
+    // skips the cancelled state, leaves it up past 120 ms, or leaves the speech model's recording open with no final pass.
     @Test(arguments: CancelStep.allCases)
     func escapeCancels(at step: CancelStep) async {
         let h = Harness {
@@ -293,6 +293,7 @@ struct DictationControllerTests {
         #expect(s.audioStops == 1)
         #expect(s.saved.isEmpty)
         #expect(s.pasted.isEmpty)
+        #expect(s.transcribeCalls + s.transcriberCancels == 1)
     }
 
     enum QuietEnd: Sendable, CaseIterable { case audioStartFails, finalPassFails, emptyTranscript }
