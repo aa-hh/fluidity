@@ -4,7 +4,7 @@ import Foundation
 /// The live words' bubble above the pill (AA-242, "Bubble above"). As the
 /// first word arrives it splits off the top of the pill on the island's size
 /// spring, staying joined to it through the blob until it settles 6 pt above;
-/// it grows to fit the words, and once you stop talking it is sucked back into
+/// it opens to its full width and grows a line at a time, and once you stop talking it is sucked back into
 /// the pill on the island's collapse spring, height a little ahead. Port of
 /// `panelStep` in the live words prototype's index.html. Docked at the top of
 /// the screen, it splits off below the pill instead.
