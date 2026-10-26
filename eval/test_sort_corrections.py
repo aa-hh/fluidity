@@ -43,7 +43,8 @@ class CategoryTest(unittest.TestCase):
 
     # Turns red if additions before and after the pasted words stop being cut off before sorting the rest.
     def test_2_additions_cut_then_rest_sorted(self):
-        self.assertEqual(cats(rec("Purple walrus", "Hi there. purple walrus, thanks")), [2, 2, 4])
+        self.assertEqual(cats(rec("Purple walrus", "Hi there. Purple walrus, thanks")), [2, 2, 4])
+        self.assertEqual(cats(rec("Purple walrus", "Hi there. purple walrus thanks")), [2, 2, 4])
 
     # Turns red if a wiped or mostly replaced dictation stops counting as rejected.
     def test_3_wipe_and_replacement(self):
@@ -66,13 +67,6 @@ class CategoryTest(unittest.TestCase):
                 cleaned="I'm going to feed the walrus after lunch")
         self.assertEqual(cats(r), [6])
 
-    # Turns red if a raw word the cleanup dropped at either end, put back by the user, is taken as an addition.
-    def test_6_user_restores_dropped_edge_word(self):
-        for raw in ("send the walrus file now.", "so send the walrus file."):
-            res = sort_dictation(rec(raw, raw, cleaned="send the walrus file."), TH)
-            self.assertEqual([s["category"] for s in res["spans"]], [6])
-            self.assertEqual(res["cleanup"], raw)
-
     # Turns red if a word the cleanup invented and the user deleted is not blamed on the cleanup.
     def test_7_user_removes_cleanup_word(self):
         r = rec("send the walrus file", "send the walrus file", cleaned="send the final walrus file")
@@ -82,21 +76,76 @@ class CategoryTest(unittest.TestCase):
     def test_8_sound_alike_swap(self):
         self.assertEqual(cats(rec("meet me at the pier", "meet me at the peer")), [8])
 
-    # Turns red if a filler the cleanup dropped beside the fixed word is pulled into its raw words.
-    def test_8_next_to_dropped_filler(self):
-        self.assertEqual(cats(rec("um meet me at the pier", "meat me at the pier", cleaned="meet me at the pier")), [8])
-        self.assertEqual(cats(rec("meet me at the pier um", "meet me at the peer", cleaned="meet me at the pier")), [8])
-
     # Turns red if a swap that does not sound alike is let through as a misheard word.
     def test_9_non_sound_alike_swap(self):
         self.assertEqual(cats(rec("meet me at the pier", "meet me at the office")), [9])
 
-    # Turns red if more than 30% of the words or more than 4 spans changing stops marking a rewrite.
-    def test_9_too_much_changed(self):
-        self.assertEqual(cats(rec("meet me at the pier", "meat me at the peer")), [9, 9])
-        raw = "meet me at the pier then walk to the bear den and feed the deer near the sail boat now"
-        final = "meat me at the peer then walk to the bare den and feed the dear near the sale boat now"
-        self.assertEqual(cats(rec(raw, final)), [9] * 5)
+
+
+TWENTY = "meet me at the pier then walk to the bear den and feed the deer near the sail boat now"
+# Every dictation a pull-request review found mishandled. raw, final, cleaned (None: same as raw),
+# the sorted categories, then optional checks: speech or cleanup output (None: no row),
+# share_above (changedShare must exceed it), raw_in_range (every span's R positions ordered and in R).
+REVIEW_CASES = [
+    # a filler the cleanup dropped beside the fixed word stays out of its raw words
+    dict(raw="um meet me at the pier", cleaned="meet me at the pier", final="meat me at the pier",
+         cats=[8], speech="um meat me at the pier"),
+    dict(raw="meet me at the pier um", cleaned="meet me at the pier", final="meet me at the peer",
+         cats=[8], speech="meet me at the peer um"),
+    # a span inside a phrase the cleanup rewrote reads its R positions from that phrase's edges
+    dict(raw="I'm gonna feed the walrus after lunch", cleaned="I'm going to feed the walrus after lunch",
+         final="I'm going two feed the walrus after lunch", cats=[9], speech=None, raw_in_range=True),
+    # a wiped dictation is rejected and records the share of words lost
+    dict(raw="purple walrus dances", final="", cats=[3], speech=None, share_above=0.5),
+    # over 30% of the words changed, and over 4 spans changed
+    dict(raw="meet me at the pier", final="meat me at the peer", cats=[9, 9], speech=None),
+    dict(raw=TWENTY, final=TWENTY.replace("meet", "meat").replace("pier", "peer").replace("bear", "bare")
+         .replace("deer", "dear").replace("sail", "sale"), cats=[9] * 5, speech=None),
+    # the user puts back a raw word the cleanup dropped at either end, punctuation included
+    dict(raw="send the walrus file now.", cleaned="send the walrus file.", final="send the walrus file now.",
+         cats=[6], cleanup="send the walrus file now."),
+    dict(raw="so send the walrus file.", cleaned="send the walrus file.", final="so send the walrus file.",
+         cats=[6], cleanup="so send the walrus file."),
+    # words typed after a misheard fix are an addition, and the fix still trains speech-to-text
+    dict(raw="meet me at the pier", final="meet me at the peer thanks a lot", cats=[2, 8],
+         speech="meet me at the peer"),
+    # R's own words restored at either end are not split off as typed additions
+    dict(raw="please send the walrus file to the team before lunch right now.",
+         cleaned="please send the walrus file to the team before lunch soon.",
+         final="please send the walrus file to the team before lunch right now.", cats=[6],
+         cleanup="please send the walrus file to the team before lunch right now."),
+    dict(raw="so yeah send the walrus file to the team before lunch on friday.",
+         cleaned="sent the walrus file to the team before lunch on friday.",
+         final="so yeah send the walrus file to the team before lunch on friday.", cats=[6],
+         cleanup="so yeah send the walrus file to the team before lunch on friday."),
+    # a cleanup fix right after a typed addition gets no leading space
+    dict(raw="gonna feed the walrus after lunch on friday", cleaned="will feed the walrus after lunch on friday",
+         final="hey gonna feed the walrus after lunch on friday", cats=[2, 6],
+         cleanup="gonna feed the walrus after lunch on friday"),
+    # punctuation before a span that no cleanup edit applies is still its own category-4 fix
+    dict(raw="call me later. pier side at noon", final="call me later, peer side at noon", cats=[4, 8],
+         cleanup="call me later, pier side at noon", speech="call me later. peer side at noon"),
+    # additions stay category 2 when the rest of the dictation is over a limit
+    dict(raw="meet me at the pier", final="hello there meat me at the peer", cats=[2, 9, 9], speech=None),
+]
+
+
+class ReviewCasesTest(unittest.TestCase):
+    # Turns red if any fix a review asked for regresses: each row is a case a reviewer found mishandled.
+    def test_review_cases(self):
+        for case in REVIEW_CASES:
+            with self.subTest(raw=case["raw"], final=case["final"]):
+                res = sort_dictation(rec(case["raw"], case["final"], cleaned=case.get("cleaned")), TH)
+                self.assertEqual(sorted(s["category"] for s in res["spans"]), case["cats"])
+                for key in ("speech", "cleanup"):
+                    if key in case:
+                        self.assertEqual(res[key], case[key])
+                if "share_above" in case:
+                    self.assertGreater(res["changedShare"], case["share_above"])
+                if case.get("raw_in_range"):
+                    for span in res["spans"]:
+                        r1, r2 = span["positions"]["R"]
+                        self.assertTrue(0 <= r1 <= r2 <= len(case["raw"].split()))
 
 
 class DictationTest(unittest.TestCase):
@@ -108,33 +157,11 @@ class DictationTest(unittest.TestCase):
         self.assertEqual(rows["cleanup"][0]["target"], raw.replace("um ", ""))
         self.assertEqual([s["category"] for s in rows["corrections"][0]["spans"]], [5, 9])
 
-    # Turns red if a wiped dictation's raw transcript goes into the speech-to-text set.
-    def test_wiped_dictation_stays_out_of_speech(self):
-        _, rows = run_folder([rec("purple walrus dances", "")])
-        self.assertEqual(rows["speech_to_text"], [])
-        self.assertEqual(rows["corrections"][0]["spans"][0]["category"], 3)
-        self.assertGreater(rows["corrections"][0]["changedShare"], 0.5)
-
-    # Turns red if a span inside a phrase the cleanup rewrote reads R positions from an unmatched boundary.
-    def test_raw_positions_inside_rewritten_phrase(self):
-        raw = "I'm gonna feed the walrus after lunch"
-        r = rec(raw, "I'm going two feed the walrus after lunch", cleaned="I'm going to feed the walrus after lunch")
-        (s,) = sort_dictation(r, TH)["spans"]
-        r1, r2 = s["positions"]["R"]
-        self.assertTrue(0 <= r1 <= r2 <= len(raw.split()))
-
     # Turns red if the category-8 fix stops reaching the speech-to-text target.
     def test_misheard_fix_reaches_speech_target(self):
         _, rows = run_folder([rec("meet me at the pier", "meet me at the peer")])
         self.assertEqual(rows["speech_to_text"][0]["text"], "meet me at the peer")
         self.assertEqual(rows["cleanup"], [])
-
-    # Turns red if words typed after a misheard fix merge with it into one rewrite span.
-    def test_fix_then_typed_words_stays_in_speech(self):
-        r = rec("meet me at the pier", "meet me at the peer thanks a lot")
-        self.assertEqual(cats(r), [2, 8])
-        _, rows = run_folder([r])
-        self.assertEqual(rows["speech_to_text"][0]["text"], "meet me at the peer")
 
     # Turns red if the span-length threshold is read from code instead of the JSON file.
     def test_thresholds_file_drives_the_sort(self):
