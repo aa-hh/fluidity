@@ -117,8 +117,10 @@ nonisolated struct RimBubble {
     /// Time left on a failed retry's soft orange.
     private(set) var failTime: Float = 0
 
-    /// True once the bubble has reached its place and can take a click.
-    var isWaiting: Bool { self.isActive && self.mode == .split && self.position.x > 0.8 }
+    /// True once the bubble has reached its place.
+    private var isInPlace: Bool { self.isActive && self.mode == .split && self.position.x > 0.8 }
+    /// True once the bubble has reached its place and can take a click; the loading bubble never can.
+    var isWaiting: Bool { self.isInPlace && self.kind != .loading }
 
     mutating func setHover(_ on: Bool) {
         self.hoverTarget = on ? 1 : 0
@@ -214,7 +216,7 @@ nonisolated struct RimBubble {
         }
 
         self.flash = max(0, self.flash - dt)
-        let canHover = waitingKind != nil && waitingKind != .loading && self.isWaiting
+        let canHover = waitingKind != nil && self.isWaiting
         let hoverNow: Float = canHover ? max(self.hoverTarget, self.flash > 0 ? 1 : 0) : 0
         self.hover += (hoverNow - self.hover) * rimEase(dt, hoverNow > self.hover ? 0.09 : 0.16)
         // The transcript's arrow shows on hover; the mic always shows, brighter on hover.
@@ -225,7 +227,7 @@ nonisolated struct RimBubble {
             // Reduce Motion: the arc does not turn; it fades between 40% and 72% over the line's 1.5 s breath.
             let rest: Float = reduced ? 0.56 + 0.16 * sin(2 * .pi * self.clock / p.pulsePeriod) : 0.72
             // The arc fades as the bubble slides back, so it never shows inside the pill.
-            iconTarget = self.isWaiting ? rest : 0
+            iconTarget = self.isInPlace ? rest : 0
         } else if canHover {
             iconTarget = 0.72 + 0.28 * hoverNow
         } else {
