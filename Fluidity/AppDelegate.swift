@@ -144,11 +144,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return true
         }
         pill.openPermissionSettings = { [settingsModel] in settingsModel.onOpenPrivacySettings($0) }
+        pill.liveWords = settings.liveWords
     }
 
     private func wireSettings() {
         let model = settingsModel, settings = settings, controller = controller
         model.onLaunchAtLoginChange = { [unowned self] in setLaunchesAtLogin($0) }
+        model.onLiveWordsChange = { choice in
+            settings.liveWords = choice
+            PillPresenter.shared.liveWords = choice
+        }
         model.onCleanupEnabledChange = { on in
             settings.isCleanupEnabled = on
             controller.refreshMenuBar()
@@ -208,6 +213,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func refreshSettingsModel() {
         let model = settingsModel
         model.launchAtLogin = SMAppService.mainApp.status == .enabled
+        model.liveWords = settings.liveWords
         model.isCleanupEnabled = settings.isCleanupEnabled
         model.cleanupRules = settings.cleanupRules
         model.wordList = settings.wordList

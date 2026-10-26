@@ -1,15 +1,6 @@
 import CoreGraphics
 import Foundation
 
-/// Where the live words show while dictating (AA-242, Ali 2026-10-21 22:39 UTC;
-/// In the pill is the default, 23:08 UTC). Off and Bubble above leave the pill
-/// to the waveform.
-nonisolated enum PillLiveWords: String, CaseIterable, Codable {
-    case off
-    case inPill
-    case above
-}
-
 /// The live words: what Parakeet hears appears as you speak. In the pill, the
 /// pill grows to fit on the island's size spring and then scrolls, the oldest
 /// words fading at the left; on release the rim's light reaches the words from
