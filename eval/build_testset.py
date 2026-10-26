@@ -58,6 +58,37 @@ def place(wav, dest_dir):
     return dest
 
 
+def load_or_draw_split(split_path, comparable_ids):
+    """The test ids: read from split_path if it exists, else drawn once from
+    comparable_ids and written there. Never redrawn."""
+    if split_path.exists():
+        return set(json.loads(split_path.read_text())["test"])
+    ids = sorted(comparable_ids)
+    random.Random(SEED).shuffle(ids)
+    split = {"seed": SEED, "test": sorted(ids[: len(ids) // 2])}
+    split_path.write_text(json.dumps(split, indent=1) + "\n")
+    return set(split["test"])
+
+
+def route(wispr_wavs, fluid_wavs, wispr, fluid, test_ids):
+    """Yield (set name, wav path, row) for every clip, once per clip id. The
+    source comes from which list a clip is in, never from its path: the data
+    drive's own folder is named wispr-flow-teardown."""
+    seen = set()
+    for source, wavs in (("wispr", wispr_wavs), ("fluidvoice", fluid_wavs)):
+        for wav in wavs:
+            cid = clip_id(wav)
+            if cid in seen:
+                continue
+            seen.add(cid)
+            if source == "wispr" and cid in test_ids:
+                yield "test", wav, {"id": cid, "wispr_asr": wispr[cid]["asr"],
+                                    "duration_s": wispr[cid]["duration_s"]}
+            else:
+                known = wispr.get(cid, {}).get("asr") if source == "wispr" else fluid.get(cid)
+                yield "train", wav, {"id": cid, "source": source, "model_transcript": known}
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--teardown", default="/Volumes/Space/wispr-flow-teardown")
@@ -73,41 +104,21 @@ def main():
     fluid_wavs = sorted(glob.glob(f"{args.teardown}/audio/fluidvoice-*/*.wav"))
     fluid_wavs += sorted(str(p) for p in LIVE_FLUIDVOICE.glob("*.wav"))
 
-    split_path = out / "split.json"
-    if split_path.exists():
-        split = json.loads(split_path.read_text())
-    else:
-        comparable = sorted(clip_id(w) for w in wispr_wavs if clip_id(w) in wispr)
-        random.Random(SEED).shuffle(comparable)
-        split = {"seed": SEED, "test": sorted(comparable[: len(comparable) // 2])}
-        split_path.write_text(json.dumps(split, indent=1) + "\n")
-    test_ids = set(split["test"])
+    comparable = [clip_id(w) for w in wispr_wavs if clip_id(w) in wispr]
+    test_ids = load_or_draw_split(out / "split.json", comparable)
 
-    test_rows, train_rows, seen = [], [], set()
-    for wav in wispr_wavs + fluid_wavs:
-        cid = clip_id(wav)
-        if cid in seen:
-            continue
-        seen.add(cid)
-        source = "wispr" if "/wispr-" in wav else "fluidvoice"
-        if cid in test_ids:
-            dest = place(wav, out / "test")
-            test_rows.append({"id": cid, "wav": dest.name, "wispr_asr": wispr[cid]["asr"],
-                              "duration_s": wispr[cid]["duration_s"]})
-        else:
-            dest = place(wav, out / "train")
-            known = wispr.get(cid, {}).get("asr") if source == "wispr" else fluid.get(cid)
-            train_rows.append({"id": cid, "wav": dest.name, "source": source,
-                               "model_transcript": known})
+    rows = {"test": [], "train": []}
+    for name, wav, row in route(wispr_wavs, fluid_wavs, wispr, fluid, test_ids):
+        rows[name].append({**row, "wav": place(wav, out / name).name})
 
-    missing = test_ids - {r["id"] for r in test_rows}
+    missing = test_ids - {r["id"] for r in rows["test"]}
     if missing:
         raise SystemExit(f"test clips missing from the recordings: {sorted(missing)}")
-    for name, rows in (("test", test_rows), ("train", train_rows)):
+    for name, rs in rows.items():
         with (out / name / "clips.jsonl").open("w") as f:
-            for r in sorted(rows, key=lambda r: r["wav"]):
+            for r in sorted(rs, key=lambda r: r["wav"]):
                 f.write(json.dumps(r) + "\n")
-    print(f"test: {len(test_rows)} clips, train: {len(train_rows)} clips -> {out}")
+    print(f"test: {len(rows['test'])} clips, train: {len(rows['train'])} clips -> {out}")
 
 
 if __name__ == "__main__":

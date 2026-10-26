@@ -28,3 +28,4 @@ scoring. The scripts live here; the data never does.
 - `transcribe.sh` → runs each Parakeet model over the test clips.
 - `draft_refs.py` → majority-vote draft references, disagreements marked.
 - `test_draft_refs.py` → regression tests for the draft alignment.
+- `test_build_testset.py` → tests that the split holds and clips route by source.
