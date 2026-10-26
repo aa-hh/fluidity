@@ -19,6 +19,7 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				AGENTS.md,
+				Pill/AGENTS.md,
 				Fluidity.entitlements,
 				Glass/AGENTS.md,
 			);

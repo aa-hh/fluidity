@@ -5,6 +5,8 @@ import SwiftUI
 struct FluidityApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var app
 
+    init() { PillPreview.startIfAsked() }
+
     var body: some Scene {
         MenuBarExtra {
             // Windows track: replace this menu with the popover view.
