@@ -9,5 +9,5 @@
 ## How it was tested
 
 - [ ] `scripts/build.sh` passes
-- [ ] `scripts/test.sh --full` passes (pre-push ran it)
+- [ ] The `tests` check is green on GitHub
 - [ ] Checked by hand where tests cannot reach, or explain why not
