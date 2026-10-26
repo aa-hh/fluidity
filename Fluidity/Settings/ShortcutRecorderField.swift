@@ -37,7 +37,7 @@ struct ShortcutRecorderField: View {
             .accessibilityHint(isRecording ? "" : "Records a new shortcut")
 
             if slot == .pasteAgain, key != nil, !isRecording {
-                Button(action: model.clearPasteAgainKey) {
+                Button { model.clearPasteAgainKey() } label: {
                     Image(systemName: "xmark")
                         .font(.system(size: 8, weight: .bold))
                         .foregroundStyle(GlassTheme.textPrimary)

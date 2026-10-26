@@ -30,9 +30,9 @@ struct WordsPane: View {
                             .padding(.horizontal, 12)
                             .glassFieldChrome(isFocused: addFieldFocused, isError: duplicate != nil)
                             .focused($addFieldFocused)
-                            .onSubmit(add)
+                            .onSubmit { add() }
                             .accessibilityLabel("Add a word or name")
-                        Button("Add", action: add)
+                        Button("Add") { add() }
                             .buttonStyle(.glassSecondary)
                             .disabled(trimmed.isEmpty)
                     }

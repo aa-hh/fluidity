@@ -18,7 +18,7 @@ struct GeneralPane: View {
                 }
                 GlassRule()
                 GlassRow(title: "Launch at login", detail: "Opens Fluidity in the menu bar when you log in.") {
-                    Toggle("Launch at login", isOn: Binding(get: { model.launchAtLogin }, set: model.changeLaunchAtLogin))
+                    Toggle("Launch at login", isOn: Binding(get: { model.launchAtLogin }, set: { model.changeLaunchAtLogin($0) }))
                         .toggleStyle(GlassToggleStyle())
                         .labelsHidden()
                 }

@@ -16,7 +16,7 @@ struct CleanupPane: View {
                 GlassRow(title: "Cleanup", detail: switchDetail) {
                     Toggle("Cleanup", isOn: Binding(
                         get: { model.isCleanupEnabled && model.cleanupKey != .noKey },
-                        set: model.changeCleanupEnabled))
+                        set: { model.changeCleanupEnabled($0) }))
                         .toggleStyle(GlassToggleStyle())
                         .labelsHidden()
                         .disabled(model.cleanupKey == .noKey)
@@ -75,7 +75,7 @@ struct CleanupPane: View {
                 .font(GlassTheme.body)
                 .foregroundStyle(GlassTheme.textPrimary)
                 .focused($keyFieldFocused)
-                .onSubmit(submitKey)
+                .onSubmit { submitKey() }
                 .accessibilityLabel("Cerebras API key")
                 if model.cleanupKey == .accepted {
                     Image(systemName: "checkmark").foregroundStyle(GlassTheme.stateDone)
@@ -137,12 +137,12 @@ struct CleanupPane: View {
                 if let previous = rulesBeforeRestore {
                     Button("Undo") { undoRestore(to: previous) }.buttonStyle(.glassQuiet)
                 } else {
-                    Button("Restore Default", action: restoreDefault)
+                    Button("Restore Default") { restoreDefault() }
                         .buttonStyle(.glassQuiet)
                         .disabled(model.cleanupRules == model.defaultCleanupRules)
                 }
             }
-            TextEditor(text: Binding(get: { model.cleanupRules }, set: model.changeCleanupRules))
+            TextEditor(text: Binding(get: { model.cleanupRules }, set: { model.changeCleanupRules($0) }))
                 .font(GlassTheme.body)
                 .foregroundStyle(GlassTheme.textPrimary)
                 .scrollContentBackground(.hidden)
