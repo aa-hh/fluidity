@@ -41,9 +41,10 @@ class CategoryTest(unittest.TestCase):
     def test_1_app_rewrite(self):
         self.assertEqual(cats(rec("the zebra’s fine", "the zebra's fine")), [1])
 
-    # Turns red if additions before and after the pasted words stop being cut off before sorting the rest.
+    # Turns red if additions before and after the pasted words stop being cut off before sorting the rest,
+    # or if punctuation typed with an addition counts as a fix.
     def test_2_additions_cut_then_rest_sorted(self):
-        self.assertEqual(cats(rec("Purple walrus", "Hi there. Purple walrus, thanks")), [2, 2, 4])
+        self.assertEqual(cats(rec("Purple walrus", "Hi there. Purple walrus, thanks")), [2, 2])
         self.assertEqual(cats(rec("Purple walrus", "Hi there. purple walrus thanks")), [2, 2, 4])
 
     # Turns red if a wiped or mostly replaced dictation stops counting as rejected.
@@ -82,8 +83,9 @@ class CategoryTest(unittest.TestCase):
 
 
 
+LONG = "meet me at the pier then walk to the bear den and feed the deer near the boat"
 TWENTY = "meet me at the pier then walk to the bear den and feed the deer near the sail boat now"
-# Every dictation a pull-request review found mishandled. raw, final, cleaned (None: same as raw),
+# Every dictation a pull-request review found mishandled. raw, final, cleaned (None: same as raw), pasted,
 # the sorted categories, then optional checks: speech or cleanup output (None: no row),
 # share_above (changedShare must exceed it), raw_in_range (every span's R positions ordered and in R).
 REVIEW_CASES = [
@@ -127,6 +129,39 @@ REVIEW_CASES = [
          cleanup="call me later, pier side at noon", speech="call me later. peer side at noon"),
     # additions stay category 2 when the rest of the dictation is over a limit
     dict(raw="meet me at the pier", final="hello there meat me at the peer", cats=[2, 9, 9], speech=None),
+    # typed words are an addition unless the cleanup dropped them, even when R uses them elsewhere
+    dict(raw=LONG, final="the plan is meat " + LONG[5:], cats=[2, 8], speech="meat " + LONG[5:]),
+    # the exact R words dropped at an edge, restored beside a fix, sort 6 while the fix sorts 8
+    dict(raw="so meet me at the pier then walk to the den", cleaned="meet me at the pier then walk to the den",
+         final="so meat me at the pier then walk to the den", cats=[6, 8],
+         speech="so meat me at the pier then walk to the den", cleanup="so meet me at the pier then walk to the den"),
+    dict(raw="meet me at the pier then walk to the den now", cleaned="meet me at the pier then walk to the den",
+         final="meet me at the pier then walk to the din now", cats=[6, 8],
+         speech="meet me at the pier then walk to the din now", cleanup="meet me at the pier then walk to the den now"),
+    # restoring some of the R words dropped at an edge is still the cleanup's fault
+    dict(raw="so yeah send the walrus file to the team", cleaned="send the walrus file to the team",
+         final="yeah send the walrus file to the team", cats=[6], cleanup="yeah send the walrus file to the team"),
+    # a misheard word owns the punctuation after it, and a change there is a cleanup fix
+    dict(raw="meet me at the pier. then go home", final="meet me at the peer, then go home", cats=[4, 8],
+         speech="meet me at the peer. then go home", cleanup="meet me at the pier, then go home"),
+    # punctuation typed with an end addition is not a fix
+    dict(raw="its walrus time now", final="it's walrus time now, ok", cats=[2, 4], cleanup="it's walrus time now"),
+    # a fix to text the finisher changed, which C does not hold, writes no cleanup row
+    dict(raw="hello world", pasted="Hello world.", final="Hello world!", cats=[4], cleanup=None),
+    # hyphen-only changes keep their words, so the dictation is not taken as replaced
+    dict(raw="the on device model runs on device", final="the on-device model runs on-device", cats=[4, 4],
+         speech="the on device model runs on device", cleanup="the on-device model runs on-device"),
+    # an empty cleanup output: R typed back is the cleanup's fault, anything else is rejected
+    dict(raw="send the walrus file", cleaned="", final="send the walrus file", cats=[6],
+         cleanup="send the walrus file"),
+    dict(raw="send the walrus file", cleaned="", final="hello", cats=[3], speech=None),
+    # no speech-to-text row without raw words
+    dict(raw="...", final="...", cats=[], speech=None),
+    # a fixed word keeps R's lower case in the speech-to-text target
+    dict(raw="meet me at the pier then go home", final="meet me at the Peer then go home", cats=[8],
+         speech="meet me at the peer then go home"),
+    # the modifier-letter apostrophe is an app rewrite
+    dict(raw="we'll meet at the pier today", final="we\u02bcll meet at the pier today", cats=[1]),
 ]
 
 
@@ -135,7 +170,7 @@ class ReviewCasesTest(unittest.TestCase):
     def test_review_cases(self):
         for case in REVIEW_CASES:
             with self.subTest(raw=case["raw"], final=case["final"]):
-                res = sort_dictation(rec(case["raw"], case["final"], cleaned=case.get("cleaned")), TH)
+                res = sort_dictation(rec(case["raw"], case["final"], case.get("cleaned"), case.get("pasted")), TH)
                 self.assertEqual(sorted(s["category"] for s in res["spans"]), case["cats"])
                 for key in ("speech", "cleanup"):
                     if key in case:
