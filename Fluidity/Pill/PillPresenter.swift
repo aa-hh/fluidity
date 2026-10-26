@@ -43,7 +43,7 @@ final class PillPresenter {
     /// Opens the System Settings pane for a missing permission; a click on the lock bubble calls it.
     var openPermissionSettings: (@MainActor (DictationController.Permission) -> Void)?
     /// Where the live preview shows: in the pill, in a bubble above it, or not at all (the waveform shows instead).
-    var liveWords: PillLiveWords = .inPill {
+    var liveWords: LiveWords = .inPill {
         didSet { self.fitPanel() }
     }
 

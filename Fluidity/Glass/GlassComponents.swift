@@ -295,6 +295,68 @@ private struct GlassToggleTrack: View {
     }
 }
 
+// MARK: - Segmented control
+
+/// Capsule track with equal-width capsule segments; the selected one is raised.
+struct GlassSegmentedControl<Value: Hashable>: View {
+    let name: String
+    let options: [(value: Value, label: String)]
+    @Binding var selection: Value
+    @Environment(\.isEnabled) private var isEnabled
+
+    var body: some View {
+        HStack(spacing: 2) {
+            ForEach(options, id: \.value) { option in
+                Button { selection = option.value } label: {
+                    GlassSegment(label: option.label, allLabels: options.map(\.label), isSelected: option.value == selection)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.vertical, 2)
+        .padding(.horizontal, 3)
+        .frame(height: GlassTheme.controlHeight)
+        .background {
+            Capsule().fill(GlassTheme.hover)
+                .overlay { Capsule().strokeBorder(GlassTheme.lineRule, lineWidth: 1) }
+        }
+        .opacity(isEnabled ? 1 : 0.4)
+        .animation(GlassTheme.snap, value: selection)
+        .accessibilityRepresentation {
+            Picker(name, selection: $selection) {
+                ForEach(options, id: \.value) { Text($0.label).tag($0.value) }
+            }
+        }
+    }
+}
+
+private struct GlassSegment: View {
+    let label: String
+    let allLabels: [String]
+    let isSelected: Bool
+
+    var body: some View {
+        ZStack {
+            ForEach(allLabels, id: \.self) { Text($0).font(GlassTheme.label).hidden() }
+            Text(label)
+                .font(GlassTheme.label)
+                .foregroundStyle(isSelected ? GlassTheme.textPrimary : GlassTheme.textSecondary)
+        }
+        .lineLimit(1)
+        .padding(.horizontal, 12)
+        .frame(height: 24)
+        .background {
+            if isSelected {
+                Capsule().fill(GlassTheme.raised)
+                    .overlay { Capsule().strokeBorder(GlassTheme.lineStrong, lineWidth: 1) }
+                    .shadow(color: .black.opacity(0.22), radius: 1, y: 1)
+            }
+        }
+        .contentShape(Capsule())
+        .glassFocusRing(Capsule())
+    }
+}
+
 // MARK: - Focus
 
 /// Keyboard focus: a 2 pt `app-focus-ring` ring 1 pt outside `shape`, in place of the system ring,

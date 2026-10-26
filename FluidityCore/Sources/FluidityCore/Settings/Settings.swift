@@ -1,8 +1,16 @@
 import CryptoKit
 import Foundation
 
-/// The user's settings: the shortcut, cleanup on or off, the cleanup rules and the word list in
-/// `UserDefaults`, and the cleanup API key in the Keychain.
+/// Where the live preview shows while dictating: in the pill (the default), in a bubble above
+/// it, or not at all. Off and Bubble above leave the pill to the waveform.
+public enum LiveWords: String, CaseIterable, Codable, Sendable {
+    case off
+    case inPill
+    case above
+}
+
+/// The user's settings: the shortcut, cleanup on or off, the cleanup rules, the word list and the
+/// live words choice in `UserDefaults`, and the cleanup API key in the Keychain.
 public final class Settings: @unchecked Sendable {
     public static let defaultCleanupRules = """
         You clean up dictated text. The user message is a JSON object whose "transcript" is \
@@ -24,6 +32,7 @@ public final class Settings: @unchecked Sendable {
         static let cleanupEnabled = "cleanupEnabled"
         static let cleanupRules = "cleanupRules"
         static let wordList = "wordList"
+        static let liveWords = "liveWords"
     }
 
     private let defaults: UserDefaults
@@ -77,6 +86,12 @@ public final class Settings: @unchecked Sendable {
     public var wordListVersion: String {
         let digest = SHA256.hash(data: Data(wordList.sorted().joined(separator: "\n").utf8))
         return digest.prefix(4).map { String(format: "%02x", $0) }.joined()
+    }
+
+    /// Unknown saved values (from another build) read as the default.
+    public var liveWords: LiveWords {
+        get { defaults.string(forKey: Key.liveWords).flatMap(LiveWords.init(rawValue:)) ?? .inPill }
+        set { defaults.set(newValue.rawValue, forKey: Key.liveWords) }
     }
 
     public var hasAPIKey: Bool { (try? keyStore.get()) != nil }

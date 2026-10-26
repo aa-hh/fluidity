@@ -17,6 +17,13 @@ struct GeneralPane: View {
                     ShortcutRecorderField(model: model, slot: .pasteAgain, name: "Paste last transcript")
                 }
                 GlassRule()
+                GlassRow(title: "Live words", detail: "Shows what you say as you speak, before cleanup.") {
+                    GlassSegmentedControl(
+                        name: "Live words",
+                        options: [(.off, "Off"), (.inPill, "In the pill"), (.above, "Bubble above")],
+                        selection: Binding(get: { model.liveWords }, set: { model.changeLiveWords($0) }))
+                }
+                GlassRule()
                 GlassRow(title: "Launch at login", detail: "Opens Fluidity in the menu bar when you log in.") {
                     Toggle("Launch at login", isOn: Binding(get: { model.launchAtLogin }, set: { model.changeLaunchAtLogin($0) }))
                         .toggleStyle(GlassToggleStyle())

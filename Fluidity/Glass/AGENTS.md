@@ -5,7 +5,7 @@
 The Glass look from `DESIGN.md` ("App surfaces") and the views built on it:
 the settings window (`Settings/`), the menu bar popover and icon (`Popover/`),
 the first-run check (`FirstRun/`) and a sample-data preview (`Preview/`).
-Views only: they hold no decisions about dictation, cleanup or permissions.
+Views only: no decisions about dictation, cleanup or permissions.
 
 ## Rules
 
@@ -28,7 +28,7 @@ Views only: they hold no decisions about dictation, cleanup or permissions.
 ## Map
 
 - `GlassTheme` → colours, type, sizes and motion from `DESIGN.md`.
-- `GlassComponents.swift` → shell, panel, row, buttons, toggle, focus ring, field chrome.
+- `GlassComponents.swift` → shell, panel, row, buttons, toggle, segmented control, focus ring, field chrome.
 - `AppStatus` → what the status line and popover status row say.
 - `SettingsModel`, `SettingsWindow` → settings state and the 720 × 520 window.
 - `PopoverModel`, `PopoverView` → history and the 280 pt popover.
