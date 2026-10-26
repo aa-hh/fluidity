@@ -49,15 +49,26 @@ jobs:
             ${{ runner.os }}-${{ runner.arch }}-xcode26.6-${{ hashFiles('FluidityCore/Package.resolved', 'Fluidity.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}-
             ${{ runner.os }}-${{ runner.arch }}-xcode26.6-
 
-      - run: swift --version
+      - name: Check the compiler knows file hashing
+        run: |
+          swiftc --version
+          echo "in -help: $(swiftc -help | grep -c file-hashing || true)"
+          echo "in -help-hidden: $(swiftc -help-hidden | grep -c file-hashing || true)"
 
+      # A fresh checkout gives every file a new modified time, so the restored
+      # .build is reused only if the compiler compares file contents instead
+      # (file hashing). No index store: nothing on a runner reads it.
       - name: FluidityCore suite
-        run: sh scripts/test.sh
+        run: sh scripts/test.sh --disable-index-store -Xswiftc -enable-incremental-file-hashing -Xswiftc -driver-show-incremental
 
       # The runner has no signing certificate, so this proves the app target
       # compiles and links, nothing about signing.
+      # razor: no file hashing here; the app target is small and the cached
+      # packages in DerivedData keep their modified times. Add
+      # OTHER_SWIFT_FLAGS='$(inherited) -enable-incremental-file-hashing' if
+      # this step gets slow.
       - name: Build the app
-        run: sh scripts/build.sh CODE_SIGNING_ALLOWED=NO
+        run: sh scripts/build.sh CODE_SIGNING_ALLOWED=NO COMPILER_INDEX_STORE_ENABLE=NO
 
       - name: Upload crash reports
         if: failure()
