@@ -381,8 +381,9 @@ final class PillPresenter {
             let bubble = self.simulation.wordsBubble
             let inner = Float(max(1, bubble.size.width - 2 * self.words.padding))
             wordsView.show(
-                self.words.looks(thinking: thinking, inner: inner, reduced: self.reduceMotion),
+                self.words.looks(reduced: self.reduceMotion),
                 words: self.words,
+                band: self.words.band(thinking: thinking, inner: inner, reduced: self.reduceMotion),
                 box: bubble.size,
                 // The shader's y grows downward and the view's upward.
                 offset: CGPoint(x: 0, y: CGFloat(-bubble.y)),
@@ -395,8 +396,9 @@ final class PillPresenter {
         let inner = Float(max(1, pill.width - 2 * self.words.padding))
         let look = self.simulation.wordsLook()
         wordsView.show(
-            self.words.looks(thinking: thinking, inner: inner, reduced: self.reduceMotion),
+            self.words.looks(reduced: self.reduceMotion),
             words: self.words,
+            band: self.words.band(thinking: thinking, inner: inner, reduced: self.reduceMotion),
             box: pill,
             offset: CGPoint(x: CGFloat(look.offsetX), y: 0),
             look: (look.scale, look.opacity),

@@ -17,6 +17,9 @@ final class PillWordsView: NSView {
     private let fadeUp = CAGradientLayer()
     private let clip = CALayer()
     private let fade = CAGradientLayer()
+    /// Holds the words inside `clip`; `band` masks it while the thinking band crosses.
+    private let shimmer = CALayer()
+    private let band = CAGradientLayer()
     private var layers: [Int: CATextLayer] = [:]
 
     override init(frame: NSRect) {
@@ -33,6 +36,9 @@ final class PillWordsView: NSView {
         self.fade.startPoint = CGPoint(x: 0, y: 0.5)
         self.fade.endPoint = CGPoint(x: 1, y: 0.5)
         self.clip.mask = self.fade
+        self.clip.addSublayer(self.shimmer)
+        self.band.startPoint = CGPoint(x: 0, y: 0.5)
+        self.band.endPoint = CGPoint(x: 1, y: 0.5)
         self.setAccessibilityElement(false)
     }
 
@@ -48,9 +54,11 @@ final class PillWordsView: NSView {
 
     /// Puts each word in place for this frame. `box` is the pill's or the bubble's size now, in points,
     /// centred `offset` from the view's centre (y up), and the words take `look`'s scale and opacity.
+    /// `band`, from `RimWords.band`, dims the words outside it.
     func show(
         _ looks: [RimWords.Look],
         words: RimWords,
+        band: (middle: Float, core: Float, edge: Float, base: Float)?,
         box: CGSize,
         offset: CGPoint,
         look: (scale: SIMD2<Float>, opacity: Float),
@@ -91,6 +99,23 @@ final class PillWordsView: NSView {
         let right = 4 * words.scale / width
         self.fade.colors = [NSColor.clear.cgColor, NSColor.black.cgColor, NSColor.black.cgColor, NSColor.clear.cgColor]
         self.fade.locations = [0, NSNumber(value: Double(min(0.5, left))), NSNumber(value: Double(max(0.5, 1 - right))), 1]
+        self.shimmer.frame = self.clip.bounds
+        if let band {
+            // The mask reaches a clip's width past each side, so the band can start and end off the text
+            // with its stops still inside the gradient. The text starts 2 pt into the clip.
+            let reach = clipFrame.width
+            let span = max(1, clipFrame.width + 2 * reach)
+            self.band.frame = CGRect(x: -reach, y: 0, width: span, height: clipFrame.height)
+            let dim = NSColor.black.withAlphaComponent(CGFloat(band.base)).cgColor
+            self.band.colors = [dim, NSColor.black.cgColor, NSColor.black.cgColor, dim]
+            let half = band.core / 2
+            self.band.locations = [-half - band.edge, -half, half, half + band.edge].map {
+                NSNumber(value: Double((CGFloat(band.middle + $0) + 2 + reach) / span))
+            }
+            self.shimmer.mask = self.band
+        } else {
+            self.shimmer.mask = nil
+        }
 
         let size = words.fontSize
         var seen = Set<Int>()
@@ -139,7 +164,7 @@ final class PillWordsView: NSView {
         text.shadowRadius = 5
         text.shadowOffset = .zero
         text.shadowOpacity = 0
-        self.clip.addSublayer(text)
+        self.shimmer.addSublayer(text)
         self.layers[id] = text
         return text
     }
