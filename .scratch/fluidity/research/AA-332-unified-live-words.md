@@ -11,7 +11,7 @@ Parakeet Unified streaming does not get the first word on screen much sooner tha
 - Unified rewrites much less: 14% of updates change a word already shown (A: 25%), 3 / 11 words rewritten per clip (A: 3 / 47). Its decoded words are never taken back; the rewrites come from the end of a word growing.
 - Its live text is further from the TDT v2 final text: 9.0% word error rate (A: 5.4%). About half of that is two different models disagreeing, not drift: Unified's own offline final differs from TDT v2's by 4.5%, and the two finals are word-for-word identical on only 16 of 40 clips. Drift of Unified's live text against Unified's own final was not measured.
 - Compute is light: 29 / 38 ms per 160 ms window on the 320 ms tier, lagging the audio by at most 380 ms, with no queuing.
-- The costs: a second model of about 565 MB on disk per tier (2.3 GB for the four tested), about 100 MB more steady memory, and 30 to 51 s to load in every fresh process today. The 520 to 650 MB "peak memory" in the table is the model file being read through while Core ML compiles it for the Neural Engine, not process memory: the process footprint never passed 64 MB during a load (see "Where the load time and the memory peak come from"). The slow load is not Unified's alone: loaded the same way today, TDT v2's encoder took 34 to 41 s too, against 0.2 to 0.9 s yesterday.
+- The costs: a second model of about 565 MB on disk per tier (2.3 GB for the four tested) and about 100 MB more steady memory. The 520 to 650 MB "peak memory" and the 30 to 51 s loads in the table are artefacts of the harness, not of Unified: the peak is the model file being read through while Core ML compiles it, with the process footprint never past 64 MB, and the slow loads are Core ML recompiling because the harness's seven models overflowed its compiled-program cache on a nearly full disk. Loaded alone with the cache intact, Unified 320 ms loads in 0.74 s in a fresh process, TDT v2 in 0.62 s (see "Where the load time and the memory peak come from").
 
 The 1120 ms tier is worse on every column that matters here (first word 1571 ms, 11.7% WER). The 640 ms tier matches 320 ms on accuracy with a third of the windows but a slower first word (1069 ms) and three times the gap between updates.
 
@@ -39,7 +39,7 @@ Short clips are under 5 s (10), typical 5 to 25 s (20), long 40 to 80 s (10). WE
 | Memory while running clips (largest) | 87 MB | 98 MB | 99 MB | 100 MB | 118 MB |
 | Footprint right after loading | 28 MB (TDT) | | 94 MB | 99 MB | 64 MB |
 | Peak memory over the run | 119 MB | 124 MB | 598 MB | 649 MB | 522 MB |
-| Model load, warm | 0.3 s (TDT) | 0.2–0.9 s | 38 s | 30 s | 51 s |
+| Model load, warm (see the load section: these are cache-miss recompiles) | 0.3 s (TDT) | 0.2–0.9 s | 38 s | 30 s | 51 s |
 
 Per-clip medians of the WER column by length, since the pooled long-clip figure is dominated by a few clips: Unified 320 ms 38.6% / 5.0% / 8.0%, 640 ms 36.5% / 5.2% / 7.9%, 1120 ms 60.2% / 8.9% / 6.7%.
 
@@ -87,8 +87,11 @@ Checked after the main run by calling Core ML's `MLModel.load` directly on the t
 | TDT v2 encoder, CPU only | 6.3 s / 4.4 s | 59 / 59 MB | same | 0.00 s / 0.00 s |
 
 - The memory peak is not process memory. The footprint (what the app would be charged for) stays under 64 MB throughout; the resident-set peak rises by about the size of the model file (425 MB for TDT v2, 563 MB for Unified) because Core ML reads the weights through while compiling, and those pages are clean and reclaimable. Loading on the CPU alone maps the whole file and drives the resident set to 1.6 to 1.7 GB.
-- The 30 to 40 s is Core ML compiling the encoder for the Neural Engine in each fresh process, and today it hits TDT v2 the same as Unified. Loaded through FluidAudio or straight through Core ML, with the same compute units, the time is the same. A second load in the same process is instant, except once (Unified, second process), which was not explained.
-- The compiled programs are not being kept between processes. Core ML's per-app cache for the harness, `~/Library/Caches/LiveWordsSpike/com.apple.e5rt.e5bundlecache`, was recreated at 10:24 today (during the u640 run) and holds 37 entries of one 64-byte hash file each, with no compiled program behind them. This Mac has 7.1 GB free on a 228 GB disk after the 2.3 GB download, which is where macOS starts purging caches. That is the likely cause of both the slow loads and the loss of yesterday's cached TDT v2 compile, but the purge itself was not seen in the logs (not readable from here).
+- The 30 to 40 s is Core ML compiling the encoder for the Neural Engine, and today it hit TDT v2 the same as Unified. Loaded through FluidAudio or straight through Core ML, with the same compute units, the time is the same.
+- It happens only when Core ML's per-app cache of compiled programs has lost the entry. With the Unified models moved to the Space drive (internal disk 7.1 GB free to 9.3 GB) and each encoder loaded alone, a fresh process loads TDT v2 in 0.62 s then 0.12 s, and Unified 320 ms in 0.74 s then 0.14 s, with a resident-set peak of 35 MB. That is the number an app would see.
+- What lost the entries: the harness ran seven models under one process name (TDT v2, CTC, two EOU sizes, four Unified encoders), and the cache (`~/Library/Caches/LiveWordsSpike/com.apple.e5rt.e5bundlecache`) evicts older entries once it grows past about 2 GB. A CPU-only load alone writes a 1.1 GB entry per encoder, which is why the probe's second process was slow even after the first had compiled everything. The cache was also recreated from empty at 10:24 today, during the u640 run, with the disk at 7.1 GB free, which is where macOS starts purging caches. Together those explain the 30 to 51 s loads in every run above and TDT v2's fast loads yesterday, when only three models shared the cache.
+
+For Fluidity, which would load TDT v2 and at most one Unified tier, loading is under a second once the first compile is done. The first compile of a Unified encoder is 30 to 40 s on this M1 (the 256 to 333 s above include the download).
 
 The probe is a 25-line mode (`loadprobe`) kept out of this branch to stay within the review's two rounds; it is in the session notes as a patch.
 
@@ -113,7 +116,7 @@ As AA-305, with these additions.
 
 - Drift of Unified's live text against Unified's own final text (the number that says how much the preview would change at release if Unified were used for both). The 9.0% here is against TDT v2's final.
 - Which final is more accurate, TDT v2 or Unified. Both were scored against each other, not against a transcript.
-- Whether the 30 to 51 s loads go away once the disk has room and Core ML can keep its compiled programs. If they do, Unified loads as fast as TDT v2 and the load-time objection disappears; if they do not, neither model is usable at app launch on this Mac. Free 10 GB or more and re-run the `load` mode twice.
+- The exact size at which Core ML's per-app compiled-program cache starts evicting; about 2 GB is what the listing suggests.
 - The 2080 ms Unified tier, fp16 encoders, and the 640 ms tier with vocabulary boosting.
 - Unified streaming with the Silero gate in front of it, and whether its first word moves earlier when fed in smaller than 100 ms buffers.
 - Running Unified streaming and the TDT v2 final from one shared model set; the two managers here are independent.
