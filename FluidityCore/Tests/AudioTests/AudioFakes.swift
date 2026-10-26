@@ -208,3 +208,11 @@ final class FakeStreamingEngine: StreamingSpeechEngine, @unchecked Sendable {
         lock.withLock { calls.append("cancel") }
     }
 }
+
+final class RunCount: @unchecked Sendable {
+    private let lock = NSLock()
+    private var count = 0
+
+    func add() { lock.withLock { count += 1 } }
+    var value: Int { lock.withLock { count } }
+}

@@ -298,24 +298,24 @@ struct TranscriberTests {
     @Test func aLoadArrivingDuringALoadWaitsForIt() async throws {
         // Letting a second load start while the first runs, which builds a second model and leaks one, turns this red.
         let flight = SingleFlight()
-        let runs = Mutex(0)
+        let runs = RunCount()
         let (gate, opener) = AsyncStream.makeStream(of: Void.self)
         let first = Task {
-            try await flight.run {
-                runs.withLock { $0 += 1 }
+            try await flight.run { @Sendable in
+                runs.add()
                 for await _ in gate { break }
             }
         }
         await settle()
-        let second = Task { try await flight.run { runs.withLock { $0 += 1 } } }
+        let second = Task { try await flight.run { @Sendable in runs.add() } }
         await settle()
         opener.yield()
         try await first.value
         try await second.value
-        #expect(runs.withLock { $0 } == 1)
+        #expect(runs.value == 1)
 
-        try await flight.run { runs.withLock { $0 += 1 } }
-        #expect(runs.withLock { $0 } == 2)
+        try await flight.run { @Sendable in runs.add() }
+        #expect(runs.value == 2)
     }
 
     // MARK: Streaming engines
