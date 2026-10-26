@@ -1,5 +1,8 @@
 import Foundation
 import Synchronization
+import os
+
+private let log = Logger(subsystem: "com.fluidity.app", category: "audio")
 
 /// One dictation's audio: 16 kHz mono Float32, from the pre-roll to the end of the tail.
 public struct AudioRecording: Equatable, Sendable {
@@ -58,6 +61,7 @@ public final class AudioCapture: Sendable {
         var ended = false
         var tailEnd: Int?
         var stopWaiter: CheckedContinuation<Void, Never>?
+        var firstAudioLogged = false
     }
 
     private struct State {
@@ -95,10 +99,12 @@ public final class AudioCapture: Sendable {
                 s.inputGeneration += 1
                 return s.inputGeneration
             }
+            log.notice("capture start: startingInput=\(generation != nil, privacy: .public)")
             guard let generation else { return stream }
             do {
                 try input.start { [weak self] event in self?.receive(event, generation: generation) }
             } catch {
+                log.error("capture start: input.start threw \(String(describing: error), privacy: .public)")
                 state.withLock { s in
                     s.running = false
                     s.recording = nil
@@ -133,11 +139,13 @@ public final class AudioCapture: Sendable {
             }
             ceiling.cancel()
         }
-        return state.withLock { s in
+        let recording = state.withLock { s in
             guard let r = s.recording, r.ended else { return AudioRecording(samples: []) }
             s.recording = nil
             return AudioRecording(samples: r.samples)
         }
+        log.notice("capture stop: returning \(recording.samples.count, privacy: .public) samples (ceiling task used=\(ceiling != nil, privacy: .public))")
+        return recording
     }
 
     /// Drops the recording without returning it.
@@ -153,6 +161,8 @@ public final class AudioCapture: Sendable {
             guard s.running, s.inputGeneration == generation else { return }
             switch event {
             case .lost:
+                let had = s.recording?.samples.count ?? -1
+                log.error("capture: input lost; recording had \(had, privacy: .public) samples")
                 s.running = false
                 s.preRoll = []
                 if let r = s.recording, !r.ended {
@@ -173,10 +183,16 @@ public final class AudioCapture: Sendable {
         guard var r = s.recording, !r.ended else { return }
         // Drops the second reference so appending does not copy every sample recorded so far.
         s.recording = nil
+        if !r.firstAudioLogged {
+            r.firstAudioLogged = true
+            let zero = samples.allSatisfy { $0 == 0 }, held = r.samples.count
+            log.notice("capture: first audio for this recording, \(samples.count, privacy: .public) samples, allZero=\(zero, privacy: .public), preRollHeld=\(held, privacy: .public)")
+        }
         if samples.allSatisfy({ $0 == 0 }) {
             r.zeroRun += samples.count
             if r.zeroRun >= Self.silenceSamples, !r.silenceReported {
                 r.silenceReported = true
+                log.error("capture: 5 s of all-zero audio")
                 eventSink.yield(.silentFor5s)
             }
         } else {
@@ -227,7 +243,7 @@ public final class AudioCapture: Sendable {
                 s.warmTimer = nil
                 return true
             }
-            if stopInput { input.stop() }
+            if stopInput { log.notice("capture: warm period over, stopping input"); input.stop() }
         }
     }
 
