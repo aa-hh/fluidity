@@ -2,9 +2,9 @@
 
 ## Purpose
 
-Turns a recording into the live preview and the raw transcript. `Transcriber`
-holds the timing rules; `FluidAudioEngine` is the only file that calls
-FluidAudio, and stays a thin wrapper.
+Turns a recording into the live preview and the raw transcript. Each speech
+engine lives in its own file and stays a thin wrapper over its model;
+`Transcriber` owns every preview and switching rule.
 
 ## Rules
 
@@ -16,6 +16,9 @@ FluidAudio, and stays a thin wrapper.
   carries them internally; one built with the public initialiser has none,
   so the real candidate check always says no. Pass the recheck the
   transcript the engine returned.
+- **Streaming engines get no voice check;** their partials drive the preview.
+- **A switch waits for the recording in progress and its final pass.** It
+  leaves the old engine loaded; the app shell unloads it.
 - **Keep `spotterRescueEnabled: false`.** With it on, the candidate check
   says yes to every word list of 10 terms or fewer, so the recheck never
   skips, and false replacements rise.
@@ -28,6 +31,7 @@ FluidAudio, and stays a thin wrapper.
 
 - `Transcriber` → preview passes, final pass, recheck, stage timings.
 - `SpeechEngine`, `VoiceDetecting`, `WordListRechecking` → what it needs from the models.
+- `StreamingSpeechEngine` → an engine fed chunk by chunk that reports partials.
 - `Transcript` → one pass's text and word timings.
 - `RawTranscript` → what `finish` returns, with the stage timings.
 - `FluidAudioEngine` → all three protocols over Parakeet TDT v2, Silero and CTC 110M.

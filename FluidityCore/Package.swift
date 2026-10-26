@@ -29,6 +29,7 @@ let package = Package(
                 "FocusedField/AGENTS.md",
                 "Hotkey/AGENTS.md",
                 "Paster/AGENTS.md",
+                "SpeechModels/AGENTS.md",
                 "Transcriber/AGENTS.md",
             ],
         ),

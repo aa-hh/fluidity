@@ -122,7 +122,8 @@ struct DictationControllerTests {
         #expect(s.saved.first?.pastedText == (landed ? "HELLO, WORLD." : nil))
     }
 
-    // Turns red if a stage's text, the field around the cursor, a timing or a version stops reaching the saved record,
+    // Turns red if a stage's text, the field around the cursor, a timing or a version stops reaching the saved record
+    // (the model version must be the transcript's, since the controller no longer has one of its own),
     // or the word list version is read when the controller is made instead of when the record is built.
     @Test func savedRecordHoldsEveryStage() async throws {
         let h = Harness()

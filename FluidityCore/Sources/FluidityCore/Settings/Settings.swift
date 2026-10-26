@@ -33,6 +33,7 @@ public final class Settings: @unchecked Sendable {
         static let cleanupRules = "cleanupRules"
         static let wordList = "wordList"
         static let liveWords = "liveWords"
+        static let speechModel = "speechModel"
     }
 
     private let defaults: UserDefaults
@@ -92,6 +93,12 @@ public final class Settings: @unchecked Sendable {
     public var liveWords: LiveWords {
         get { defaults.string(forKey: Key.liveWords).flatMap(LiveWords.init(rawValue:)) ?? .inPill }
         set { defaults.set(newValue.rawValue, forKey: Key.liveWords) }
+    }
+
+    /// The speech model to dictate with. Unknown saved values (from another build) read as Parakeet TDT v2.
+    public var speechModel: SpeechModelID {
+        get { defaults.string(forKey: Key.speechModel).flatMap(SpeechModelID.init(rawValue:)) ?? .parakeetTDTv2 }
+        set { defaults.set(newValue.rawValue, forKey: Key.speechModel) }
     }
 
     public var hasAPIKey: Bool { (try? keyStore.get()) != nil }

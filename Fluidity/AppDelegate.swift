@@ -19,6 +19,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let storeChanges: AsyncStream<Void>
     private let permissions: SystemPermissions
     private let transcriber: Transcriber
+    /// The one microphone capture, shared by dictation and the compare window.
+    private let audioCapture: AudioCapture
+    private let downloads: ModelDownloads
+    /// Silero voice detection and the CTC recheck for every model, and Parakeet TDT v2.
+    private let fluid: FluidAudioEngine
+    private let engines: [SpeechModelID: any SpeechEngine]
+    /// The model the transcriber dictates with now; `settings.speechModel` runs ahead of it while a switch loads.
+    private var dictationModel: SpeechModelID
+    /// Models the compare window holds loaded, which a switch must not unload.
+    private var compareModels: Set<SpeechModelID> = []
     private let paste: PasteAdapter
     private let hotkey: Hotkey
     private var hotkeyRunning = false
@@ -37,8 +47,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let cleanup = CleanupAdapter(
             client: CleanupClient(session: URLSession(configuration: .ephemeral), keyStore: keychain, networkMonitor: NetworkMonitor()),
             settings: settings)
-        let engine = FluidAudioEngine()
-        let transcriber = Transcriber(engine: engine, voiceDetector: engine, rechecker: engine)
+        let fluid = FluidAudioEngine()
+        let engines: [SpeechModelID: any SpeechEngine] = [.parakeetTDTv2: fluid]
+        let downloads = ModelDownloads(fetcher: FluidAudioModelFetcher(), network: NetworkMonitor(), inUse: { settings.speechModel })
+        // A chosen model that is no longer on this Mac falls back to the default.
+        var chosen = settings.speechModel
+        if engines[chosen] == nil || ![.installed, .partOfMacOS].contains(downloads.states[chosen]) {
+            chosen = .parakeetTDTv2
+            settings.speechModel = chosen
+        }
+        let transcriber = Transcriber(engine: engines[chosen]!, model: chosen, voiceDetector: fluid, rechecker: fluid)
         let field = FieldContextAdapter(field: FocusedField())
         let paste = PasteAdapter(
             paster: Paster(pasteboard: NSPasteboardPasteboard(), keySender: CGEventKeySender(), focusChecking: AXFocusChecking()),
@@ -46,8 +64,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let store = DictationStore()
         let (storeChanges, storeChanged) = AsyncStream.makeStream(of: Void.self, bufferingPolicy: .bufferingNewest(1))
         let pill = PillPresenter.shared
+        let audioCapture = AudioCapture(input: AVAudioEngineInput())
         let audio = AudioCaptureAdapter(
-            capture: AudioCapture(input: AVAudioEngineInput()),
+            capture: audioCapture,
             willStart: {
                 cleanup.warmUp()
                 field.prepare()
@@ -65,7 +84,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             watcher: EditWatchAdapter(watcher: EditWatcher(), context: { field.lastRead }),
             store: StoreAdapter(store: store, didChange: { storeChanged.yield() }),
             permissions: permissions,
-            modelVersion: "parakeet-tdt-0.6b-v2",
             wordListVersion: { settings.wordListVersion }
         )
         self.settings = settings
@@ -74,6 +92,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         self.store = store
         self.storeChanges = storeChanges
         self.transcriber = transcriber
+        self.audioCapture = audioCapture
+        self.downloads = downloads
+        self.fluid = fluid
+        self.engines = engines
+        dictationModel = chosen
         self.paste = paste
         hotkey = Hotkey(key: settings.dictationKey, pasteAgainKey: settings.pasteAgainKey)
         settingsModel = SettingsModel(shortcuts: settings)
@@ -125,6 +148,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
         Task {
+            for await (states, failure, finished) in Observations({
+                (self.downloads.states, self.downloads.failure, self.downloads.lastFinished)
+            }) {
+                self.settingsModel.modelStates = states
+                self.settingsModel.downloadFailure = failure.map { ($0.model, $0.reason) }
+                self.settingsModel.readyModel = finished
+            }
+        }
+        Task {
             for await _ in self.storeChanges {
                 await self.reloadRecords()
                 if self.menuBarItem?.isOpen == true { self.menuBarItem?.place() }
@@ -171,6 +203,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         model.onCleanupRulesChange = { settings.cleanupRules = $0 }
         model.onWordListChange = { settings.wordList = $0 }
+        model.onSpeechModelChange = { [unowned self] in chooseModel($0) }
+        let downloads = downloads
+        model.onDownloadModel = { downloads.download($0) }
+        model.onCancelDownload = { downloads.cancelDownload($0) }
+        model.onDeleteModel = { id in
+            do {
+                try downloads.delete(id)
+            } catch {
+                Self.log.error("Deleting \(id.rawValue, privacy: .public) was refused: \(String(describing: error), privacy: .public)")
+            }
+        }
+        model.onClearReadyModel = { downloads.clearLastFinished() }
         model.onRequestMicrophone = { [unowned self] in
             Task {
                 await permissions.requestMicrophone()
@@ -217,6 +261,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         model.isCleanupEnabled = settings.isCleanupEnabled
         model.cleanupRules = settings.cleanupRules
         model.wordList = settings.wordList
+        model.speechModel = settings.speechModel
         let key = try? keychain.get()
         model.apiKey = key ?? ""
         model.cleanupKey = key == nil ? .noKey : .accepted
@@ -260,10 +305,36 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         settingsModel.launchAtLogin = SMAppService.mainApp.status == .enabled
     }
 
+    /// Saves the choice and switches the transcriber to it once no dictation is running.
+    /// A failed load puts the previous choice back.
+    private func chooseModel(_ id: SpeechModelID) {
+        guard let engine = engines[id] else { return }
+        let previous = settings.speechModel
+        settings.speechModel = id
+        settingsModel.speechModel = id
+        Task {
+            do {
+                let old = try await transcriber.switchEngine(to: engine, model: id)
+                let oldModel = dictationModel
+                dictationModel = id
+                if oldModel != id, !compareModels.contains(oldModel) { await old.unload() }
+            } catch is CancellationError {
+                // A newer choice replaced this one; drop the model this one loaded unless something still uses it.
+                if id != dictationModel, id != settings.speechModel, !compareModels.contains(id) { await engine.unload() }
+            } catch {
+                Self.log.error("Switching to \(id.rawValue, privacy: .public) failed: \(String(describing: error), privacy: .public)")
+                settings.speechModel = previous
+                settingsModel.speechModel = previous
+            }
+        }
+    }
+
     private func loadModel() async {
         PillPresenter.shared.isModelLoading = true
         defer { PillPresenter.shared.isModelLoading = false }
         do {
+            // Other models still need Silero and CTC for the voice check and the recheck.
+            if dictationModel != .parakeetTDTv2 { try await fluid.loadSupport { _ in } }
             try await transcriber.prepare { progress in
                 Task { @MainActor in self.firstRunModel.modelProgress = progress }
             }

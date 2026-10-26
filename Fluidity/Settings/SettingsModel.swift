@@ -73,6 +73,15 @@ final class SettingsModel {
 
     var wordList: [String] = []
 
+    // MARK: Speech model
+
+    var speechModel: SpeechModelID = .parakeetTDTv2
+    var modelStates: [SpeechModelID: ModelState] = [:]
+    /// The last download that failed, and why.
+    var downloadFailure: (SpeechModelID, DownloadFailure)? = nil
+    /// A model whose download just finished, offered for use until the shell clears it.
+    var readyModel: SpeechModelID? = nil
+
     // MARK: Permissions
 
     var microphone: PermissionStatus = .notAsked
@@ -87,6 +96,13 @@ final class SettingsModel {
     var onAPIKeySubmit: (String) -> Void = { _ in }
     var onCleanupRulesChange: (String) -> Void = { _ in }
     var onWordListChange: ([String]) -> Void = { _ in }
+    var onSpeechModelChange: (SpeechModelID) -> Void = { _ in }
+    var onDownloadModel: (SpeechModelID) -> Void = { _ in }
+    var onCancelDownload: (SpeechModelID) -> Void = { _ in }
+    var onDeleteModel: (SpeechModelID) -> Void = { _ in }
+    var onClearReadyModel: () -> Void = {}
+    /// Opens the compare window with the left and right models.
+    var onCompare: (SpeechModelID, SpeechModelID) -> Void = { _, _ in }
     var onRequestMicrophone: () -> Void = {}
     var onOpenPrivacySettings: (DictationController.Permission) -> Void = { permission in
         let anchor = permission == .microphone ? "Privacy_Microphone" : "Privacy_Accessibility"
@@ -119,6 +135,11 @@ final class SettingsModel {
     func changeLiveWords(_ choice: LiveWords) {
         liveWords = choice
         onLiveWordsChange(choice)
+    }
+
+    func changeSpeechModel(_ id: SpeechModelID) {
+        speechModel = id
+        onSpeechModelChange(id)
     }
 
     func changeCleanupEnabled(_ on: Bool) {

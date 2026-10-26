@@ -35,7 +35,6 @@ public final class DictationController {
     private let watcher: any EditWatching
     private let store: any DictationStoring
     private let permissions: any PermissionChecking
-    private let modelVersion: String
     private let wordListVersion: @Sendable () -> String
     private let timeline: Timeline
 
@@ -54,7 +53,6 @@ public final class DictationController {
         watcher: any EditWatching,
         store: any DictationStoring,
         permissions: any PermissionChecking,
-        modelVersion: String,
         wordListVersion: @escaping @Sendable () -> String,
         clock: any Clock<Duration> = ContinuousClock()
     ) {
@@ -67,7 +65,6 @@ public final class DictationController {
         self.watcher = watcher
         self.store = store
         self.permissions = permissions
-        self.modelVersion = modelVersion
         self.wordListVersion = wordListVersion
         self.timeline = Timeline(clock)
         refreshMenuBar()
@@ -202,7 +199,7 @@ public final class DictationController {
             wordTimings: transcript.wordTimings,
             timings: StageTimings(
                 transcription: seconds(since: transcriptionStart), wordListRecheck: transcript.wordListRecheck),
-            modelVersion: modelVersion,
+            modelVersion: transcript.modelVersion,
             wordListVersion: wordListVersion()
         )
 

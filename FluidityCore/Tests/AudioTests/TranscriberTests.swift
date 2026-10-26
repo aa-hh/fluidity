@@ -9,13 +9,15 @@ struct TranscriberTests {
     let oneSecond = [Float](repeating: 0, count: 16_000)
 
     func makeTranscriber(
-        engine: FakeSpeechEngine,
+        engine: any SpeechEngine,
+        model: SpeechModelID = .parakeetTDTv2,
         speech: Bool = true,
         candidates: Bool = false
     ) -> (Transcriber, FakeVoiceDetector) {
         let voice = FakeVoiceDetector(speech: speech)
         let transcriber = Transcriber(
             engine: engine,
+            model: model,
             voiceDetector: voice,
             rechecker: FakeRechecker(candidates: candidates, clock: clock),
             clock: clock
@@ -192,113 +194,122 @@ struct TranscriberTests {
         await settle()
         #expect(engine.audioLengths == [16_000])
     }
-}
 
-extension TranscriberTests {
-    /// Answers "heard <sample count>"; `hold()` parks every pass until `release()`.
-    final class FakeSpeechEngine: SpeechEngine, @unchecked Sendable {
-        let started: AsyncStream<Int>
-        private let startedContinuation: AsyncStream<Int>.Continuation
-        private let work: @Sendable () async -> Void
-        private let lock = NSLock()
-        private var holding = false
-        private var held: [CheckedContinuation<Void, Never>] = []
-        private var running = 0
-        private var lengths: [Int] = []
-        private var most = 0
-        private var loaded = true
+    // MARK: Switching engines
 
-        init(work: @escaping @Sendable () async -> Void = {}) {
-            (started, startedContinuation) = AsyncStream.makeStream(of: Int.self)
-            self.work = work
-        }
+    @Test func aSwitchDuringARecordingLandsAfterItsFinalPass() async throws {
+        // Swapping the engine before the recording's final pass ends, or not using the new engine and model after it, turns this red.
+        let old = FakeSpeechEngine()
+        let new = FakeSpeechEngine()
+        let (transcriber, _) = makeTranscriber(engine: old)
+        _ = await transcriber.startRecording()
+        await transcriber.append(chunk: oneSecond)
+        let switching = Task { try await transcriber.switchEngine(to: new, model: .parakeetUnified) }
+        await settle()
 
-        var audioLengths: [Int] { lock.withLock { lengths } }
-        var mostAtOnce: Int { lock.withLock { most } }
+        let first = try await transcriber.finish(recording: oneSecond)
+        #expect(first.model == .parakeetTDTv2)
+        #expect(old.audioLengths == [16_000])
+        let replaced = try await switching.value
+        #expect(replaced as AnyObject === old)
 
-        func hold() { lock.withLock { holding = true } }
-
-        func release() {
-            let waiting = lock.withLock {
-                holding = false
-                defer { held = [] }
-                return held
-            }
-            for continuation in waiting { continuation.resume() }
-        }
-
-        /// Stays unloaded while held, like a slow first load of the real model.
-        func load(progress: @escaping @Sendable (Double) -> Void) async throws {
-            lock.withLock { loaded = false }
-            await parkWhileHeld()
-            lock.withLock { loaded = true }
-        }
-
-        func transcribe(_ audio: [Float]) async throws -> Transcript {
-            guard lock.withLock({ loaded }) else { throw FluidAudioEngine.EngineError.notLoaded }
-            lock.withLock {
-                lengths.append(audio.count)
-                running += 1
-                most = max(most, running)
-            }
-            startedContinuation.yield(audio.count)
-            await parkWhileHeld()
-            await work()
-            lock.withLock { running -= 1 }
-            return Transcript(text: "heard \(audio.count)", wordTimings: [])
-        }
-
-        private func parkWhileHeld() async {
-            await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
-                let parked = lock.withLock {
-                    if holding { held.append(continuation) }
-                    return holding
-                }
-                if !parked { continuation.resume() }
-            }
-        }
+        _ = await transcriber.startRecording()
+        let second = try await transcriber.finish(recording: [Float](repeating: 0, count: 8_000))
+        #expect(second.model == .parakeetUnified)
+        #expect(new.audioLengths == [8_000])
+        #expect(old.audioLengths == [16_000])
     }
 
-    final class FakeVoiceDetector: VoiceDetecting, @unchecked Sendable {
-        let checked: AsyncStream<Void>
-        private let checkedContinuation: AsyncStream<Void>.Continuation
-        private let lock = NSLock()
-        private var heard: Bool
+    @Test func aSwitchWhileIdleTakesEffectForTheNextPass() async throws {
+        // Leaving the old engine in place after a switch with nothing recording turns this red.
+        let old = FakeSpeechEngine()
+        let new = FakeSpeechEngine()
+        let (transcriber, _) = makeTranscriber(engine: old)
+        _ = try await transcriber.switchEngine(to: new, model: .appleBuiltIn)
 
-        init(speech: Bool) {
-            (checked, checkedContinuation) = AsyncStream.makeStream(of: Void.self)
-            heard = speech
-        }
-
-        var speech: Bool {
-            get { lock.withLock { heard } }
-            set { lock.withLock { heard = newValue } }
-        }
-
-        func hasSpeech(in audio: [Float]) async throws -> Bool {
-            defer { checkedContinuation.yield() }
-            return speech
-        }
+        let raw = try await transcriber.finish(recording: oneSecond)
+        #expect(new.audioLengths == [16_000])
+        #expect(old.audioLengths.isEmpty)
+        #expect(raw.model == .appleBuiltIn)
     }
 
-    /// The candidate check costs 4 ms and the recheck 170 ms on the clock; the recheck answers the word list.
-    final class FakeRechecker: WordListRechecking, @unchecked Sendable {
-        private let candidates: Bool
-        private let clock: ManualClock
+    @Test func aFailedLoadKeepsTheCurrentEngine() async throws {
+        // Swapping in an engine whose load failed, or swallowing the failure, turns this red.
+        let old = FakeSpeechEngine()
+        let new = FakeSpeechEngine()
+        new.loadFails = true
+        let (transcriber, _) = makeTranscriber(engine: old)
+        await #expect(throws: (any Error).self) { _ = try await transcriber.switchEngine(to: new, model: .parakeetUnified) }
 
-        init(candidates: Bool, clock: ManualClock) {
-            self.candidates = candidates
-            self.clock = clock
-        }
+        let raw = try await transcriber.finish(recording: oneSecond)
+        #expect(old.audioLengths == [16_000])
+        #expect(raw.model == .parakeetTDTv2)
+    }
 
-        func hasCandidates(in transcript: Transcript, wordList: [String]) async -> Bool {
-            await clock.advance(by: .milliseconds(4))
-            return candidates
-        }
+    @Test func theNewerOfTwoPendingSwitchesWins() async throws {
+        // Letting an older pending switch land after a newer one was asked for turns this red.
+        let old = FakeSpeechEngine()
+        let first = FakeSpeechEngine()
+        let second = FakeSpeechEngine()
+        let (transcriber, _) = makeTranscriber(engine: old)
+        _ = await transcriber.startRecording()
+        let firstSwitch = Task { try await transcriber.switchEngine(to: first, model: .appleBuiltIn) }
+        await settle()
+        let secondSwitch = Task { try await transcriber.switchEngine(to: second, model: .parakeetUnified) }
+        await settle()
 
-        func recheck(_ transcript: Transcript, audio: [Float], wordList: [String]) async -> Transcript {
-            await clock.advance(by: .milliseconds(170))
-            return Transcript(text: wordList.joined(separator: " "), wordTimings: transcript.wordTimings)
-        }
+        _ = try await transcriber.finish(recording: oneSecond)
+        await #expect(throws: CancellationError.self) { _ = try await firstSwitch.value }
+        _ = try await secondSwitch.value
+        let raw = try await transcriber.finish(recording: oneSecond)
+        #expect(raw.model == .parakeetUnified)
+        #expect(second.audioLengths == [16_000])
+        #expect(first.audioLengths.isEmpty)
+    }
+
+    // MARK: Streaming engines
+
+    @Test func aStreamingEngineIsFedEveryChunkAndDrivesThePreview() async throws {
+        // Dropping or reordering chunks, losing the engine's partials, or running whole passes on a streaming engine turns this red.
+        let engine = FakeStreamingEngine()
+        let (transcriber, _) = makeTranscriber(engine: engine, model: .parakeetUnified)
+        let first = [Float](repeating: 0.1, count: 4)
+        let second = [Float](repeating: 0.2, count: 4)
+        var previews = await transcriber.startRecording().makeAsyncIterator()
+        await transcriber.append(chunk: first)
+        await transcriber.append(chunk: second)
+        await settle()
+        engine.partial("hello")
+        #expect(await previews.next() == "hello")
+
+        let raw = try await transcriber.finish(recording: first + second)
+        #expect(raw.text == "streamed")
+        #expect(engine.fedChunks == [first, second])
+        #expect(engine.streamCalls == ["start", "finish"])
+    }
+
+    @Test func finishFeedsTheTailBeforeFinishingTheStream() async throws {
+        // Finishing the stream without the audio recorded after the last chunk turns this red.
+        let engine = FakeStreamingEngine()
+        let (transcriber, _) = makeTranscriber(engine: engine, model: .parakeetUnified)
+        let chunk = [Float](repeating: 0.1, count: 4)
+        let tail = [Float](repeating: 0.3, count: 2)
+        _ = await transcriber.startRecording()
+        await transcriber.append(chunk: chunk)
+
+        _ = try await transcriber.finish(recording: chunk + tail)
+        #expect(engine.fedChunks == [chunk, tail])
+        #expect(engine.streamCalls == ["start", "finish"])
+    }
+
+    @Test func cancelEndsTheStreamWithoutFinishingIt() async {
+        // Finishing the stream on cancel, or never telling the engine, turns this red.
+        let engine = FakeStreamingEngine()
+        let (transcriber, _) = makeTranscriber(engine: engine, model: .parakeetUnified)
+        _ = await transcriber.startRecording()
+        await transcriber.append(chunk: oneSecond)
+        await transcriber.cancel()
+        await settle()
+        #expect(engine.streamCalls == ["start", "cancel"])
     }
 }

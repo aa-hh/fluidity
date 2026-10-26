@@ -218,6 +218,7 @@ private final class CountingEngine: SpeechEngine, VoiceDetecting, WordListRechec
     var wordList: [String]? { state.withLock { $0.wordList } }
 
     func load(progress: @escaping @Sendable (Double) -> Void) async throws {}
+    func unload() async {}
 
     func transcribe(_ audio: [Float]) async throws -> Transcript {
         state.withLock { $0.passes += 1 }
@@ -270,7 +271,8 @@ func previewPassesStopWhenThePreviewIsNoLongerRead() async {
     let transcriber = Transcriber(engine: engine, voiceDetector: engine, rechecker: engine, clock: ManualClock())
     let adapter = TranscriberAdapter(transcriber: transcriber, wordList: { ["Fluidity"] })
     let transcript = try await adapter.transcribe(.init(samples: [0.1, 0.2], sampleRate: 16_000))
-    #expect(transcript == .init(text: "hello", wordTimings: CountingEngine.timings, wordListRecheck: 0))
+    #expect(transcript == .init(
+        text: "hello", modelVersion: "parakeet-tdt-0.6b-v2", wordTimings: CountingEngine.timings, wordListRecheck: 0))
     #expect(engine.wordList == ["Fluidity"])
 }
 

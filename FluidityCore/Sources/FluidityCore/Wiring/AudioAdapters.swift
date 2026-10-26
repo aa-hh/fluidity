@@ -94,6 +94,7 @@ public final class TranscriberAdapter: Transcribing {
     public func transcribe(_ recording: DictationController.Recording) async throws -> DictationController.Transcript {
         let raw = try await transcriber.finish(recording: recording.samples, wordList: wordList())
         return DictationController.Transcript(
-            text: raw.text, wordTimings: raw.wordTimings, wordListRecheck: raw.wordListRecheckTime)
+            text: raw.text, modelVersion: raw.model.rawValue, wordTimings: raw.wordTimings,
+            wordListRecheck: raw.wordListRecheckTime)
     }
 }
