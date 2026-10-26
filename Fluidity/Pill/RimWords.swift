@@ -6,9 +6,9 @@ import Foundation
 /// words fading at the left; on release the rim's light reaches the words from
 /// the ends inward, while the AI works they dim and a light reads through them,
 /// and the cleaned text then settles in place. Above the pill, the words wrap
-/// in smaller text inside their own bubble, up to six lines and then scrolling
-/// up, and stay a preview of what you said: they dim and the light reads through
-/// them line by line, but cleanup does not change them. Port of the words half
+/// in smaller text inside their own full-width bubble, up to six lines and then
+/// scrolling up, and stay a preview of what you said: they dim and the light reads
+/// across every line at once, but cleanup does not change them. Port of the words half
 /// of the live words prototype's index.html (layouts "ticker" and "panel").
 /// Sizes are for the medium pill and scale with the pill's height.
 nonisolated struct RimWords {
@@ -21,9 +21,9 @@ nonisolated struct RimWords {
     static let appear: Float = 0.28
     static let scrollSpring: (Float, Float) = (0.78, 0.4)
     static let stagger: Float = 0.035
-    static let thinkWords: Float = 0.6
-    static let sweepPeriod: Float = 0.9
-    static let sweepWidth: Float = 34
+    static let thinkWords: Float = 0.8
+    static let sweepPeriod: Float = 1.5
+    static let sweepWidth: Float = 44
     static let inward: Float = 0.15
     static let popSpring: (Float, Float) = (0.78, 0.4)
     static let leaveResponse: Float = 0.45
@@ -123,13 +123,9 @@ nonisolated struct RimWords {
         return CGSize(width: width, height: base.height)
     }
 
-    /// The bubble above's size for these words: as wide as one line needs, then its full width and a line at a time.
+    /// The bubble above's size for these words: always its full width, so only its height moves, a line at a time.
     var aboveSize: CGSize {
-        let pad = self.padding
-        let width = self.lineCount > 1
-            ? Self.aboveMaxWidth * self.scale
-            : min(max(CGFloat(self.textWidth) + 2 * pad, 2 * pad + 18 * self.scale), Self.aboveMaxWidth * self.scale)
-        return CGSize(width: width, height: CGFloat(self.visibleLines) * self.lineHeight + 2 * self.paddingY)
+        CGSize(width: Self.aboveMaxWidth * self.scale, height: CGFloat(self.visibleLines) * self.lineHeight + 2 * self.paddingY)
     }
 
     /// Sets the text size from the pill's height.
@@ -176,7 +172,24 @@ nonisolated struct RimWords {
                 self.words.append(new)
             }
         }
+        let lines = self.words.map(\.line)
         self.layout()
+        // Above the pill, a word the revision pushes onto another line fades across instead of sliding diagonally.
+        if self.isAbove, !reduced {
+            var ghosts: [Word] = []
+            for index in self.words.indices where self.words[index].placed && !self.words[index].gone && self.words[index].line != lines[index] {
+                if self.words[index].appear.x > 0.05 {
+                    var ghost = self.renumbered(self.words[index])
+                    Self.fadeOut(&ghost)
+                    ghosts.append(ghost)
+                }
+                self.words[index].place.reset(to: self.words[index].x)
+                self.words[index].placeY.reset(to: self.words[index].y)
+                self.words[index].appear.reset(to: 0)
+                self.words[index].appear.target = 1
+            }
+            self.words += ghosts
+        }
         self.placeNewWords()
     }
 
@@ -302,28 +315,22 @@ nonisolated struct RimWords {
     }
 
     /// Each word's look this frame. `thinking` dims them while the AI works and runs the read-through
-    /// along `inner`, the width inside the padding, one line in view after another.
+    /// along `inner`, the width inside the padding, across every line in view at the same moment. It adds no glow.
     func looks(thinking: Bool, inner: Float, reduced: Bool) -> [Look] {
         let since = self.thinkStart >= 0 ? self.clock - self.thinkStart : 0
         let thinkFactor = thinking && self.thinkStart >= 0 ? rimSmooth((since - Self.inward * 0.6) / 0.12) : 0
         let sweepOn = thinking && !reduced && since > Self.inward + 0.05
-        let lines = Float(self.visibleLines)
-        let span = lines * inner + 2 * Self.sweepWidth
-        let period = Self.sweepPeriod * lines.squareRoot()
+        let span = inner + 2 * Self.sweepWidth
         let sweepX: Float = sweepOn
-            ? -Self.sweepWidth + span * ((since - Self.inward - 0.05) / period).truncatingRemainder(dividingBy: 1)
+            ? -Self.sweepWidth + span * ((since - Self.inward - 0.05) / Self.sweepPeriod).truncatingRemainder(dividingBy: 1)
             : -1e4
-        let lineHeight = Float(self.lineHeight)
         return self.words.map { word in
             let shown = rimClamp(word.appear.x, 0, 1)
             var opacity = word.appear.x * word.opacity
-            var glow = word.glow
             if thinkFactor > 0 {
-                let inView = self.isAbove ? (Float(word.line) - self.scrollUp.x / max(1, lineHeight)).rounded() : 0
-                let d = (inView * inner + word.place.x - self.scroll.x + word.width / 2 - sweepX) / Self.sweepWidth
+                let d = (word.place.x - self.scroll.x + word.width / 2 - sweepX) / Self.sweepWidth
                 let lift: Float = sweepOn ? exp(-d * d * 1.4) : 0
                 opacity *= rimLerp(1, Self.thinkWords + (1 - Self.thinkWords) * lift, thinkFactor)
-                glow = max(glow, 0.55 * lift * thinkFactor)
             }
             return Look(
                 id: word.id,
@@ -331,7 +338,7 @@ nonisolated struct RimWords {
                 x: word.place.x,
                 y: word.placeY.x,
                 opacity: max(0, opacity),
-                glow: glow,
+                glow: word.glow,
                 dy: reduced || word.gone ? 0 : (1 - shown) * 2.2 * Float(self.scale),
                 scale: word.gone && !reduced ? 0.82 + 0.18 * shown : 1
             )
