@@ -19,6 +19,7 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				AGENTS.md,
+				Pill/AGENTS.md,
 				Fluidity.entitlements,
 			);
 			target = F1D0A0000000000000000050 /* Fluidity */;
