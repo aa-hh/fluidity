@@ -4,19 +4,22 @@
 #
 # Usage: sh scripts/test.sh [--full] [extra args passed to the test runner]
 #   (no flag)  the fast run Guard 4 uses at commit
-#   --full     the full suite; pre-push runs it (this repo has no CI)
-#
-# Fill in the two commands below for your stack.
+#   --full     the full suite: the tests plus the app build (GitHub's
+#              `tests` workflow runs the same two steps)
 set -eu
 cd "$(dirname "$0")/.."
 
 full=0
 [ "${1:-}" = --full ] && { full=1; shift; }
 
+# GitHub's runners (CI=true) have no remote-run; there the command runs bare.
+run="$HOME/.claude/scripts/remote-run"
+[ "${CI:-}" = true ] && run=
+
+# remote-run changes to the repo root itself, so the package path is explicit.
+$run swift test --package-path FluidityCore "$@"
+
 if [ "$full" = 1 ]; then
-    echo "scripts/test.sh: no full-suite command configured yet — edit scripts/test.sh" >&2
-    # e.g.  npm test -- "$@"   |  pytest "$@"   |  go test ./... "$@"
-else
-    echo "scripts/test.sh: no fast test command configured yet — edit scripts/test.sh" >&2
-    # e.g.  npm test -- --changed "$@"  |  pytest -x -q "$@"
+    # Also proves the app target still compiles.
+    sh scripts/build.sh
 fi
