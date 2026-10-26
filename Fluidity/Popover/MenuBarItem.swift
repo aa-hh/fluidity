@@ -4,16 +4,19 @@ import SwiftUI
 
 /// The menu bar item: `MenuBarIcon` for the current state, and `PopoverView` in a clear borderless
 /// panel under it. `NSPopover` would draw its own background behind the Glass shell.
+/// A right-click or Control-click shows a short system menu instead: Open, Settings and Quit.
 @MainActor
 final class MenuBarItem: NSObject {
     private let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
     private let panel = PopoverPanel(
         contentRect: .zero, styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: true)
+    private let model: PopoverModel
     private let willOpen: () async -> Void
     private var outsideClickMonitor: Any?
 
     /// `willOpen` runs before every opening, to refresh what the popover shows.
     init(model: PopoverModel, settings: SettingsModel, willOpen: @escaping () async -> Void) {
+        self.model = model
         self.willOpen = willOpen
         super.init()
         panel.isOpaque = false
@@ -25,6 +28,7 @@ final class MenuBarItem: NSObject {
         panel.onDismiss = { [weak self] in self?.close() }
         item.button?.target = self
         item.button?.action = #selector(toggle)
+        item.button?.sendAction(on: [.leftMouseUp, .rightMouseUp])
     }
 
     func show(_ state: MenuBarState) {
@@ -54,7 +58,15 @@ final class MenuBarItem: NSObject {
     }
 
     @objc private func toggle() {
+        if let event = NSApp.currentEvent,
+           event.type == .rightMouseUp || event.modifierFlags.contains(.control) {
+            return showMenu()
+        }
         if panel.isVisible { return close() }
+        open()
+    }
+
+    @objc private func open() {
         Task {
             await willOpen()
             place()
@@ -66,6 +78,24 @@ final class MenuBarItem: NSObject {
             }
         }
     }
+}
+
+extension MenuBarItem {
+    private func showMenu() {
+        close()
+        guard let button = item.button else { return }
+        let menu = NSMenu()
+        menu.addItem(withTitle: "Open Fluidity", action: #selector(open), keyEquivalent: "")
+        menu.addItem(withTitle: "Settings…", action: #selector(openSettings), keyEquivalent: ",")
+        menu.addItem(.separator())
+        menu.addItem(withTitle: "Quit Fluidity", action: #selector(quit), keyEquivalent: "q")
+        menu.items.forEach { $0.target = self }
+        menu.popUp(positioning: nil, at: NSPoint(x: 0, y: button.bounds.maxY + 5), in: button)
+    }
+
+    @objc private func openSettings() { model.onOpenSettings(nil) }
+
+    @objc private func quit() { model.onQuit() }
 }
 
 private final class PopoverPanel: NSPanel {
