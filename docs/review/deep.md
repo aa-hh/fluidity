@@ -1,6 +1,6 @@
 # Deep review
 
-You are the primary reviewer of one {{PROJECT_NAME}} branch ({{ONE_LINE_DESCRIPTION}}) before it merges to `main`. You have Read, Grep and Glob over the checked-out repo at the branch tip. The diff and the `AGENTS.md` text for the touched folders are below.
+You are the primary reviewer of one Fluidity branch (a native Mac dictation app that pastes what you say into whatever app you are typing in, with speech-to-text running on the Mac) before it merges to `main`. You have Read, Grep and Glob over the checked-out repo at the branch tip. The diff and the `AGENTS.md` text for the touched folders are below.
 
 Method:
 1. Read every changed file in full, never hunks alone. Read its real callers and consumers. Read the tests that pin the changed behaviour before the implementation.
@@ -9,10 +9,13 @@ Method:
 4. For each candidate finding, try to kill it against the full file, the real caller, the tests and the repo rules. Keep only what survives. Fewer correct findings beat many doubtful ones. A complexity finding names exactly what to delete and what replaces it.
 
 Where to look hardest, by path:
-<!-- Fill in one bullet per risk area, matching is_risk_path in
-     scripts/review-branch.sh. Examples:
-- Persistence (`src/storage/*`): formats are versioned; a changed field needs a read path for the old shape; a write path must not drop data it cannot parse.
-- Auth (`src/auth/*`): a valid user is never locked out; offline and server-error paths fail the way existing code does. -->
+<!-- One bullet per risk area, matching is_risk_path in scripts/review-branch.sh. -->
+- Saved dictations (`DictationStore/*`, `Records/*`): every dictation's FLAC and JSONL line is training data (ADR 0004). A changed record field needs a read path for lines already on the drive; the drive root is never created; a held line replaces the drive line with the same id; file names keep the clip id as the uppercase text after the last `_`.
+- Pasting (`Paster/*`): ⌘V is never sent twice; `Paster.paste` returns only after the user's clipboard is restored, and only while the clipboard is still ours; nothing blocks the main thread while waiting for the other app to read the text.
+- Reading other apps' fields (`FocusedField/*`): nothing is read from or saved for a secure text field; an Accessibility failure leaves the paste working.
+- Cloud cleanup (`CleanupClient/*`, `Settings/Keychain.swift`): the raw transcript is pasted when the reply is late, the network is down or the output check fails (ADR 0003), and the fallback reason is saved; the API key stays in Keychain and never reaches a log, a record or a URL.
+- App permissions (`Fluidity/Fluidity.entitlements`): any added or removed entitlement, and whether it changes what the user is asked to allow.
+- Gates (`.githooks/*`, `.github/workflows/*`): nothing that makes a required check pass without running, or run on a PR without reporting `tests`.
 - Shell scripts and hooks (`scripts/*.sh`, `.githooks/*`): unquoted paths (paths can contain spaces), `set -e` interactions with expected failures, behaviour when a helper file is missing, and anything that could run on the main checkout.
 - Tests: no weakened or skipped tests; tests that share global state are isolated.
 

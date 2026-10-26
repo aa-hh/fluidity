@@ -61,10 +61,15 @@ SCORE_MODEL=haiku
 # Any touched path here makes the review full, whatever its size.
 is_risk_path() {
   case "$1" in
-    # Fill in per project: the code where a small diff can do large harm
-    # (persistence formats, auth/licensing, concurrency, hooks). Example:
-    # src/storage/*|src/auth/*|.githooks/*) return 0 ;;
-    __none__) return 0 ;;
+    FluidityCore/Sources/FluidityCore/DictationStore/* \
+    | FluidityCore/Sources/FluidityCore/Records/* \
+    | FluidityCore/Sources/FluidityCore/Paster/* \
+    | FluidityCore/Sources/FluidityCore/FocusedField/* \
+    | FluidityCore/Sources/FluidityCore/CleanupClient/* \
+    | FluidityCore/Sources/FluidityCore/Settings/Keychain.swift \
+    | Fluidity/Fluidity.entitlements \
+    | .githooks/* \
+    | .github/workflows/*) return 0 ;;
   esac
   return 1
 }

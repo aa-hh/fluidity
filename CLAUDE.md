@@ -1,6 +1,6 @@
-# {{PROJECT_NAME}} — Claude Code orientation
+# Fluidity — Claude Code orientation
 
-{{ONE_LINE_DESCRIPTION}}.
+A native Mac dictation app that pastes what you say into whatever app you are typing in, with speech-to-text running on the Mac.
 
 **Read [`AGENTS.md`](AGENTS.md) before doing anything.** It holds the
 architectural rules, constraints and traps the code alone cannot convey. Each
