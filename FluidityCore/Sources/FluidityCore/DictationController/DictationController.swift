@@ -1,5 +1,8 @@
 import Foundation
 import Observation
+import os
+
+private let log = Logger(subsystem: "com.fluidity.app", category: "dictation")
 
 /// Drives one dictation at a time from key down to pasted text, and publishes
 /// what the pill and the menu bar icon show.
@@ -146,12 +149,15 @@ public final class DictationController {
     // write below comes straight after a cancellation check, with no await between.
     private func run(_ current: Session, after previous: Task<Void, Never>?) async {
         // The previous dictation saves its final text before this one records.
+        if previous != nil { log.notice("run: waiting for the previous dictation to finish") }
         await previous?.value
-        guard !Task.isCancelled else { return }
+        guard !Task.isCancelled else { log.notice("run: cancelled before audio start"); return }
         let live: AsyncStream<[Float]>
         do {
             live = try await audio.start()
+            log.notice("run: audio started")
         } catch {
+            log.error("run: audio.start failed: \(String(describing: error), privacy: .public)")
             guard !Task.isCancelled else { return }
             phase = .ready
             show(.hidden)
@@ -166,6 +172,7 @@ public final class DictationController {
         for await _ in current.stopRequests { break }
         try? await timeline.sleep(until: (current.stopAt ?? timeline.now()) + Self.tail)
         let recording = await audio.stop()
+        log.notice("run: recording has \(recording.samples.count, privacy: .public) samples")
         guard !Task.isCancelled else {
             await store.dictationCancelled(recording)
             return
@@ -173,6 +180,7 @@ public final class DictationController {
 
         let transcriptionStart = timeline.now()
         let transcript = try? await transcriber.transcribe(recording)
+        log.notice("run: transcript \(transcript == nil ? "threw" : "\(transcript!.text.count) chars", privacy: .public)")
         guard !Task.isCancelled else {
             await store.dictationCancelled(recording)
             return

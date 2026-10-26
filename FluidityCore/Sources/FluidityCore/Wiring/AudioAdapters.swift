@@ -1,5 +1,8 @@
 import Foundation
 import Synchronization
+import os
+
+private let log = Logger(subsystem: "com.fluidity.app", category: "audio")
 
 /// `AudioCapturing` over `AudioCapture`.
 ///
@@ -23,7 +26,9 @@ public struct AudioCaptureAdapter: AudioCapturing {
     }
 
     public func start() async throws -> AsyncStream<[Float]> {
+        log.notice("adapter start: running willStart")
         await willStart()
+        log.notice("adapter start: willStart done, starting capture")
         let chunks = try capture.start()
         guard let onChunk else { return chunks }
         let (stream, sink) = AsyncStream.makeStream(of: [Float].self)
@@ -40,6 +45,7 @@ public struct AudioCaptureAdapter: AudioCapturing {
 
     public func stop() async -> DictationController.Recording {
         let recording = await capture.stop()
+        log.notice("adapter stop: \(recording.samples.count, privacy: .public) samples")
         return DictationController.Recording(samples: recording.samples, sampleRate: Double(AudioCapture.sampleRate))
     }
 }
