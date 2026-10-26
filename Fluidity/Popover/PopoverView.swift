@@ -21,13 +21,14 @@ struct PopoverView: View {
             }
             GlassRule()
             VStack(spacing: 0) {
-                MenuRow(title: "Settings…", shortcut: "⌘,") { model.onOpenSettings(nil) }
+                MenuRow(title: "Settings…", shortcut: "⌘ ,") { model.onOpenSettings(nil) }
                     .keyboardShortcut(",", modifiers: .command)
-                MenuRow(title: "Quit Fluidity", shortcut: "⌘Q", action: model.onQuit)
+                MenuRow(title: "Quit Fluidity", shortcut: "⌘ Q", action: model.onQuit)
                     .keyboardShortcut("q", modifiers: .command)
             }
             .padding(6)
         }
+        .padding(1)
         .frame(width: 280)
         .glassShell(isLive: settings.isMicLive)
         .focusEffectDisabled()
@@ -42,7 +43,8 @@ struct PopoverView: View {
 
     private var statusRow: some View {
         let status = settings.status
-        return VStack(alignment: .leading, spacing: 8) {
+        let fixTitle = status.offersFixButton && status.fix != nil ? status.fixButtonTitle : nil
+        return VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 8) {
                 StatusDot(tone: status.tone)
                 Text(status.title).font(GlassTheme.label).foregroundStyle(GlassTheme.textPrimary)
@@ -51,27 +53,32 @@ struct PopoverView: View {
                     Text(hint).font(GlassTheme.small).foregroundStyle(GlassTheme.textSecondary).lineLimit(1)
                 }
             }
-            .frame(minHeight: 22)
-            if let detail = status.detail {
-                Text(detail).font(GlassTheme.detail).foregroundStyle(GlassTheme.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.leading, 16)
-                    .padding(.top, -6)
-            }
-            if status.offersFixButton, let title = status.fixButtonTitle, let fix = status.fix {
-                Button(title) {
-                    switch fix {
-                    case .permission(let permission): settings.onOpenPrivacySettings(permission)
-                    case .cleanup: model.onOpenSettings(.cleanup)
+            .frame(height: 16)
+            if status.detail != nil || fixTitle != nil {
+                VStack(alignment: .leading, spacing: 8) {
+                    if let detail = status.detail {
+                        Text(detail).font(GlassTheme.detail).foregroundStyle(GlassTheme.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    if let fixTitle, let fix = status.fix {
+                        Button(fixTitle) {
+                            switch fix {
+                            case .permission(let permission): settings.onOpenPrivacySettings(permission)
+                            case .cleanup: model.onOpenSettings(.cleanup)
+                            }
+                        }
+                        .buttonStyle(.glassSecondary)
                     }
                 }
-                .buttonStyle(.glassSecondary)
                 .padding(.leading, 16)
+                .padding(.bottom, 2)
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 8)
-        .frame(minHeight: 38)
+        .padding(.leading, 16)
+        .padding(.trailing, 12)
+        .padding(.top, 12)
+        .padding(.bottom, 10)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .contain)
     }
 
@@ -100,7 +107,7 @@ struct PopoverView: View {
     private var history: some View {
         ScrollView {
             TimelineView(.periodic(from: .now, by: 60)) { context in
-                LazyVStack(spacing: 0) {
+                LazyVStack(spacing: 2) {
                     ForEach(model.records, id: \.id) { record in
                         HistoryRow(
                             record: record,
@@ -119,7 +126,8 @@ struct PopoverView: View {
                 .padding(6)
             }
         }
-        .frame(maxHeight: 400)
+        // Five two-line rows show; the rest scroll.
+        .frame(maxHeight: 376)
         .fixedSize(horizontal: false, vertical: true)
     }
 
@@ -154,21 +162,32 @@ private struct HistoryRow: View {
         HStack(alignment: .center, spacing: 8) {
             Button(action: paste) {
                 VStack(alignment: .leading, spacing: 2) {
+                    // 13 pt on a 17 pt line: the font's own line is 16 pt.
                     Text(text)
                         .font(GlassTheme.transcript)
-                        .lineSpacing(4)
+                        .lineSpacing(1)
+                        .padding(.vertical, 0.5)
                         .foregroundStyle(GlassTheme.textPrimary)
                         .lineLimit(2)
                         .truncationMode(.tail)
                         .frame(maxWidth: .infinity, alignment: .leading)
                     // One line, so the row never changes height.
-                    Text(meta)
-                        .font(GlassTheme.detail)
-                        .foregroundStyle(GlassTheme.textSecondary)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-                    if let note {
+                    HStack(spacing: 8) {
+                        Text(isCopied ? "Copied" : meta)
+                            .font(GlassTheme.detail)
+                            .foregroundStyle(isCopied ? GlassTheme.textPrimary : GlassTheme.textSecondary)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        if isFocused && !isCopied {
+                            Text("Return to paste").font(GlassTheme.small).foregroundStyle(GlassTheme.textSecondary)
+                                .accessibilityHidden(true)
+                        }
+                    }
+                    .frame(height: 16)
+                    if let note, !isCopied {
                         Text(note).font(GlassTheme.small).foregroundStyle(GlassTheme.textSecondary)
+                            .frame(height: 14)
                     }
                 }
                 .contentShape(Rectangle())
@@ -180,20 +199,28 @@ private struct HistoryRow: View {
             .accessibilityAction(named: "Copy", copy)
 
             Button(action: copy) {
-                Image(systemName: isCopied ? "checkmark" : "doc.on.doc")
-                    .foregroundStyle(isCopied ? GlassTheme.stateDone : GlassTheme.textPrimary)
-                    .frame(width: 24, height: 24)
-                    .contentShape(Rectangle())
-                    .glassFocusRing(Circle())
+                Group {
+                    if isCopied {
+                        StatusIcon(kind: .done)
+                    } else {
+                        CopyGlyph()
+                            .stroke(GlassTheme.textPrimary, style: StrokeStyle(lineWidth: 1.4, lineCap: .round, lineJoin: .round))
+                            .frame(width: 16, height: 16)
+                    }
+                }
+                .frame(width: 28, height: 28)
+                .contentShape(Circle())
+                .glassFocusRing(Circle())
             }
             .buttonStyle(.plain)
             .accessibilityLabel(isCopied ? "Copied" : "Copy")
         }
-        .padding(.horizontal, 10)
+        .padding(.leading, 10)
+        .padding(.trailing, 6)
         .padding(.vertical, 8)
         .background {
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(isFocused ? GlassTheme.selected : isHovering ? GlassTheme.hover : .clear)
+            RoundedRectangle(cornerRadius: GlassTheme.innerRadius, style: .continuous)
+                .fill(isFocused || isCopied ? GlassTheme.selected : isHovering ? GlassTheme.hover : .clear)
         }
         .onHover { isHovering = $0 }
         .animation(GlassTheme.snap, value: isHovering)
@@ -229,6 +256,20 @@ private struct HistoryRow: View {
         }
         let name = FileManager.default.displayName(atPath: url.path(percentEncoded: false))
         return name.hasSuffix(".app") ? String(name.dropLast(4)) : name
+    }
+}
+
+/// The design library's `Icon/Copy`: two overlapping rounded squares, drawn in a 16 pt box.
+private struct CopyGlyph: Shape {
+    func path(in rect: CGRect) -> Path {
+        let s = rect.width / 16
+        func p(_ x: CGFloat, _ y: CGFloat) -> CGPoint { CGPoint(x: rect.minX + x * s, y: rect.minY + y * s) }
+        var path = Path(roundedRect: CGRect(origin: p(2.5, 5), size: CGSize(width: 8 * s, height: 8.5 * s)), cornerRadius: 2 * s)
+        path.move(to: p(5.5, 2.5))
+        path.addLine(to: p(11.5, 2.5))
+        path.addCurve(to: p(13.5, 4.5), control1: p(12.83, 2.5), control2: p(13.5, 3.17))
+        path.addLine(to: p(13.5, 10.5))
+        return path
     }
 }
 
