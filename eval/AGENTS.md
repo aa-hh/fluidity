@@ -29,3 +29,4 @@ scoring. The scripts live here; the data never does.
 - `draft_refs.py` → majority-vote draft references, disagreements marked.
 - `review_page.html` → template for the page where Alec settles each mark.
 - `test_draft_refs.py` → regression tests for the draft alignment.
+- `test_build_testset.py` → tests that the split holds and clips route by source.

@@ -1,7 +1,7 @@
 #!/bin/bash
 # Code review for one branch's pull request. The result goes to the PR as one
-# comment and as the `review` commit status on HEAD, which scripts/land.sh
-# requires before it merges.
+# comment and as the `review` commit status on HEAD, one of the two checks
+# main's ruleset requires.
 #
 # Picks a level from the committed diff against origin/main (fetched first;
 # local main is never used, since nothing updates it any more): skip (no model), cheap
@@ -61,10 +61,15 @@ SCORE_MODEL=haiku
 # Any touched path here makes the review full, whatever its size.
 is_risk_path() {
   case "$1" in
-    # Fill in per project: the code where a small diff can do large harm
-    # (persistence formats, auth/licensing, concurrency, hooks). Example:
-    # src/storage/*|src/auth/*|.githooks/*) return 0 ;;
-    __none__) return 0 ;;
+    FluidityCore/Sources/FluidityCore/DictationStore/* \
+    | FluidityCore/Sources/FluidityCore/Records/* \
+    | FluidityCore/Sources/FluidityCore/Paster/* \
+    | FluidityCore/Sources/FluidityCore/FocusedField/* \
+    | FluidityCore/Sources/FluidityCore/CleanupClient/* \
+    | FluidityCore/Sources/FluidityCore/Settings/Keychain.swift \
+    | Fluidity/Fluidity.entitlements \
+    | .githooks/* \
+    | .github/workflows/*) return 0 ;;
   esac
   return 1
 }

@@ -1,10 +1,11 @@
-# {{PROJECT_NAME}}
+# Fluidity
 
 ## Purpose
 
-{{ONE_LINE_DESCRIPTION}}. `CONTEXT.md` defines the domain words; `docs/adr/`
-records decisions. This file orients an agent to where things live and the
-rules that apply everywhere.
+A native Mac dictation app that pastes what you say into whatever app you are
+typing in, with speech-to-text running on the Mac. `CONTEXT.md` defines the
+domain words; `docs/adr/` records decisions. This file orients an agent to
+where things live and the rules that apply everywhere.
 
 ## What belongs in an AGENTS.md (HARD RULE)
 
@@ -44,6 +45,8 @@ symbol you cannot find in source, believe the source and fix the doc.
 
 <!-- One line per top-level folder: path → what it is. Each folder with
      rules of its own gets an AGENTS.md. -->
+- `Fluidity/` → the app target: only what needs the running app.
+- `FluidityCore/` → all logic, behind protocols, tested with fakes.
 - `scripts/` → the only sanctioned way to build, test, review and land.
 - `.githooks/` → commit and push guards; settings in `project.conf`.
 - `docs/review/` → instructions for each branch-review pass.
@@ -74,7 +77,7 @@ symbol you cannot find in source, believe the source and fix the doc.
 - **Dev tooling that outlives its session is labelled, parked and purgeable.**
   Anything that keeps running after the session that made it (a launchd/cron
   job, login item, file watcher, watchdog) must (a) carry a name starting
-  `{{PROJECT_SLUG}}.dev.`, (b) live in the repo's `dev/`, never inside the
+  `fluidity.dev.`, (b) live in the repo's `dev/`, never inside the
   app's own data directory, and (c) be removable by a purge script updated in
   the same change. Unlabelled tooling dropped onto a machine runs unnoticed
   for days.
@@ -132,7 +135,7 @@ roughly equal, so the full suite can run as four parallel jobs instead of
 one long one. Splitting the suite later means moving every test at once.
 
 **Flaky tests are quarantined, not ignored.** A test that fails and then
-passes on a rerun — at pre-push or anywhere else — is skipped in the same PR
+passes on a rerun — in the `tests` workflow or anywhere else — is skipped in the same PR
 that hit it, with a dated reason and a Linear issue. Rerunning until
 green is not a fix.
 - **A change inside a review risk path is scoped before it is built.** The
@@ -145,20 +148,22 @@ green is not a fix.
 
 **Never commit, merge or push onto `main` yourself.** Everything is authored
 and committed in your own worktree and reaches `main` only through a pull
-request. Guard 1 refuses any commit on `main`; the pre-push hook refuses a
-push to it. End every task with:
+request. Guard 1 refuses any commit on `main`; the pre-push hook and
+GitHub's ruleset refuse a push to it. End every task with:
 
 ```bash
-git push -u origin HEAD          # pre-push runs the full suite
+git push -u origin HEAD
 gh pr create --fill
 bash scripts/review-branch.sh    # run the passes it prints as subagents, then:
 bash scripts/review-branch.sh --continue
 ```
 
 Then **stop and ask the owner before merging.** Only after a clear yes, run
-`sh scripts/land.sh`, which refuses unless the full suite passed on the PR's
-head and the `review` status there is green. This repo has no CI: the
-pre-push hook is the test gate and `land.sh` is the merge queue.
+`gh pr merge --merge --auto`. The ruleset on `main` requires two checks:
+`tests` (the full suite, `.github/workflows/tests.yml`, on every pull request
+and every push to `main`) and `review` (the commit status
+`review-branch.sh --continue` posts). `--auto` lands the PR on its own once
+both are green, so it waits for a running `tests` instead of failing.
 
 **Do not work in the `main` checkout at all.** Merely *editing* it starts the
 accident: another agent that cannot merge past loose edits commits them to
@@ -182,7 +187,9 @@ override once with `--no-verify`):
   AGENTS-HISTORY.md; `bash scripts/test-guard-agents-docs.sh` self-tests it.
 - **Guard 4 blocks** a commit staging code under `SOURCE_PATHS` whose
   `scripts/test.sh` run fails.
-- **pre-push blocks** a push to `main` and a push whose full suite fails.
+- **pre-push blocks** a push to `main`.
+- **The `tests` workflow** runs `scripts/test.sh` and `scripts/build.sh` on
+  a GitHub Mac for every pull request and every push to `main`.
 - **The review** (`scripts/review-branch.sh`, not a hook) picks skip, cheap
   (one pass) or full (four parallel reviewers plus a confidence scorer) from
   the diff size and risk paths, posts one PR comment and the `review` commit

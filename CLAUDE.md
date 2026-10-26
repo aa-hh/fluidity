@@ -1,6 +1,6 @@
-# {{PROJECT_NAME}} — Claude Code orientation
+# Fluidity — Claude Code orientation
 
-{{ONE_LINE_DESCRIPTION}}.
+A native Mac dictation app that pastes what you say into whatever app you are typing in, with speech-to-text running on the Mac.
 
 **Read [`AGENTS.md`](AGENTS.md) before doing anything.** It holds the
 architectural rules, constraints and traps the code alone cannot convey. Each
@@ -19,18 +19,21 @@ sh scripts/setup.sh --sync-main   # macOS: also keep local main mirroring origin
 ```bash
 sh scripts/build.sh               # compile / typecheck
 sh scripts/test.sh                # fast run (what Guard 4 runs at commit)
-sh scripts/test.sh --full         # full suite (what pre-push runs)
+sh scripts/test.sh --full         # full suite (what the `tests` workflow runs)
 ```
 
 **Always go through these wrappers, never the bare build or test command.**
 The Claude hook in `.claude/hooks/guard-bash.sh` denies the bare commands.
 
-There is **no CI**. The pre-push hook is the full-suite gate, and
-`scripts/land.sh` is the merge queue.
+The full suite runs on GitHub: the `tests` workflow
+(`.github/workflows/tests.yml`), on every pull request and every push to
+`main`. On a runner (`CI=true`) the wrappers run the command bare instead of
+through `~/.claude/scripts/remote-run`.
 
 ## Critical workflow rules
 
-- **Never commit on or push to `main`.** Guard 1 and pre-push refuse it.
+- **Never commit on or push to `main`.** Guard 1, pre-push and the ruleset
+  refuse it.
 - **Work in worktrees, not the `main` checkout.** Worktrees live in
   `.claude/worktrees/<slug>/`:
   ```bash
@@ -43,7 +46,8 @@ There is **no CI**. The pre-push hook is the full-suite gate, and
   `bash scripts/review-branch.sh` (run the passes it prints as subagents,
   then `bash scripts/review-branch.sh --continue`).
 - **Then stop and ask the owner before merging.** Only after a clear yes, run
-  `sh scripts/land.sh`. The hook asks on any merge either way.
+  `gh pr merge --merge --auto`; it lands once the required `tests` and
+  `review` checks are green. The hook asks on any merge either way.
 - **Uncommitted edits in the `main` checkout: stop and ask.** Never stash,
   reset or discard them — they belong to another session.
 

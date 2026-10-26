@@ -1,0 +1,90 @@
+name: Tests
+
+# The full suite on a GitHub-hosted Mac, once per PR and once per push to
+# main: the FluidityCore tests, then a build of the app target. No path filter
+# on purpose: a required check that does not run leaves the PR stuck at
+# "expected". Free on this public repo.
+#
+# Caches: PR and push runs both save. A PR's saved cache is visible to that
+# PR's later pushes and is searched before main's, so a second push rebuilds
+# only its own diff. The key hashes the two Package.resolved files by name:
+# `**/Package.resolved` would also match the copies inside .build and change
+# between restore and save.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+
+jobs:
+  # The one required check the ruleset names.
+  # razor: one job; split into a matrix over the four test targets (the
+  # shards in AGENTS.md) once the suite is slow enough to be worth it.
+  tests:
+    name: tests
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Restore build caches
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            FluidityCore/.build
+            .build/DerivedData
+          key: ${{ runner.os }}-${{ runner.arch }}-xcode26.6-${{ hashFiles('FluidityCore/Package.resolved', 'Fluidity.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-${{ runner.arch }}-xcode26.6-${{ hashFiles('FluidityCore/Package.resolved', 'Fluidity.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}-
+            ${{ runner.os }}-${{ runner.arch }}-xcode26.6-
+
+      - name: Check the compiler knows file hashing
+        run: |
+          swiftc --version
+          echo "in -help: $(swiftc -help | grep -c file-hashing || true)"
+          echo "in -help-hidden: $(swiftc -help-hidden | grep -c file-hashing || true)"
+
+      # A fresh checkout gives every file a new modified time, so the restored
+      # .build is reused only if the compiler compares file contents instead
+      # (file hashing). No index store: nothing on a runner reads it.
+      - name: FluidityCore suite
+        run: sh scripts/test.sh --disable-index-store -Xswiftc -enable-incremental-file-hashing -Xswiftc -driver-show-incremental
+
+      # The runner has no signing certificate, so this proves the app target
+      # compiles and links, nothing about signing.
+      # razor: no file hashing here; the app target is small and the cached
+      # packages in DerivedData keep their modified times. Add
+      # OTHER_SWIFT_FLAGS='$(inherited) -enable-incremental-file-hashing' if
+      # this step gets slow.
+      - name: Build the app
+        run: sh scripts/build.sh CODE_SIGNING_ALLOWED=NO COMPILER_INDEX_STORE_ENABLE=NO
+
+      - name: Upload crash reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: crash-reports
+          path: /Users/runner/Library/Logs/DiagnosticReports/*.ips
+          if-no-files-found: ignore
+
+      - name: Save build caches
+        # !cancelled(): the build products are valid whether or not a test
+        # failed, and a cache that saves only on green never warms up.
+        if: ${{ !cancelled() }}
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            FluidityCore/.build
+            .build/DerivedData
+          key: ${{ runner.os }}-${{ runner.arch }}-xcode26.6-${{ hashFiles('FluidityCore/Package.resolved', 'Fluidity.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}-${{ github.sha }}
