@@ -179,8 +179,14 @@ public final class DictationController {
         }
 
         let transcriptionStart = timeline.now()
-        let transcript = try? await transcriber.transcribe(recording)
-        log.notice("run: transcript \(transcript == nil ? "threw" : "\(transcript!.text.count) chars", privacy: .public)")
+        let transcript: DictationController.Transcript?
+        do {
+            transcript = try await transcriber.transcribe(recording)
+            log.notice("run: transcript \(transcript?.text.count ?? 0, privacy: .public) chars")
+        } catch {
+            transcript = nil
+            log.error("run: transcript threw: \(String(describing: error), privacy: .public)")
+        }
         guard !Task.isCancelled else {
             await store.dictationCancelled(recording)
             return
