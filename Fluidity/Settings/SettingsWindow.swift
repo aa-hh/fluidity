@@ -73,6 +73,7 @@ struct SettingsView: View {
         .animation(GlassTheme.snap, value: model.pane)
         .frame(width: 720, height: 520)
         .glassShell(isLive: model.isMicLive)
+        .focusEffectDisabled()
         .ignoresSafeArea()
         .onChange(of: model.pane) { model.endRecording() }
     }
@@ -132,6 +133,7 @@ private struct SidebarItem: View {
                 if isSelected { Capsule().fill(GlassTheme.selected) } else if isHovering { Capsule().fill(GlassTheme.hover) }
             }
             .contentShape(Capsule())
+            .glassFocusRing(Capsule())
         }
         .buttonStyle(.plain)
         .onHover { isHovering = $0 }
@@ -168,6 +170,7 @@ private struct SidebarStatusLine: View {
             } label: {
                 line.background { if isHovering { Capsule().fill(GlassTheme.hover) } }
                     .contentShape(Capsule())
+                    .glassFocusRing(Capsule())
             }
             .buttonStyle(.plain)
             .onHover { isHovering = $0 }

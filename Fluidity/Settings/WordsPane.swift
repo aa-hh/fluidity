@@ -143,6 +143,7 @@ private struct WordRow: View {
                     .foregroundStyle(isHovering || isFocused ? GlassTheme.textPrimary : GlassTheme.textSecondary)
                     .frame(width: 24, height: 24)
                     .contentShape(Rectangle())
+                    .glassFocusRing(Circle())
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Delete \(word)")
@@ -152,6 +153,8 @@ private struct WordRow: View {
         .background {
             if isFocused { GlassTheme.selected } else if isHovering { GlassTheme.hover }
         }
+        // Inside the row: the panel around the list clips anything drawn outside it.
+        .overlay { if isFocused { Rectangle().strokeBorder(GlassTheme.focusRing, lineWidth: 2) } }
         .contentShape(Rectangle())
         .onHover { isHovering = $0 }
         .accessibilityElement(children: .combine)

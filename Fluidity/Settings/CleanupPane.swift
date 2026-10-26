@@ -87,6 +87,7 @@ struct CleanupPane: View {
                             .foregroundStyle(GlassTheme.textPrimary)
                             .frame(width: 20, height: 20)
                             .contentShape(Rectangle())
+                            .glassFocusRing(Circle())
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel(showsKey ? "Hide key" : "Show key")
@@ -153,6 +154,12 @@ struct CleanupPane: View {
                 .overlay {
                     RoundedRectangle(cornerRadius: GlassTheme.innerRadius, style: .continuous)
                         .strokeBorder(rulesFocused ? GlassTheme.lineStrong : GlassTheme.lineRule, lineWidth: 1)
+                }
+                .overlay {
+                    if rulesFocused {
+                        RoundedRectangle(cornerRadius: GlassTheme.innerRadius + 3, style: .continuous)
+                            .strokeBorder(GlassTheme.focusRing, lineWidth: 2).padding(-3)
+                    }
                 }
                 .accessibilityLabel("Cleanup rules")
         }

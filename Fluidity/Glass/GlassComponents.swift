@@ -249,6 +249,7 @@ private struct GlassButtonBody: View {
                 if kind == .secondary { Capsule().strokeBorder(GlassTheme.lineStrong, lineWidth: 1) }
             }
             .contentShape(Capsule())
+            .glassFocusRing(Capsule())
             .opacity(isEnabled ? 1 : 0.4)
             .onHover { isHovering = $0 }
             .animation(GlassTheme.snap, value: isHovering)
@@ -288,9 +289,32 @@ private struct GlassToggleTrack: View {
         }
         .frame(width: 38, height: 22)
         .contentShape(Capsule())
+        .glassFocusRing(Capsule())
         .opacity(isEnabled ? 1 : 0.4)
         .animation(GlassTheme.snap, value: isOn)
     }
+}
+
+// MARK: - Focus
+
+/// Keyboard focus: a 2 pt `app-focus-ring` ring 1 pt outside `shape`, in place of the system ring,
+/// which each window turns off with `focusEffectDisabled()`. Apply it inside the focusable control,
+/// on a button's label or in its style, where `isFocused` reports that control.
+struct GlassFocusRing<S: InsettableShape>: ViewModifier {
+    let shape: S
+    @Environment(\.isFocused) private var isFocused
+
+    func body(content: Content) -> some View {
+        content.overlay {
+            if isFocused {
+                shape.strokeBorder(GlassTheme.focusRing, lineWidth: 2).padding(-3).allowsHitTesting(false)
+            }
+        }
+    }
+}
+
+extension View {
+    func glassFocusRing(_ shape: some InsettableShape) -> some View { modifier(GlassFocusRing(shape: shape)) }
 }
 
 // MARK: - Fields

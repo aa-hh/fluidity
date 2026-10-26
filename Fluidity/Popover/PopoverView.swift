@@ -30,6 +30,7 @@ struct PopoverView: View {
         }
         .frame(width: 280)
         .glassShell(isLive: settings.isMicLive)
+        .focusEffectDisabled()
         .task(id: copiedRecord) {
             guard copiedRecord != nil else { return }
             try? await Task.sleep(for: GlassTheme.hold)
@@ -172,6 +173,7 @@ private struct HistoryRow: View {
                     }
                 }
                 .contentShape(Rectangle())
+                .glassFocusRing(RoundedRectangle(cornerRadius: GlassTheme.innerRadius, style: .continuous))
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Paste again: \(text), \(meta)")
@@ -182,6 +184,7 @@ private struct HistoryRow: View {
                     .foregroundStyle(isCopied ? GlassTheme.stateDone : GlassTheme.textPrimary)
                     .frame(width: 24, height: 24)
                     .contentShape(Rectangle())
+                    .glassFocusRing(Circle())
             }
             .buttonStyle(.plain)
             .accessibilityLabel(isCopied ? "Copied" : "Copy")
@@ -248,6 +251,7 @@ private struct MenuRow: View {
             .frame(height: GlassTheme.controlHeight)
             .background { if isHovering { Capsule().fill(GlassTheme.selected) } }
             .contentShape(Capsule())
+            .glassFocusRing(Capsule())
         }
         .buttonStyle(.plain)
         .onHover { isHovering = $0 }

@@ -95,6 +95,7 @@ struct FirstRunView: View {
         .padding(.bottom, 20)
         .frame(width: 540)
         .glassShell(isLive: settings.isMicLive)
+        .focusEffectDisabled()
         .ignoresSafeArea()
         .onChange(of: bothAllowed) { _, allowed in
             if allowed { AccessibilityNotification.Announcement("Both allowed. Choose your dictation key.").post() }

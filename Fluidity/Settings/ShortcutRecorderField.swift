@@ -11,6 +11,7 @@ struct ShortcutRecorderField: View {
 
     private var key: KeyChoice? { slot == .dictation ? model.dictationKey : model.pasteAgainKey }
     private var isRecording: Bool { model.recordingSlot == slot }
+    @FocusState private var isFocused: Bool
 
     var body: some View {
         HStack(spacing: 4) {
@@ -32,6 +33,7 @@ struct ShortcutRecorderField: View {
                 .contentShape(Capsule())
             }
             .buttonStyle(.plain)
+            .focused($isFocused)
             .accessibilityLabel(name)
             .accessibilityValue(isRecording ? "Recording. Press the key to use." : key?.description ?? "Not set")
             .accessibilityHint(isRecording ? "" : "Records a new shortcut")
@@ -44,6 +46,7 @@ struct ShortcutRecorderField: View {
                         .frame(width: 18, height: 18)
                         .background(GlassTheme.hover, in: Circle())
                         .contentShape(Circle())
+                        .glassFocusRing(Circle())
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Clear \(name)")
@@ -51,7 +54,7 @@ struct ShortcutRecorderField: View {
         }
         .padding(.horizontal, 5)
         .frame(width: 160)
-        .glassFieldChrome(isFocused: isRecording, isError: model.shortcutProblem?.slot == slot)
+        .glassFieldChrome(isFocused: isRecording || isFocused, isError: model.shortcutProblem?.slot == slot)
         .onDisappear { if isRecording { model.endRecording() } }
     }
 }
