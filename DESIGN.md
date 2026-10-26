@@ -450,6 +450,48 @@ These are in the published Figma library and were not built for version 1:
 - The Motion collection's enter 180 ms, exit 150 ms and collapse 340 ms, and its 130 ms Reduce Motion cross-fade.
 - The popover's model line, and the Dictation and Models panes (version 2).
 
+### Figma components and the Swift that builds them
+Figma Code Connect can't hold these links: it needs an Organization or Enterprise plan, and the library belongs to a Professional team. Node IDs are in the published library (key 5JcAX6bwl48LqQhqcUuGOJ). The pages are "Atoms", "Discovery · atoms and components" and "Recording pill: Rim (approved)". Checked against `main` on 26 Oct 2026.
+
+| Figma component | Node | Swift | File |
+|---|---|---|---|
+| Button | 2021:1941 | `GlassButtonStyle` | `Fluidity/Glass/GlassComponents.swift` |
+| Toggle | 2021:2254 | `GlassToggleStyle` | `Fluidity/Glass/GlassComponents.swift` |
+| Text field | 2021:2280 | `GlassFieldChrome` | `Fluidity/Glass/GlassComponents.swift` |
+| Segmented control | 2021:2607 | `GlassSegmentedControl` | `Fluidity/Glass/GlassComponents.swift` |
+| Section header | 2021:3267 | `SectionHeader` | `Fluidity/Glass/GlassComponents.swift` |
+| Focus ring | 2021:3597 | `GlassFocusRing` | `Fluidity/Glass/GlassComponents.swift` |
+| Status row (its Retry state isn't built) | 2021:3550 | `GlassRow` | `Fluidity/Glass/GlassComponents.swift` |
+| Status row (version 1) | 2048:3178 | `GlassRow` | `Fluidity/Glass/GlassComponents.swift` |
+| Settings row | 2048:1602 | `GlassRow` | `Fluidity/Glass/GlassComponents.swift` |
+| Status dot | 2048:655 | `StatusDot` | `Fluidity/Glass/GlassComponents.swift` |
+| Status icon | 2048:1483 | `StatusIcon` | `Fluidity/Glass/GlassComponents.swift` |
+| Keycap | 2048:1185 | `KeyCap` | `Fluidity/Glass/GlassComponents.swift` |
+| Inline note | 2048:1372 | `FieldMessage` | `Fluidity/Glass/GlassComponents.swift` |
+| Menu bar popover | 2021:5417 | `PopoverView` | `Fluidity/Popover/PopoverView.swift` |
+| Popover status row | 2049:1900 | `PopoverView.statusRow` | `Fluidity/Popover/PopoverView.swift` |
+| Popover empty history | 2048:3199 | `PopoverView.emptyHistory` | `Fluidity/Popover/PopoverView.swift` |
+| History row/Row click | 2050:2012 | `HistoryRow` | `Fluidity/Popover/PopoverView.swift` |
+| Popover footer row | 2051:2508 | `MenuRow` | `Fluidity/Popover/PopoverView.swift` |
+| Icon/Copy | 2044:249 | `CopyGlyph` | `Fluidity/Popover/PopoverView.swift` |
+| Menu bar icon/Pill outline | 2045:344 | `MenuBarIcon` | `Fluidity/Popover/MenuBarIcon.swift` |
+| Sidebar item | 2021:3242 | `SidebarItem` | `Fluidity/Settings/SettingsWindow.swift` |
+| Sidebar status line | 2053:2455 | `SidebarStatusLine` | `Fluidity/Settings/SettingsWindow.swift` |
+| Shortcut recorder | 2021:3295 | `ShortcutRecorderField` | `Fluidity/Settings/ShortcutRecorderField.swift` |
+| Shortcut recorder (version 1) | 2048:3134 | `ShortcutRecorderField` | `Fluidity/Settings/ShortcutRecorderField.swift` |
+| Shortcut row | 2054:2569 | `GeneralPane` | `Fluidity/Settings/GeneralPane.swift` |
+| Permission row | 2048:2540 | `PermissionRow` | `Fluidity/Settings/PermissionsPane.swift` |
+| Cleanup key row | 2056:2880 | `CleanupPane` | `Fluidity/Settings/CleanupPane.swift` |
+| Secure field | 2048:1983 | `CleanupPane` | `Fluidity/Settings/CleanupPane.swift` |
+| Cleanup rules | 2056:2918 | `CleanupPane` | `Fluidity/Settings/CleanupPane.swift` |
+| Text area | 2048:2090 | `CleanupPane` | `Fluidity/Settings/CleanupPane.swift` |
+| Word row | 2057:3181 | `WordRow` | `Fluidity/Settings/WordsPane.swift` |
+| Word add row | 2057:3193 | `WordsPane` | `Fluidity/Settings/WordsPane.swift` |
+| Speech model row | 2059:4210 | `FirstRunView.speechModelRow` | `Fluidity/FirstRun/FirstRunWindow.swift` |
+| Pill rim | 27:82 | `PillPresenter` | `Fluidity/Pill/PillPresenter.swift` |
+
+Not in the table: the `Icon/*` components the code draws with SF Symbols; the progress bar, which is Apple's own `ProgressView`; the pop-up button, listed above as not yet in code; Icon button and Word list bar, which no single Swift view builds; the Microphone and Dot and pill menu bar icons, History row/Hover buttons and the tap-and-hold picture, which were not chosen; and every `v2/` component, which waits for version 2.
+
 ## Do's and Don'ts
 
 ### Do:
