@@ -364,17 +364,14 @@ nonisolated enum PillShader {
             float glowB = exp(-dl * dl / (2.0 * 3.2 * 3.2)) * taperGlow * u[U_INNER_GLOW] * (1.0 + 1.6 * lineBloom + 0.6 * br);
             // Even along its length: no tonal bands, so the working line reads as one flat stroke.
             float lineAmp = (lineB * (0.745 + 0.5 * lineBloom) + glowB * 0.8) * pulse * lineOn;
-            float lineHue = u[U_HUE_CYCLES] * 0.5 * along + u[U_HUE] + 0.08;
-            float lineTone;
-            if (doneT >= 0.0) {
-                lineTone = 0.55 + 0.12 * min(1.0, front);  // a clear green, as bright as the working line, never white
-                lineAmp *= 1.35;
-            } else {
-                lineTone = max(0.42 + 0.55 * lineBloom + 0.12 * br, 0.3 + 0.6 * min(1.0, front));
-            }
+            if (doneT >= 0.0) lineAmp *= 1.35;
             float amp = front * 0.9 + lineAmp;
             if (amp > 0.02) {
-                innerC = whiten(tint(u, lineHue, lineTone), doneT >= 0.0 ? 0.0 : max(0.0, max(amp, lineTone) - 0.95) * 1.5);
+                // Done: a clear green, as bright as the working line, never white. Otherwise one solid ivory-white
+                // (#FFF6EA) end to end, so only the light's falloff fades it, never a shift in colour.
+                innerC = doneT >= 0.0
+                    ? tint(u, u[U_HUE_CYCLES] * 0.5 * along + u[U_HUE] + 0.08, 0.55 + 0.12 * min(1.0, front))
+                    : float3(1.0, 0.965, 0.918);
                 innerA = pow(min(1.3, amp), 1.2) * 0.9 * u[U_CORE_ON] * (0.6 + 0.4 * strength);
                 if (doneT < 0.0 && u[U_LINE_DISABLED] > 0.0) {
                     // The speech model is still loading: a dim grey line, like a disabled control.
