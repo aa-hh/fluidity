@@ -248,6 +248,29 @@ struct TranscriberTests {
         #expect(replaced as AnyObject === old)
     }
 
+    @Test func aSwitchWaitsForTheLaunchLoad() async throws {
+        // Letting a switch land while `prepare` still loads the launch engine, so the shell unloads it mid-load, turns this red.
+        let old = FakeSpeechEngine()
+        let new = FakeSpeechEngine()
+        let (transcriber, _) = makeTranscriber(engine: old)
+        old.hold()
+        let preparing = Task { try await transcriber.prepare() }
+        await settle()
+        let landed = Mutex(false)
+        let switching = Task {
+            let replaced = try await transcriber.switchEngine(to: new, model: .appleBuiltIn)
+            landed.withLock { $0 = true }
+            return replaced
+        }
+        await settle()
+        #expect(!landed.withLock { $0 })
+
+        old.release()
+        try await preparing.value
+        let replaced = try await switching.value
+        #expect(replaced as AnyObject === old)
+    }
+
     @Test func aSwitchWhileIdleTakesEffectForTheNextPass() async throws {
         // Leaving the old engine in place after a switch with nothing recording turns this red.
         let old = FakeSpeechEngine()

@@ -71,8 +71,8 @@ struct CompareSessionTests {
     let leftEngine = FakeStreamingEngine(result: "move the standup to 10:30")
     let rightEngine = FakeStreamingEngine(result: "move the stand-up to 10:30")
 
-    func makeSession() -> CompareSession {
-        let engines: [SpeechModelID: FakeStreamingEngine] = [.parakeetTDTv2: leftEngine, .appleBuiltIn: rightEngine]
+    func makeSession(right: FakeStreamingEngine? = nil) -> CompareSession {
+        let engines: [SpeechModelID: FakeStreamingEngine] = [.parakeetTDTv2: leftEngine, .appleBuiltIn: right ?? rightEngine]
         return CompareSession(
             audio: microphone,
             makeTranscriber: { [clock] model in
@@ -115,6 +115,19 @@ struct CompareSessionTests {
         #expect(session.result?.rightFinal.model == .appleBuiltIn)
         #expect(session.result?.differences.map(\.left) == ["standup"])
         #expect(session.recording == [1, 2, 3])
+    }
+
+    @Test func aFailedFinalPassIsShownInsteadOfDropped() async {
+        // Going back to idle with no failure when a column's final pass throws turns this red.
+        let failing = FakeStreamingEngine(finishFails: true)
+        let session = makeSession(right: failing)
+        session.start()
+        await until { leftEngine.streamCalls.contains("start") && failing.streamCalls.contains("start") }
+        await session.stop()
+
+        #expect(session.phase == .idle)
+        #expect(session.result == nil)
+        #expect(session.failure != nil)
     }
 
     @Test func dictationKeyTogglesListeningAndIgnoresKeyUp() async {

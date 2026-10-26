@@ -28,6 +28,7 @@ let package = Package(
                 "EditWatcher/AGENTS.md",
                 "FocusedField/AGENTS.md",
                 "Hotkey/AGENTS.md",
+                "ModelCoordinator/AGENTS.md",
                 "Paster/AGENTS.md",
                 "SpeechModels/AGENTS.md",
                 "Transcriber/AGENTS.md",

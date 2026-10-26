@@ -187,11 +187,13 @@ struct CompareView: View {
                 return (.neutral, "Dictating", "Finish your dictation first.")
             case .finished: return (.neutral, "Finished", "Tap \(key) to try another sentence")
             case .idle:
+                if let failure = session.failure { return (.neutral, "Couldn't finish", failure) }
                 let columns = [session.left, session.right]
                 if columns.contains(where: { if case .downloading = model.modelStates[$0] { true } else { false } }) {
                     return (.neutral, "Waiting for the download", "\(inUseName) stays in use")
                 }
                 if !model.bothOnMac { return (.neutral, "Not downloaded", "\(inUseName) stays in use") }
+                if model.loadFailed { return (.neutral, "Couldn't load", "\(inUseName) stays in use") }
                 if !model.bothReady { return (.hollow, "Loading", "Speak Now starts once both sides are ready") }
                 return (.neutral, "Ready", "Press Speak Now or tap \(key) to start")
             }
@@ -304,6 +306,17 @@ private struct CompareColumn: View {
             .padding(.horizontal, 12).padding(.vertical, 10)
             .frame(maxWidth: .infinity, alignment: .leading)
             .glassBox()
+        case .notInstalled where id == model.inUse:
+            // The launch load is fetching the model dictation uses; ModelDownloads refuses a second download.
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Downloading \(info.name)").font(GlassTheme.label).foregroundStyle(GlassTheme.textPrimary)
+                Text("Dictation needs it, so it downloads as the app starts. When it finishes, press Speak Now and say the sentence.")
+                    .font(GlassTheme.small).foregroundStyle(GlassTheme.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .glassBox()
         case .notInstalled:
             VStack(alignment: .leading, spacing: 8) {
                 Text("\(info.name) is not on this Mac yet").font(GlassTheme.label).foregroundStyle(GlassTheme.textPrimary)
@@ -348,9 +361,11 @@ private struct CompareColumn: View {
         case .listening, .finishing, .finished:
             return Text(session.liveText[column] ?? "")
         case .idle:
-            return Text(model.loaded.contains(id)
-                        ? "\(info.name) is ready. Its live words appear here when you speak."
-                        : "Loading \(info.name)…")
+            switch model.loads[id] {
+            case .loaded: return Text("\(info.name) is ready. Its live words appear here when you speak.")
+            case .failed(let message): return Text("Couldn't load \(info.name): \(message)")
+            case nil: return Text("Loading \(info.name)…")
+            }
         }
     }
 

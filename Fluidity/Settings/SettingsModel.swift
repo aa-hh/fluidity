@@ -94,6 +94,10 @@ final class SettingsModel {
     var readyModel: SpeechModelID? = nil
     /// Models the open compare window holds, which can't be deleted until it closes.
     var modelsInCompare: Set<SpeechModelID> = []
+    /// The last switch whose load failed; dictation stayed on `speechModel`.
+    var switchFailure: ModelCoordinator.SwitchFailure?
+    /// The launch model is loading, which the first launch downloads.
+    var isPreparingModel = false
 
     // MARK: Permissions
 

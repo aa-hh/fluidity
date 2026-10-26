@@ -23,7 +23,9 @@ public final class CompareSession {
     /// The last finished recording, 16 kHz mono, for Play Recording.
     public private(set) var recording: [Float] = []
     public private(set) var isReplaying = false
-    /// Whether both columns can transcribe now; `start` does nothing while it says no. The app shell sets it.
+    /// Why the last stop's final passes failed, until the next start or choice; the session went back to idle.
+    public private(set) var failure: String?
+    /// Whether both columns can transcribe now; `start` does nothing while it says no. `ModelCoordinator` sets it.
     @ObservationIgnored public var canStart: () -> Bool = { true }
 
     private let audio: any AudioCapturing
@@ -36,6 +38,8 @@ public final class CompareSession {
     private var feeding: Task<Void, Never>?
     /// The last discard's stop of the microphone, which the next start waits for.
     private var discarding: Task<Void, Never>?
+    /// The stop in flight: the microphone's stop and both final passes.
+    private var stopping: Task<Void, Never>?
     /// Each column's live words with when they arrived, measured from the start of the recording.
     private var partials: [Column: [(at: Duration, text: String)]] = [:]
     private var elapsed: @Sendable () -> Duration = { .zero }
@@ -77,6 +81,7 @@ public final class CompareSession {
         guard phase == .idle || phase == .finished, canStart() else { return }
         stopReplay()
         result = nil
+        failure = nil
         recording = []
         liveText = [.left: "", .right: ""]
         partials = [.left: [], .right: []]
@@ -110,6 +115,12 @@ public final class CompareSession {
     public func stop() async {
         guard phase == .listening, let pair = transcribers else { return }
         phase = .finishing
+        let stopping = Task { await finish(pair) }
+        self.stopping = stopping
+        await stopping.value
+    }
+
+    private func finish(_ pair: (left: Transcriber, right: Transcriber)) async {
         guard await starting?.value != nil else {
             transcribers = nil
             phase = .idle
@@ -125,13 +136,19 @@ public final class CompareSession {
             recording = samples
             phase = .finished
         } catch {
+            failure = String(describing: error)
             phase = .idle
         }
         transcribers = nil
     }
 
-    /// Ends the recording and drops it; nothing is transcribed.
+    /// Ends the recording and drops it; nothing is transcribed. A stop already finishing runs to its end,
+    /// and `discarded` waits for it.
     public func discard() {
+        if phase == .finishing {
+            discarding = stopping
+            return
+        }
         guard phase == .listening, let pair = transcribers else { return }
         transcribers = nil
         liveText = [:]
@@ -145,7 +162,8 @@ public final class CompareSession {
         }
     }
 
-    /// Waits until the last discard has stopped the microphone and both engines have ended their streams.
+    /// Waits until the last discard has stopped the microphone and both engines have ended their streams or
+    /// final passes.
     public func discarded() async {
         await discarding?.value
     }
@@ -203,6 +221,7 @@ public final class CompareSession {
     private func clearResult() {
         stopReplay()
         result = nil
+        failure = nil
         if phase == .finished { phase = .idle }
     }
 

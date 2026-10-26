@@ -28,3 +28,4 @@ user does, through `Settings`.
 - `ModelDownloads` → each model's install state, download, cancel, delete.
 - `ModelFetching` → what `ModelDownloads` needs from files and the network.
 - `FluidAudioModelFetcher` → `ModelFetching` over FluidAudio's model folders.
+- `TranscriptDiff` → the word-level differences between two transcripts.

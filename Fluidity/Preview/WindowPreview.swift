@@ -104,7 +104,7 @@ enum WindowPreview {
         let model = CompareModel(session: session)
         model.dictationKey = "Right Option"
         model.modelStates = [.parakeetTDTv2: .installed, .appleBuiltIn: .partOfMacOS, .parakeetUnified: .notInstalled]
-        model.loaded = [.parakeetTDTv2, .appleBuiltIn]
+        model.loads = [.parakeetTDTv2: .loaded, .appleBuiltIn: .loaded]
         retained.append(model)
         if state == "result" {
             session.start()

@@ -16,18 +16,17 @@ owns every preview and switching rule.
   the public initialiser has none, so the candidate check always says no.
   Pass the recheck the engine's transcript.
 - **Streaming engines get no voice check;** their partials drive the preview.
-- **A switch waits for the recording in progress and its final pass.** It
-  leaves the old engine loaded for the app shell to unload.
+- **A switch waits for the launch load, the open recording and its final
+  pass.** It leaves the old engine loaded for `ModelCoordinator`.
 - **Keep `spotterRescueEnabled: false`.** On, the candidate check accepts
   every word list of 10 terms or fewer, so the recheck never skips and false
   replacements rise.
-- **A nil `wordListRecheckTime` means the recheck was skipped,** so saved
-  records show how often the candidate check avoids it.
-- Word timings keep the speech model's words when a recheck merges or
-  splits them.
+- **A nil `wordListRecheckTime` means the recheck was skipped,** so records
+  show how often the candidate check avoids it.
+- Word timings keep the model's words when a recheck merges or splits
+  them.
 - **A `SpeechTranscriber` attaches to only one `SpeechAnalyzer`,** so
-  `AppleSpeechEngine` builds a fresh one per stream; reusing it traps on the
-  second dictation.
+  `AppleSpeechEngine` builds one per stream; reuse traps.
 
 ## Map
 
@@ -39,3 +38,4 @@ owns every preview and switching rule.
 - `FluidAudioEngine` → all three protocols over Parakeet TDT v2, Silero and CTC 110M.
 - `UnifiedEngine` → Parakeet Unified 0.6B streaming.
 - `AppleSpeechEngine` → Apple's SpeechAnalyzer.
+- `CompareSession` → one recording through two transcribers, side by side.

@@ -119,7 +119,7 @@ public actor Transcriber {
         try await load.value
     }
 
-    /// Loads `newEngine`, waits until no recording or final pass is running, then dictates with it from the next
+    /// Loads `newEngine`, waits for the launch load and until no recording or final pass is running, then dictates with it from the next
     /// recording on. Returns the engine it replaced, still loaded. A newer switch makes this one throw
     /// `CancellationError`; a failed load throws and keeps the current engine.
     public func switchEngine(to newEngine: any SpeechEngine, model newModel: SpeechModelID) async throws -> any SpeechEngine {
@@ -127,6 +127,8 @@ public actor Transcriber {
         let number = switchNumber
         wakeSwitches()
         try await newEngine.load(progress: { _ in })
+        // The launch load lands first, so the engine it replaces is never unloaded while it is still loading.
+        _ = await loading?.result
         while recordingOpen || stream != nil || finalPassRunning || runningPass != nil {
             guard number == switchNumber else { throw CancellationError() }
             await withCheckedContinuation { switchWaiters.append($0) }

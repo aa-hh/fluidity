@@ -3,7 +3,7 @@ import FluidityCore
 import Observation
 
 /// The compare window's state: the session runs the comparison; the app shell writes the model states,
-/// the model in use and which engines have loaded, and fills the `on…` closures.
+/// the model in use and each column's engine load, and fills the `on…` closures.
 @MainActor
 @Observable
 final class CompareModel {
@@ -13,8 +13,8 @@ final class CompareModel {
     var inUse: SpeechModelID = .parakeetTDTv2
     /// A dictation is running, so the keys are its own and Speak Now waits.
     var dictationRunning = false
-    /// Models whose engines have finished loading for this window.
-    var loaded: Set<SpeechModelID> = []
+    /// Each column's engine load, by model; a model still loading has no entry.
+    var loads: [SpeechModelID: ModelCoordinator.LoadResult] = [:]
     /// The dictation key's name, for the status line.
     var dictationKey = ""
 
@@ -36,7 +36,11 @@ final class CompareModel {
     }
 
     var bothOnMac: Bool { isOnMac(session.left) && isOnMac(session.right) }
-    var bothReady: Bool { bothOnMac && loaded.contains(session.left) && loaded.contains(session.right) }
+    var bothReady: Bool { bothOnMac && loads[session.left] == .loaded && loads[session.right] == .loaded }
+    /// A column's engine failed to load, so the comparison cannot start.
+    var loadFailed: Bool {
+        [session.left, session.right].contains { if case .failed = loads[$0] { true } else { false } }
+    }
 
     func playRecording() { player.play(session.recording) }
     func stopPlaying() { player.stop() }

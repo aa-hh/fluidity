@@ -20,7 +20,8 @@ public enum ModelState: Equatable, Sendable {
 
 public enum DownloadFailure: Equatable, Sendable {
     case offline
-    case notEnoughSpace(neededBytes: Int64)
+    /// `availableBytes` is the free space the fetcher reported when the failure was found.
+    case notEnoughSpace(neededBytes: Int64, availableBytes: Int64)
     case other(String)
 }
 
@@ -42,7 +43,7 @@ public final class ModelDownloads {
     /// The model whose download finished most recently, until `clearLastFinished`.
     public private(set) var lastFinished: SpeechModelID?
     /// Models that cannot be deleted because dictation needs them: the chosen one, the one still dictating
-    /// while a switch loads, and any a switch is loading. The app shell keeps it current.
+    /// while a switch loads, and any a switch is loading. `ModelCoordinator` keeps it current.
     @ObservationIgnored public var inUse: Set<SpeechModelID> = []
 
     @ObservationIgnored private let fetcher: any ModelFetching
@@ -69,12 +70,13 @@ public final class ModelDownloads {
         }
     }
 
+    /// Ignored for a model in use: one not on disk is being downloaded by its engine's load already.
     public func download(_ id: SpeechModelID) {
-        guard states[id] == .notInstalled, case .download(let bytes, _, _) = SpeechModel.model(id).install else { return }
+        guard !inUse.contains(id), states[id] == .notInstalled, case .download(let bytes, _, _) = SpeechModel.model(id).install else { return }
         failure = nil
         let free = fetcher.availableBytes()
         guard free >= bytes else {
-            failure = (id, .notEnoughSpace(neededBytes: bytes - free))
+            failure = (id, .notEnoughSpace(neededBytes: bytes - free, availableBytes: free))
             return
         }
         states[id] = .downloading(downloadedBytes: 0, totalBytes: bytes)
@@ -139,9 +141,10 @@ public final class ModelDownloads {
         ]
         if !network.isOnline { return .offline }
         if let urlError = error as? URLError, offlineCodes.contains(urlError.code) { return .offline }
-        if let cocoa = error as? CocoaError, cocoa.code == .fileWriteOutOfSpace { return .notEnoughSpace(neededBytes: bytes) }
+        let outOfSpace = DownloadFailure.notEnoughSpace(neededBytes: bytes, availableBytes: fetcher.availableBytes())
+        if let cocoa = error as? CocoaError, cocoa.code == .fileWriteOutOfSpace { return outOfSpace }
         let nsError = error as NSError
-        if nsError.domain == NSPOSIXErrorDomain, nsError.code == Int(ENOSPC) { return .notEnoughSpace(neededBytes: bytes) }
+        if nsError.domain == NSPOSIXErrorDomain, nsError.code == Int(ENOSPC) { return outOfSpace }
         return .other(String(describing: error))
     }
 }

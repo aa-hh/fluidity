@@ -121,9 +121,11 @@ final class FakeRechecker: WordListRechecking, @unchecked Sendable {
 }
 
 /// Records every chunk it is fed and each stream call; `partial` sends text as the engine's live words.
+/// With `finishFails`, `finishStream` throws.
 final class FakeStreamingEngine: StreamingSpeechEngine, @unchecked Sendable {
     private let lock = NSLock()
     private let result: String
+    private let finishFails: Bool
     private var partialSink: (@Sendable (String) -> Void)?
     private var chunks: [[Float]] = []
     private var calls: [String] = []
@@ -132,8 +134,9 @@ final class FakeStreamingEngine: StreamingSpeechEngine, @unchecked Sendable {
     private var holdingCancels = false
     private var heldCancels: [CheckedContinuation<Void, Never>] = []
 
-    init(result: String = "streamed") {
+    init(result: String = "streamed", finishFails: Bool = false) {
         self.result = result
+        self.finishFails = finishFails
     }
 
     var fedChunks: [[Float]] { lock.withLock { chunks } }
@@ -194,6 +197,7 @@ final class FakeStreamingEngine: StreamingSpeechEngine, @unchecked Sendable {
 
     func finishStream() async throws -> Transcript {
         lock.withLock { calls.append("finish") }
+        if finishFails { throw FluidAudioEngine.EngineError.notLoaded }
         return Transcript(text: result, wordTimings: [])
     }
 

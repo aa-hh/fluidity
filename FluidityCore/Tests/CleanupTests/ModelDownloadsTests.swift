@@ -27,6 +27,10 @@ final class FakeModelFetcher: ModelFetching {
     var downloads: [SpeechModelID] { state.withLock { $0.downloads } }
     var removed: [SpeechModelID] { state.withLock { $0.removed } }
     var isHolding: Bool { state.withLock { $0.held != nil } }
+    var available: Int64 {
+        get { state.withLock { $0.available } }
+        set { state.withLock { $0.available = newValue } }
+    }
     var removeFails: Bool {
         get { state.withLock { $0.removeFails } }
         set { state.withLock { $0.removeFails = newValue } }
@@ -169,9 +173,29 @@ private func until(_ condition: () -> Bool, sourceLocation: SourceLocation = #_s
         let fetcher = FakeModelFetcher(available: 500_000_000)
         let downloads = make(fetcher)
         downloads.download(.parakeetUnified)
-        #expect(downloads.failure?.reason == .notEnoughSpace(neededBytes: unifiedBytes - 500_000_000))
+        #expect(downloads.failure?.reason == .notEnoughSpace(neededBytes: unifiedBytes - 500_000_000, availableBytes: 500_000_000))
         #expect(downloads.states[.parakeetUnified] == .notInstalled)
         #expect(fetcher.downloads.isEmpty)
+    }
+
+    // Turns red if a disk filling up mid-download reports anything but the free space the fetcher reads at that moment.
+    @Test func runningOutOfSpaceMidDownloadReportsTheFreeSpaceLeft() async {
+        let fetcher = FakeModelFetcher()
+        let downloads = make(fetcher)
+        await startUnified(downloads, fetcher)
+        fetcher.available = 20_000_000
+        fetcher.fail(CocoaError(.fileWriteOutOfSpace))
+        await until { downloads.failure != nil }
+        #expect(downloads.failure?.reason == .notEnoughSpace(neededBytes: unifiedBytes, availableBytes: 20_000_000))
+    }
+
+    // Turns red if Download can fetch a model in use, which the launch load may be downloading into the same folder.
+    @Test func aModelInUseIsNeverDownloaded() {
+        let fetcher = FakeModelFetcher(installed: [])
+        let downloads = make(fetcher, inUse: [.parakeetTDTv2])
+        downloads.download(.parakeetTDTv2)
+        #expect(fetcher.downloads.isEmpty)
+        #expect(downloads.states[.parakeetTDTv2] == .notInstalled)
     }
 
     // Turns red if a second press of Download starts a second fetch of the same model.

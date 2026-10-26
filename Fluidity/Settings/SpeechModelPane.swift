@@ -14,8 +14,8 @@ struct SpeechModelPane: View {
     @State private var pendingDelete: (id: SpeechModelID, announcement: String)?
 
     var body: some View {
-        let onMac = SpeechModel.all.filter { isOnMac($0.id) }
-        let available = SpeechModel.all.filter { !isOnMac($0.id) }
+        let onMac = SpeechModel.all.filter { isListedOnMac($0.id) }
+        let available = SpeechModel.all.filter { !isListedOnMac($0.id) }
         VStack(alignment: .leading, spacing: 16) {
             VStack(alignment: .leading, spacing: 8) {
                 SectionHeader(title: "On this Mac", description: "Models you can use now. Switching takes under a second.")
@@ -30,6 +30,9 @@ struct SpeechModelPane: View {
                 // A failed delete leaves its model here, so its note shows under this table.
                 if let failure = model.downloadFailure, failureKey == shownFailure, isOnMac(failure.0) {
                     failureNote(failure.0, failure.1)
+                }
+                if let failure = model.switchFailure {
+                    switchFailureNote(failure)
                 }
                 if let ready = model.readyModel, isOnMac(ready) {
                     readyLine(ready)
@@ -69,6 +72,9 @@ struct SpeechModelPane: View {
                 AccessibilityNotification.Announcement(failureText(failure.0, failure.1)).post()
             }
         }
+        .onChange(of: model.switchFailure) { _, failure in
+            if let failure { AccessibilityNotification.Announcement(switchFailureText(failure)).post() }
+        }
         .onChange(of: model.readyModel) { _, ready in
             if let ready { AccessibilityNotification.Announcement("\(name(ready)) is ready").post() }
         }
@@ -82,6 +88,7 @@ struct SpeechModelPane: View {
             state: state(entry.id),
             isSelected: onMac && entry.id == model.speechModel,
             showsRadio: onMac,
+            downloadingAtLaunch: onMac && !isOnMac(entry.id) && model.isPreparingModel,
             focus: $focus,
             menu: { menuItems(entry) },
             select: { select(entry.id) },
@@ -160,7 +167,7 @@ struct SpeechModelPane: View {
 
     /// The arrow keys move the choice between the models on this Mac.
     private func step(by offset: Int) -> KeyPress.Result {
-        let ids = SpeechModel.all.map(\.id).filter(isOnMac)
+        let ids = SpeechModel.all.map(\.id).filter(isListedOnMac)
         guard let index = ids.firstIndex(of: model.speechModel) else { return .ignored }
         let next = index + offset
         guard ids.indices.contains(next) else { return .handled }
@@ -201,15 +208,29 @@ struct SpeechModelPane: View {
         .padding(.horizontal, 4)
     }
 
+    private func switchFailureNote(_ failure: ModelCoordinator.SwitchFailure) -> some View {
+        HStack(spacing: 8) {
+            StatusIcon(kind: .attention)
+            Text(switchFailureText(failure))
+                .font(GlassTheme.body)
+                .foregroundStyle(GlassTheme.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(.horizontal, 4)
+    }
+
+    private func switchFailureText(_ failure: ModelCoordinator.SwitchFailure) -> String {
+        "Couldn't switch to \(name(failure.model)): \(failure.message). \(name(model.speechModel)) is still in use."
+    }
+
     private func failureText(_ id: SpeechModelID, _ failure: DownloadFailure) -> String {
         let entry = SpeechModel.model(id)
         switch failure {
         case .offline:
             return "Couldn't download \(entry.name) because this Mac is offline. \(name(model.speechModel)) is still in use."
-        case .notEnoughSpace(let needed):
-            var total = needed
-            if case .download(let bytes, _, _) = entry.install { total = bytes }
-            return "Not enough space for \(entry.name): it needs \(sizeText(entry)) and this Mac has \(Self.megabytes(max(total - needed, 0))) free."
+        case .notEnoughSpace(_, let available):
+            return "Not enough space for \(entry.name): it needs \(sizeText(entry)) and this Mac has \(Self.megabytes(available)) free."
         case .other(let description) where isOnMac(id):
             return "Couldn't delete \(entry.name): \(description)."
         case .other(let description):
@@ -236,6 +257,9 @@ struct SpeechModelPane: View {
         case .notInstalled, .downloading: false
         }
     }
+
+    /// A model in use is listed on this Mac even before its files are: the first launch's load downloads it.
+    private func isListedOnMac(_ id: SpeechModelID) -> Bool { isOnMac(id) || model.modelsInUse.contains(id) }
 
     private func name(_ id: SpeechModelID) -> String { SpeechModel.model(id).name }
 
@@ -370,6 +394,8 @@ private struct ModelRow<MenuItems: View>: View {
     let state: ModelState
     let isSelected: Bool
     let showsRadio: Bool
+    /// The launch load is downloading this model, outside the Download button.
+    let downloadingAtLaunch: Bool
     let focus: FocusState<PaneFocus?>.Binding
     @ViewBuilder let menu: () -> MenuItems
     let select: () -> Void
@@ -442,6 +468,10 @@ private struct ModelRow<MenuItems: View>: View {
                         .font(GlassTheme.small).foregroundStyle(GlassTheme.textSecondary).lineLimit(1)
                 }
                 .frame(height: 14)
+            } else if downloadingAtLaunch {
+                Text("Downloading…")
+                    .font(GlassTheme.small).foregroundStyle(GlassTheme.textSecondary).lineLimit(1)
+                    .frame(height: 14)
             } else {
                 Text("\(entry.language) · \(sizeLine)")
                     .font(GlassTheme.small).foregroundStyle(GlassTheme.textSecondary).lineLimit(1)
@@ -462,7 +492,7 @@ private struct ModelRow<MenuItems: View>: View {
     @ViewBuilder
     private var actionButton: some View {
         switch state {
-        case .notInstalled:
+        case .notInstalled where !showsRadio:
             SymbolButton(symbol: "arrow.down.circle", label: "Download \(entry.name), \(sizeLine)",
                          tooltip: "Download (\(sizeLine))", action: download)
                 .focused(focus, equals: .action(entry.id))
@@ -470,7 +500,8 @@ private struct ModelRow<MenuItems: View>: View {
             SymbolButton(symbol: "xmark.circle", label: "Cancel download of \(entry.name)",
                          tooltip: "Cancel Download", action: cancel)
                 .focused(focus, equals: .action(entry.id))
-        case .installed, .partOfMacOS:
+        case .notInstalled, .installed, .partOfMacOS:
+            // A model listed on this Mac before its files are is in use, and its download already runs.
             Color.clear.frame(width: ModelColumns.symbolButton, height: ModelColumns.symbolButton)
         }
     }
@@ -495,6 +526,7 @@ private struct ModelRow<MenuItems: View>: View {
     }
 
     private var progressValue: String {
+        if downloadingAtLaunch { return "Downloading" }
         guard case .downloading(let done, let total) = state, total > 0 else { return "" }
         return "Downloading, \(Int(Double(done) / Double(total) * 100)) percent"
     }

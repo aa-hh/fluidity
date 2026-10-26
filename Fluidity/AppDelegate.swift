@@ -18,36 +18,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let store: DictationStore
     private let storeChanges: AsyncStream<Void>
     private let permissions: SystemPermissions
-    private let transcriber: Transcriber
-    /// The one microphone capture, shared by dictation and the compare window.
-    private let audioCapture: AudioCapture
     private let downloads: ModelDownloads
-    /// Silero voice detection and the CTC recheck for every model, and Parakeet TDT v2.
-    private let fluid: FluidAudioEngine
-    private let engines: [SpeechModelID: any SpeechEngine]
-    /// The model the transcriber dictates with now; `settings.speechModel` runs ahead of it while a switch loads.
-    private var dictationModel: SpeechModelID {
-        didSet {
-            compareModel?.inUse = dictationModel
-            refreshModelsInUse()
-        }
-    }
-    /// Models a switch is loading, which must not be deleted under it.
-    private var switching: Set<SpeechModelID> = []
-    /// Models the compare window holds loaded, which a switch must not unload.
-    private var compareModels: Set<SpeechModelID> = [] {
-        didSet { settingsModel.modelsInCompare = compareModels }
-    }
-    /// The open compare window's model, which takes the dictation key while it exists.
+    private let models: ModelCoordinator
+    /// The open compare window's model.
     private var compareModel: CompareModel?
     private var compareWindow: CompareWindow?
-    /// The last closed compare window's session. Its engines may share a model with dictation, so the next
-    /// dictation waits for its discard to end their streams.
-    private var closedCompare: CompareSession?
     /// Loops that follow the open compare window, cancelled when it closes.
     private var compareTasks: [Task<Void, Never>] = []
-    /// Models the compare window has asked to load and that are still loading.
-    private var compareLoading: Set<SpeechModelID> = []
     private let paste: PasteAdapter
     private let hotkey: Hotkey
     private var hotkeyRunning = false
@@ -71,14 +48,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             .parakeetTDTv2: fluid, .appleBuiltIn: AppleSpeechEngine(), .parakeetUnified: UnifiedEngine(),
         ]
         let downloads = ModelDownloads(fetcher: FluidAudioModelFetcher(), network: NetworkMonitor())
-        // A chosen model that is no longer on this Mac falls back to the default.
-        var chosen = settings.speechModel
-        if engines[chosen] == nil || ![.installed, .partOfMacOS].contains(downloads.states[chosen]) {
-            chosen = .parakeetTDTv2
-            settings.speechModel = chosen
-        }
-        downloads.inUse = [chosen]
-        let transcriber = Transcriber(engine: engines[chosen]!, model: chosen, voiceDetector: fluid, rechecker: fluid)
+        let settingsModel = SettingsModel(shortcuts: settings)
+        // The one microphone capture, shared by dictation and the compare window.
+        let audioCapture = AudioCapture(input: AVAudioEngineInput())
+        let models = ModelCoordinator(
+            chosenModel: { settings.speechModel },
+            setChosenModel: {
+                settings.speechModel = $0
+                settingsModel.speechModel = $0
+            },
+            engines: engines,
+            downloads: downloads,
+            loadSupport: { try await fluid.loadSupport { _ in } },
+            makeTranscriber: { Transcriber(engine: $0, model: $1, voiceDetector: fluid, rechecker: fluid) },
+            makeCompareSession: { CompareSession(audio: AudioCaptureAdapter(capture: audioCapture), makeTranscriber: $0) })
         let field = FieldContextAdapter(field: FocusedField())
         let paste = PasteAdapter(
             paster: Paster(pasteboard: NSPasteboardPasteboard(), keySender: CGEventKeySender(), focusChecking: AXFocusChecking()),
@@ -86,7 +69,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let store = DictationStore()
         let (storeChanges, storeChanged) = AsyncStream.makeStream(of: Void.self, bufferingPolicy: .bufferingNewest(1))
         let pill = PillPresenter.shared
-        let audioCapture = AudioCapture(input: AVAudioEngineInput())
         let audio = AudioCaptureAdapter(
             capture: audioCapture,
             willStart: {
@@ -98,7 +80,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
         controller = DictationController(
             audio: audio,
-            transcriber: TranscriberAdapter(transcriber: transcriber, wordList: { settings.wordList }),
+            transcriber: TranscriberAdapter(transcriber: models.transcriber, wordList: { settings.wordList }),
             cleanup: cleanup,
             field: field,
             finisher: FinisherAdapter(wordList: { settings.wordList }),
@@ -113,15 +95,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         self.permissions = permissions
         self.store = store
         self.storeChanges = storeChanges
-        self.transcriber = transcriber
-        self.audioCapture = audioCapture
         self.downloads = downloads
-        self.fluid = fluid
-        self.engines = engines
-        dictationModel = chosen
+        self.models = models
         self.paste = paste
         hotkey = Hotkey(key: settings.dictationKey, pasteAgainKey: settings.pasteAgainKey)
-        settingsModel = SettingsModel(shortcuts: settings)
+        self.settingsModel = settingsModel
         super.init()
     }
 
@@ -143,13 +121,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         Task {
             for await decision in self.hotkey.decisions {
                 // While the compare window is open and no dictation runs, the dictation key drives the comparison.
-                if let session = self.compareModel?.session, self.controller.phase.passesToCompare(decision) {
+                if let session = self.models.compare, self.controller.phase.passesToCompare(decision) {
                     session.handle(decision)
                 } else {
-                    if let closed = self.closedCompare {
-                        await closed.discarded()
-                        if self.closedCompare === closed { self.closedCompare = nil }
-                    }
+                    await self.models.waitForClosedCompare()
                     self.controller.handle(decision) { self.pasteLastDictation() }
                 }
             }
@@ -186,6 +161,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 self.settingsModel.modelStates = states
                 self.settingsModel.downloadFailure = failure.map { ($0.model, $0.reason) }
                 self.settingsModel.readyModel = finished
+            }
+        }
+        Task {
+            for await (inUse, inCompare, failure, preparing) in Observations({
+                (self.models.modelsInUse, self.models.modelsInCompare, self.models.switchFailure, self.models.isPreparing)
+            }) {
+                self.settingsModel.modelsInUse = inUse
+                self.settingsModel.modelsInCompare = inCompare
+                self.settingsModel.switchFailure = failure
+                self.settingsModel.isPreparingModel = preparing
             }
         }
         Task {
@@ -235,7 +220,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         model.onCleanupRulesChange = { settings.cleanupRules = $0 }
         model.onWordListChange = { settings.wordList = $0 }
-        model.onSpeechModelChange = { [unowned self] in chooseModel($0) }
+        let models = models
+        model.onSpeechModelChange = { models.choose($0) }
         let downloads = downloads
         model.onDownloadModel = { downloads.download($0) }
         model.onCancelDownload = { downloads.cancelDownload($0) }
@@ -295,7 +281,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         model.cleanupRules = settings.cleanupRules
         model.wordList = settings.wordList
         model.speechModel = settings.speechModel
-        refreshModelsInUse()
         let key = try? keychain.get()
         model.apiKey = key ?? ""
         model.cleanupKey = key == nil ? .noKey : .accepted
@@ -339,77 +324,34 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         settingsModel.launchAtLogin = SMAppService.mainApp.status == .enabled
     }
 
-    /// Saves the choice and switches the transcriber to it once no dictation is running.
-    /// A failed load puts back the model still dictating, which cannot have been deleted.
-    private func chooseModel(_ id: SpeechModelID) {
-        guard let engine = engines[id] else { return }
-        settings.speechModel = id
-        settingsModel.speechModel = id
-        switching.insert(id)
-        refreshModelsInUse()
-        Task {
-            defer {
-                switching.remove(id)
-                refreshModelsInUse()
-            }
-            do {
-                let old = try await transcriber.switchEngine(to: engine, model: id)
-                let oldModel = dictationModel
-                dictationModel = id
-                if oldModel != id, !compareModels.contains(oldModel) { await old.unload() }
-            } catch is CancellationError {
-                // A newer choice replaced this one; drop the model this one loaded unless something still uses it.
-                if id != dictationModel, id != settings.speechModel, !compareModels.contains(id) { await engine.unload() }
-            } catch {
-                Self.log.error("Switching to \(id.rawValue, privacy: .public) failed: \(String(describing: error), privacy: .public)")
-                if settings.speechModel == id {
-                    settings.speechModel = dictationModel
-                    settingsModel.speechModel = dictationModel
-                }
-            }
-            // A load may have downloaded the model's files.
-            downloads.refreshInstalled()
-        }
-    }
-
-    /// Tells the downloads and the Speech model pane which models dictation needs, so neither offers to delete them.
-    private func refreshModelsInUse() {
-        let inUse = switching.union([dictationModel, settings.speechModel])
-        downloads.inUse = inUse
-        settingsModel.modelsInUse = inUse
-    }
-
     /// The one rule for whether the hotkey takes Escape: the dictation's, or the open comparison's between dictations.
     private func syncHotkeyRecording() {
-        hotkey.isRecording = controller.phase.takesEscape(comparing: compareModel?.session.phase)
+        hotkey.isRecording = controller.phase.takesEscape(comparing: models.compare?.phase)
     }
 
     // MARK: Compare window
 
     /// Opens the compare window on `left` and `right`, or points the open one at them.
     private func openCompare(left: SpeechModelID, right: SpeechModelID) {
-        let model = compareModel ?? makeCompareModel()
-        model.session.choose(left: left, right: right)
+        let isNew = models.compare == nil
+        models.openCompare(left: left, right: right)
+        if isNew, let session = models.compare { makeCompareWindow(session) }
         compareWindow?.show()
     }
 
-    private func makeCompareModel() -> CompareModel {
-        let engines = engines, fluid = fluid, downloads = downloads
-        let session = CompareSession(
-            audio: AudioCaptureAdapter(capture: audioCapture),
-            makeTranscriber: { Transcriber(engine: engines[$0]!, model: $0, voiceDetector: fluid, rechecker: fluid) })
+    private func makeCompareWindow(_ session: CompareSession) {
+        let downloads = downloads, models = models
         let model = CompareModel(session: session)
-        // The dictation key starts the session too, so it needs the same check as Speak Now.
-        session.canStart = { [unowned model] in model.bothReady }
-        model.inUse = dictationModel
+        model.inUse = models.dictationModel
         model.dictationRunning = controller.phase.isDictating
         model.modelStates = downloads.states
+        model.loads = models.compareLoads
         model.dictationKey = settingsModel.dictationKey.description
         model.onDownload = { downloads.download($0) }
         model.onCancelDownload = { downloads.cancelDownload($0) }
         model.onKeep = { [unowned self] in closeCompare() }
         model.onSwitch = { [unowned self] in
-            chooseModel(session.right)
+            models.choose(session.right)
             closeCompare()
             settingsWindow.show(pane: .speechModel)
         }
@@ -418,45 +360,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         compareWindow = CompareWindow(model: model)
         compareTasks = [
             Task {
-                for await (_, _, states) in Observations({ (session.left, session.right, downloads.states) }) {
+                for await (states, loads, inUse) in Observations({ (downloads.states, models.compareLoads, models.dictationModel) }) {
                     model.modelStates = states
-                    self.loadCompareEngines(for: model)
+                    model.loads = loads
+                    model.inUse = inUse
                 }
             },
             Task {
                 for await _ in Observations({ session.phase }) { self.syncHotkeyRecording() }
             },
         ]
-        return model
-    }
-
-    /// Loads the engines both columns need, and unloads ones a column let go that dictation does not use.
-    private func loadCompareEngines(for model: CompareModel) {
-        let wanted: Set = [model.session.left, model.session.right]
-        let released = compareModels.subtracting(wanted)
-        compareModels = wanted
-        downloads.setOpenInCompare(wanted)
-        model.loaded.subtract(released)
-        for id in released { unloadUnlessDictating(id) }
-        for id in wanted where model.isOnMac(id) && !model.loaded.contains(id) && !compareLoading.contains(id) {
-            compareLoading.insert(id)
-            Task {
-                do {
-                    // Other models still need Silero for the voice check, as in `loadModel`.
-                    if id != .parakeetTDTv2 { try await fluid.loadSupport { _ in } }
-                    try await engines[id]!.load { _ in }
-                } catch {
-                    Self.log.error("Loading \(id.rawValue, privacy: .public) to compare failed: \(String(describing: error), privacy: .public)")
-                }
-                downloads.refreshInstalled()
-                compareLoading.remove(id)
-                if compareModel === model, compareModels.contains(id) {
-                    model.loaded.insert(id)
-                } else {
-                    unloadUnlessDictating(id)
-                }
-            }
-        }
     }
 
     /// Closes the compare window; it changes nothing about dictation.
@@ -465,30 +378,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         compareModel = nil
         for task in compareTasks { task.cancel() }
         compareTasks = []
-        model.session.discard()
-        closedCompare = model.session
+        models.closeCompare()
         model.stopPlaying()
         compareWindow?.close()
         compareWindow = nil
-        let held = compareModels
-        compareModels = []
-        downloads.setOpenInCompare([])
         syncHotkeyRecording()
-        for id in held { unloadUnlessDictating(id) }
-    }
-
-    private func unloadUnlessDictating(_ id: SpeechModelID) {
-        guard id != dictationModel, id != settings.speechModel, !compareModels.contains(id) else { return }
-        Task { await engines[id]?.unload() }
     }
 
     private func loadModel() async {
         PillPresenter.shared.isModelLoading = true
         defer { PillPresenter.shared.isModelLoading = false }
         do {
-            // Other models still need Silero and CTC for the voice check and the recheck.
-            if dictationModel != .parakeetTDTv2 { try await fluid.loadSupport { _ in } }
-            try await transcriber.prepare { progress in
+            try await models.prepare { progress in
                 Task { @MainActor in self.firstRunModel.modelProgress = progress }
             }
             firstRunModel.isModelReady = true
@@ -497,8 +398,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             Self.log.error("Loading the speech model failed: \(String(describing: error), privacy: .public)")
             firstRunModel.modelError = "The download failed. Quit and reopen Fluidity to try again."
         }
-        // The first launch downloads Parakeet TDT v2 here, outside `ModelDownloads`.
-        downloads.refreshInstalled()
     }
 
     private func askForPermissions() async {
