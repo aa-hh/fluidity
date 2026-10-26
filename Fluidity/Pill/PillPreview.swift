@@ -32,7 +32,7 @@ enum PillPreview {
         // After launch finishes, so the panel is made in a running app.
         DispatchQueue.main.async {
             let pill = PillPresenter.shared
-            if let words = environment["FLUIDITY_PILL_WORDS"].flatMap(PillLiveWords.init(rawValue:)) { pill.liveWords = words }
+            if let words = environment["FLUIDITY_PILL_WORDS"].flatMap(LiveWords.init(rawValue:)) { pill.liveWords = words }
             pill.retryPaste = { _ in false }
             Self.script = script
             Self.restart()

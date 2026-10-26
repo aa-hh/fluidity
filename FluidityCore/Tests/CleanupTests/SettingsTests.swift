@@ -15,7 +15,7 @@ private func withDefaults(_ body: (UserDefaults) throws -> Void) rethrows {
     try body(defaults)
 }
 
-// Turns red if a fresh install starts with cleanup on without a key, rules other than the default, or a saved shortcut or word list.
+// Turns red if a fresh install starts with cleanup on without a key, rules other than the default, or a saved shortcut or word list, or reads an unknown live words value as anything but In the pill.
 @Test func freshSettingsUseDefaults() {
     withDefaults { defaults in
         let settings = Settings(defaults: defaults, keyStore: FakeKeychain())
@@ -24,6 +24,9 @@ private func withDefaults(_ body: (UserDefaults) throws -> Void) rethrows {
         #expect(!settings.isCleanupOn)
         #expect(settings.cleanupRules == Settings.defaultCleanupRules)
         #expect(settings.wordList.isEmpty)
+        #expect(settings.liveWords == .inPill)
+        defaults.set("sideways", forKey: "liveWords")
+        #expect(settings.liveWords == .inPill)
     }
 }
 
@@ -36,12 +39,14 @@ private func withDefaults(_ body: (UserDefaults) throws -> Void) rethrows {
         first.isCleanupEnabled = false
         first.cleanupRules = "Be brief."
         first.wordList = ["SwiftUI", "Cerebras"]
+        first.liveWords = .above
 
         let second = Settings(defaults: defaults, keyStore: keychain)
         #expect(second.shortcut(as: TestShortcut.self) == TestShortcut(keyCode: 61, modifiers: 524_288))
         #expect(!second.isCleanupEnabled)
         #expect(second.cleanupRules == "Be brief.")
         #expect(second.wordList == ["SwiftUI", "Cerebras"])
+        #expect(second.liveWords == .above)
     }
 }
 
