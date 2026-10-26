@@ -52,7 +52,7 @@ nonisolated enum PillShader {
     #define U_INNER_GLOW 66
     #define U_BREATH 67
     #define U_PULSE_DEPTH 68
-    #define U_LINE_PHASE 69
+    // 69-71 are unused.
     #define U_LINE_BLOOMS 72
     #define U_SNAP_T 88
     #define U_LINE_LENGTH 89
@@ -348,8 +348,6 @@ nonisolated enum PillShader {
             float taper = rimSmooth((1.0 - abs(lu)) / 0.32);  // feathered ends: a line of light, not a capsule
             float taperGlow = rimSmooth((1.15 - abs(lu)) / 0.5);
             float along = 0.5 * lu + 0.5;
-            float linePhi = (cos(TAU * (along + u[U_LINE_PHASE])) + 0.7 * cos(TAU * (2.0 * along + u[U_LINE_PHASE + 1]))
-                             + 0.45 * cos(TAU * (3.0 * along + u[U_LINE_PHASE + 2]))) / 2.15;
             float br = 0.5 - 0.5 * cos(TAU * u[U_BREATH]);
             float pulseDepth = u[U_PULSE_DEPTH];
             float pulse = 1.0 - pulseDepth + pulseDepth * (0.35 + 0.65 * br) * 1.25;
@@ -364,14 +362,15 @@ nonisolated enum PillShader {
             float lw = u[U_LINE_WIDTH] * (1.0 + 0.55 * min(1.0, lineBloom) + 0.15 * br);
             float lineB = exp(-dl * dl / (2.0 * lw * lw)) * taper;
             float glowB = exp(-dl * dl / (2.0 * 3.2 * 3.2)) * taperGlow * u[U_INNER_GLOW] * (1.0 + 1.6 * lineBloom + 0.6 * br);
-            float lineAmp = (lineB * (0.62 + 0.25 * (0.5 + 0.5 * linePhi) + 0.5 * lineBloom) + glowB * (0.6 + 0.4 * (0.5 + 0.5 * linePhi))) * pulse * lineOn;
-            float lineHue = u[U_HUE_CYCLES] * 0.5 * along + u[U_HUE] + 0.08 + 0.06 * linePhi;
+            // Even along its length: no tonal bands, so the working line reads as one flat stroke.
+            float lineAmp = (lineB * (0.745 + 0.5 * lineBloom) + glowB * 0.8) * pulse * lineOn;
+            float lineHue = u[U_HUE_CYCLES] * 0.5 * along + u[U_HUE] + 0.08;
             float lineTone;
             if (doneT >= 0.0) {
                 lineTone = 0.55 + 0.12 * min(1.0, front);  // a clear green, as bright as the working line, never white
                 lineAmp *= 1.35;
             } else {
-                lineTone = max(0.42 + 0.22 * linePhi + 0.55 * lineBloom + 0.12 * br, 0.3 + 0.6 * min(1.0, front));
+                lineTone = max(0.42 + 0.55 * lineBloom + 0.12 * br, 0.3 + 0.6 * min(1.0, front));
             }
             float amp = front * 0.9 + lineAmp;
             if (amp > 0.02) {

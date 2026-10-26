@@ -41,7 +41,6 @@ nonisolated struct RimParameters: Equatable {
     var pulseDepth: Float = 0
     var lineBloom: Float = 0
     var lineBloomRate: Float = 0
-    var lineSlide: Float = 0
     var idleFps: Double = 31
 
     // Paste failed: the transcript waits in a bubble that splits off the pill

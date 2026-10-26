@@ -28,7 +28,7 @@ nonisolated enum RimUniform {
     static let width = 52, widthGain = 53, glow = 54, reach = 55, dimRim = 56, strength = 57, restEase = 58
     static let coreOn = 59, doneT = 60, thinkT = 61, reduced = 62, downloadTime = 63, snapTime = 64
     static let lineWidth = 65, innerGlow = 66, breath = 67, pulseDepth = 68
-    static let linePhase = 69, lineBlooms = 72
+    static let lineBlooms = 72
     static let snapT = 88, lineLength = 89, lineFade = 90
     static let pillX = 91, sigma = 92, hover = 93, icon = 94, hoverGlow = 95, iconKind = 96, melt = 97, meltSigma = 98
     static let bubble = 99, palette = 103, meltFade = 115
@@ -87,7 +87,6 @@ nonisolated struct RimSimulation {
     private var lineBlooms: [LineBloom] = []
     private var lineBloomUniforms = [Float](repeating: 0, count: RimUniform.maxLineBlooms * 4)
     private var bloomUniforms = [Float](repeating: 0, count: RimUniform.maxBlooms * 4)
-    private var linePhases: [Float] = [0.2, 0.6, 0.9]
     private var breath: Float = 0
     private var nextLineBloom: Float = 0
     private var lastLineBloomX: Float = 0
@@ -420,7 +419,7 @@ nonisolated struct RimSimulation {
         }
     }
 
-    /// The processing line's own colour slide, breath and blooms. All three are
+    /// The processing line's own breath and blooms. Both are
     /// off in the approved tuning but stay wired so they can be turned back on.
     private mutating func updateLine(dt: Float, state: RimState, reduced: Bool) {
         let p = self.params
@@ -429,10 +428,6 @@ nonisolated struct RimSimulation {
         let breathStep = p.pulseDepth > 0 ? dt / max(0.4, p.pulsePeriod) : 0
         if state == .think {
             self.thinkClock += dt
-            let slide = reduced ? 0 : p.lineSlide
-            self.linePhases[0] = rimWrap(self.linePhases[0] + slide * dt)
-            self.linePhases[1] = rimWrap(self.linePhases[1] - slide * 0.63 * dt)
-            self.linePhases[2] = rimWrap(self.linePhases[2] + slide * 0.37 * dt)
             self.breath = rimWrap(self.breath + breathStep)
             let ready = self.thinkClock > p.downloadTime * 0.9
             if ready, self.thinkClock >= self.nextLineBloom, p.lineBloomRate > 0 {
@@ -511,7 +506,6 @@ nonisolated struct RimSimulation {
         u[RimUniform.scale] = displayScale
         for index in 0..<3 {
             u[RimUniform.phase + index] = self.phases[index]
-            u[RimUniform.linePhase + index] = self.linePhases[index]
         }
         u[RimUniform.wobble] = self.wobble
         u[RimUniform.contrast] = self.contrast
