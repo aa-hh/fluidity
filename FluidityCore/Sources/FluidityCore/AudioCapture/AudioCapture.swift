@@ -19,7 +19,7 @@ public enum AudioCaptureEvent: Equatable, Sendable {
     case limitNear
     /// The recording reached 20 minutes and has ended; call `stop()` to collect it.
     case limitReached
-    /// The device changed or the engine stopped; the recording has ended with what it had. Call `stop()` to collect it.
+    /// The device changed, went away or stopped delivering audio; the recording has ended with what it had. Call `stop()` to collect it.
     case inputLost
 }
 
@@ -130,34 +130,19 @@ public final class AudioCapture: Sendable {
             }
             ceiling.cancel()
         }
-        let recording = clearingAndStoppingInput { s in
-            guard let r = s.recording, r.ended else { return AudioRecording(samples: []) }
-            s.recording = nil
-            return AudioRecording(samples: r.samples)
+        // One `control` hold for clearing and stopping, so a `start()` cannot land between them
+        // and have its new input stopped.
+        let recording = control.withLock { _ in
+            let (recording, stopInput) = state.withLock { s in
+                guard let r = s.recording, r.ended else { return (AudioRecording(samples: []), false) }
+                defer { s.running = false; s.recording = nil }
+                return (AudioRecording(samples: r.samples), s.running)
+            }
+            if stopInput { log.notice("capture: stopping input"); input.stop() }
+            return recording
         }
         log.notice("capture stop: returning \(recording.samples.count, privacy: .public) samples (ceiling task used=\(ceiling != nil, privacy: .public))")
         return recording
-    }
-
-    /// Drops the recording without returning it, and stops the input.
-    public func cancel() {
-        clearingAndStoppingInput { s in
-            endRecording(&s)
-            s.recording = nil
-        }
-    }
-
-    /// Runs `body` on the state and stops the input in one `control` hold, so a `start()` cannot land
-    /// between clearing the recording and stopping the input, which would stop the new recording's input.
-    private func clearingAndStoppingInput<T>(_ body: (inout State) -> T) -> T {
-        control.withLock { _ in
-            let (result, wasRunning) = state.withLock { s in
-                defer { s.running = false }
-                return (body(&s), s.running)
-            }
-            if wasRunning { log.notice("capture: stopping input"); input.stop() }
-            return result
-        }
     }
 
     private func receive(_ event: AudioInputEvent, generation: Int) {

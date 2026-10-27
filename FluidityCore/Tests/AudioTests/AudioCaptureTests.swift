@@ -62,16 +62,6 @@ struct AudioCaptureTests {
         #expect(input.stops == 2)
     }
 
-    @Test func cancelStopsTheInput() async throws {
-        // Turns red if cancelling a dictation leaves the microphone running.
-        _ = try capture.start()
-        input.deliver(ramp(rate))
-        capture.cancel()
-
-        #expect(input.stops == 1)
-        #expect(await capture.stop().samples.isEmpty)
-    }
-
     @Test func stopKeepsExactly200msOfAudioAfterRelease() async throws {
         // Turns red if the tail is longer or shorter than 3,200 samples, or audio after it is kept.
         _ = try capture.start()

@@ -9,6 +9,6 @@ public protocol AudioInput: Sendable {
 public enum AudioInputEvent: Sendable {
     /// 16 kHz mono Float32 samples.
     case samples([Float])
-    /// The device changed or the engine stopped on its own. The input has already stopped itself.
+    /// The device changed, went away or stopped delivering audio. The input has already stopped itself.
     case lost
 }
