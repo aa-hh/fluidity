@@ -19,8 +19,8 @@ run without the app, the microphone or the speech model.
 - **Every test belongs to one of four test targets,** so the runner can
   select one with `--filter` and run them as parallel jobs:
   - `DictationTests`: DictationController, Hotkey, DictationStore, the `Wiring/` adapters
-  - `AudioTests`: AudioCapture, Transcriber
-  - `CleanupTests`: CleanupClient, Settings, Finisher
+  - `AudioTests`: AudioCapture, Transcriber, ModelCoordinator
+  - `CleanupTests`: CleanupClient, Settings, Finisher, SpeechModels
   - `FieldTests`: FocusedField, Paster, EditWatcher
 - **Use the words in `CONTEXT.md`** for types, tests and comments.
 - **Test only through `scripts/test.sh`.**
@@ -29,6 +29,7 @@ run without the app, the microphone or the speech model.
 
 - `FluidityCore` → the library target the app imports.
 - `Sources/FluidityCore/<Part>/` → one folder per part, named as ADR 0001 (`DictationController`, `Hotkey`, `AudioCapture`, `Transcriber`, `CleanupClient`, `Settings`, `FocusedField`, `Finisher`, `Paster`, `EditWatcher`, `DictationStore`); a part's traps live in its own `AGENTS.md`.
+- `SpeechModels/`, `ModelCoordinator/` → the model catalogue and downloads; engine switching and unloads.
 - `Sources/FluidityCore/Wiring/` → adapters from each part to the protocol `DictationController` asks for, built by the app.
 - `DictationRecord` → the saved record of one dictation, shared by every part.
 - `FluidityTestSupport` → helpers all four test targets share, such as `ManualClock`.

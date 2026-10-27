@@ -80,8 +80,8 @@ public final class TranscriberAdapter: Transcribing {
                     for await text in previews { sink.yield(text) }
                     group.cancelAll()
                 }
-                // `finish` takes the recording as an argument, so this cannot touch a final pass.
-                await transcriber.cancel()
+                // The stream stays open: `transcribe` finishes it on release, `cancel` drops it on Escape.
+                await transcriber.endPreview()
                 sink.finish()
             }
             last = task
@@ -92,8 +92,22 @@ public final class TranscriberAdapter: Transcribing {
     }
 
     public func transcribe(_ recording: DictationController.Recording) async throws -> DictationController.Transcript {
+        await endLastPreview()
         let raw = try await transcriber.finish(recording: recording.samples, wordList: wordList())
         return DictationController.Transcript(
-            text: raw.text, wordTimings: raw.wordTimings, wordListRecheck: raw.wordListRecheckTime)
+            text: raw.text, modelVersion: raw.model.rawValue, wordTimings: raw.wordTimings,
+            wordListRecheck: raw.wordListRecheckTime)
+    }
+
+    public func cancel() async {
+        await endLastPreview()
+        await transcriber.cancel()
+    }
+
+    /// Waits until the last preview has started its recording and ended, so `finish` or `cancel` cannot land before it.
+    private func endLastPreview() async {
+        let last = lastPreview.withLock { $0 }
+        last?.cancel()
+        await last?.value
     }
 }

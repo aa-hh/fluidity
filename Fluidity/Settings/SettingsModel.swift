@@ -4,13 +4,22 @@ import Observation
 import SwiftUI
 
 enum SettingsPane: String, CaseIterable, Identifiable {
-    case general, cleanup, words, permissions
+    case general, speechModel, cleanup, words, permissions
 
     var id: Self { self }
-    var title: String { rawValue.capitalized }
+    var title: String {
+        switch self {
+        case .general: "General"
+        case .speechModel: "Speech model"
+        case .cleanup: "Cleanup"
+        case .words: "Words"
+        case .permissions: "Permissions"
+        }
+    }
     var symbol: String {
         switch self {
         case .general: "gearshape"
+        case .speechModel: "mic"
         case .cleanup: "sparkles"
         case .words: "book"
         case .permissions: "lock"
@@ -73,6 +82,23 @@ final class SettingsModel {
 
     var wordList: [String] = []
 
+    // MARK: Speech model
+
+    var speechModel: SpeechModelID = .parakeetTDTv2
+    var modelStates: [SpeechModelID: ModelState] = [:]
+    /// Models dictation needs now: the chosen one, the one still dictating while a switch loads, and any a switch is loading.
+    var modelsInUse: Set<SpeechModelID> = []
+    /// The last download or delete that failed, and why.
+    var downloadFailure: (SpeechModelID, DownloadFailure)? = nil
+    /// A model whose download just finished, offered for use until the shell clears it.
+    var readyModel: SpeechModelID? = nil
+    /// Models the open compare window holds, which can't be deleted until it closes.
+    var modelsInCompare: Set<SpeechModelID> = []
+    /// The last switch whose load failed; dictation stayed on `speechModel`.
+    var switchFailure: ModelCoordinator.SwitchFailure?
+    /// The launch model is loading, which the first launch downloads.
+    var isPreparingModel = false
+
     // MARK: Permissions
 
     var microphone: PermissionStatus = .notAsked
@@ -87,6 +113,13 @@ final class SettingsModel {
     var onAPIKeySubmit: (String) -> Void = { _ in }
     var onCleanupRulesChange: (String) -> Void = { _ in }
     var onWordListChange: ([String]) -> Void = { _ in }
+    var onSpeechModelChange: (SpeechModelID) -> Void = { _ in }
+    var onDownloadModel: (SpeechModelID) -> Void = { _ in }
+    var onCancelDownload: (SpeechModelID) -> Void = { _ in }
+    var onDeleteModel: (SpeechModelID) -> Void = { _ in }
+    var onClearReadyModel: () -> Void = {}
+    /// Opens the compare window with the left and right models.
+    var onCompare: (SpeechModelID, SpeechModelID) -> Void = { _, _ in }
     var onRequestMicrophone: () -> Void = {}
     var onOpenPrivacySettings: (DictationController.Permission) -> Void = { permission in
         let anchor = permission == .microphone ? "Privacy_Microphone" : "Privacy_Accessibility"
@@ -119,6 +152,11 @@ final class SettingsModel {
     func changeLiveWords(_ choice: LiveWords) {
         liveWords = choice
         onLiveWordsChange(choice)
+    }
+
+    func changeSpeechModel(_ id: SpeechModelID) {
+        speechModel = id
+        onSpeechModelChange(id)
     }
 
     func changeCleanupEnabled(_ on: Bool) {

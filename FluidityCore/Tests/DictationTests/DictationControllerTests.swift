@@ -122,7 +122,8 @@ struct DictationControllerTests {
         #expect(s.saved.first?.pastedText == (landed ? "HELLO, WORLD." : nil))
     }
 
-    // Turns red if a stage's text, the field around the cursor, a timing or a version stops reaching the saved record,
+    // Turns red if a stage's text, the field around the cursor, a timing or a version stops reaching the saved record
+    // (the model version must be the transcript's, since the controller no longer has one of its own),
     // or the word list version is read when the controller is made instead of when the record is built.
     @Test func savedRecordHoldsEveryStage() async throws {
         let h = Harness()
@@ -257,7 +258,7 @@ struct DictationControllerTests {
     }
 
     // Turns red if Escape at any step before pasting saves or pastes something, leaves the microphone on,
-    // skips the cancelled state, or leaves it up past 120 ms.
+    // skips the cancelled state, leaves it up past 120 ms, or leaves the speech model's recording open with no final pass.
     @Test(arguments: CancelStep.allCases)
     func escapeCancels(at step: CancelStep) async {
         let h = Harness {
@@ -292,6 +293,7 @@ struct DictationControllerTests {
         #expect(s.audioStops == 1)
         #expect(s.saved.isEmpty)
         #expect(s.pasted.isEmpty)
+        #expect(s.transcribeCalls + s.transcriberCancels == 1)
     }
 
     enum QuietEnd: Sendable, CaseIterable { case audioStartFails, finalPassFails, emptyTranscript }

@@ -15,7 +15,7 @@ private func withDefaults(_ body: (UserDefaults) throws -> Void) rethrows {
     try body(defaults)
 }
 
-// Turns red if a fresh install starts with cleanup on without a key, rules other than the default, or a saved shortcut or word list, or reads an unknown live words value as anything but In the pill.
+// Turns red if a fresh install starts with cleanup on without a key, rules other than the default, or a saved shortcut or word list, or reads an unknown live words or speech model value as anything but the default.
 @Test func freshSettingsUseDefaults() {
     withDefaults { defaults in
         let settings = Settings(defaults: defaults, keyStore: FakeKeychain())
@@ -27,6 +27,9 @@ private func withDefaults(_ body: (UserDefaults) throws -> Void) rethrows {
         #expect(settings.liveWords == .inPill)
         defaults.set("sideways", forKey: "liveWords")
         #expect(settings.liveWords == .inPill)
+        #expect(settings.speechModel == .parakeetTDTv2)
+        defaults.set("whisper-huge", forKey: "speechModel")
+        #expect(settings.speechModel == .parakeetTDTv2)
     }
 }
 
@@ -40,6 +43,7 @@ private func withDefaults(_ body: (UserDefaults) throws -> Void) rethrows {
         first.cleanupRules = "Be brief."
         first.wordList = ["SwiftUI", "Cerebras"]
         first.liveWords = .above
+        first.speechModel = .parakeetUnified
 
         let second = Settings(defaults: defaults, keyStore: keychain)
         #expect(second.shortcut(as: TestShortcut.self) == TestShortcut(keyCode: 61, modifiers: 524_288))
@@ -47,6 +51,7 @@ private func withDefaults(_ body: (UserDefaults) throws -> Void) rethrows {
         #expect(second.cleanupRules == "Be brief.")
         #expect(second.wordList == ["SwiftUI", "Cerebras"])
         #expect(second.liveWords == .above)
+        #expect(second.speechModel == .parakeetUnified)
     }
 }
 

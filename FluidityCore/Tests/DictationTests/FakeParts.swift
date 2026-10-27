@@ -30,6 +30,7 @@ final class FakeParts: AudioCapturing, Transcribing, CleaningUp, FieldContextRea
         var wordListVersion = "words-1"
         var transcribeHangs = false
         var transcribeCalls = 0
+        var transcriberCancels = 0
         var cleanupOn = true
         /// Nil makes cleanup never answer.
         var cleanupResult: DictationController.CleanupResult? = .cleaned("Hello, world.")
@@ -105,8 +106,10 @@ final class FakeParts: AudioCapturing, Transcribing, CleaningUp, FieldContextRea
         }
         if hangs { try await clock.sleep(for: .seconds(3600)) }
         guard let text else { throw Failure() }
-        return .init(text: text, wordTimings: Self.wordTimings, wordListRecheck: recheck)
+        return .init(text: text, modelVersion: "parakeet-v2", wordTimings: Self.wordTimings, wordListRecheck: recheck)
     }
+
+    func cancel() async { state.withLock { $0.transcriberCancels += 1 } }
 
     var isOn: Bool { state.withLock { $0.cleanupOn } }
 
@@ -178,7 +181,7 @@ struct ControllerHarness {
         controller = DictationController(
             audio: parts, transcriber: parts, cleanup: parts, field: parts, finisher: parts, paster: parts,
             watcher: parts, store: parts, permissions: parts,
-            modelVersion: "parakeet-v2", wordListVersion: { parts.snapshot.wordListVersion }, clock: clock)
+            wordListVersion: { parts.snapshot.wordListVersion }, clock: clock)
     }
 
     func advance(_ duration: Duration) async { await clock.advance(by: duration) }

@@ -18,6 +18,8 @@ public protocol Transcribing: Sendable {
     func preview(_ audio: AsyncStream<[Float]>) -> AsyncStream<String>
     /// The final pass over the whole recording.
     func transcribe(_ recording: DictationController.Recording) async throws -> DictationController.Transcript
+    /// Drops the recording whose preview ended when no final pass follows, as on Escape.
+    func cancel() async
 }
 
 /// Cleanup of the raw transcript.
@@ -103,12 +105,15 @@ extension DictationController {
     /// The final pass's raw transcript.
     public struct Transcript: Equatable, Sendable {
         public var text: String
+        /// The speech model that made this transcript, saved in the record.
+        public var modelVersion: String
         public var wordTimings: [WordTiming]
         /// Seconds the word list recheck took, when it ran.
         public var wordListRecheck: TimeInterval?
 
-        public init(text: String, wordTimings: [WordTiming] = [], wordListRecheck: TimeInterval? = nil) {
+        public init(text: String, modelVersion: String, wordTimings: [WordTiming] = [], wordListRecheck: TimeInterval? = nil) {
             self.text = text
+            self.modelVersion = modelVersion
             self.wordTimings = wordTimings
             self.wordListRecheck = wordListRecheck
         }

@@ -113,6 +113,12 @@ spacing:
   app-size-control-m: "28px"
   app-size-row-min: "44px"
   app-size-sidebar: "184px"
+  app-size-model-figure: "76px"
+  app-size-model-live-vs-final: "84px"
+  app-size-model-row: "48px"
+  app-size-model-header: "28px"
+  app-size-progress-track-w: "48px"
+  app-size-progress-track-h: "4px"
 components:
   pill:
     backgroundColor: "{colors.pill-body}"
@@ -199,8 +205,8 @@ components:
     backgroundColor: "{colors.app-window-light}"
     textColor: "{colors.app-text-primary-light}"
     rounded: "{rounded.app-window}"
-    width: "720px"
-    height: "520px"
+    width: "848px"
+    height: "600px"
   first-run-window:
     backgroundColor: "{colors.app-window-light}"
     textColor: "{colors.app-text-primary-light}"
@@ -295,12 +301,13 @@ SF Pro Rounded for anything you click or scan, matching the capsule controls; SF
 - **Scaling rule:** distances copied from the Dynamic Island are in island points and scale by the pill's height ÷ 36.67 (the island's resting height). The retry gap, the shake distance and the merge blur all follow it.
 
 ### App surfaces
-- **Settings window:** 720 × 520 pt. The sidebar (`app-size-sidebar`, `GlassTheme.sidebarWidth`) has 12 pt padding at the sides and bottom and 52 pt at the top, which leaves room for the system window buttons. Four panes sit 2 pt apart (General, Cleanup, Words, Permissions), each a 28 pt capsule with a 16 pt SF Symbol (`gearshape`, `sparkles`, `book`, `lock`), an 8 pt gap and 8 pt side padding. At its foot, the status line: an 8 pt status dot, the short status in `app-label`, then the dictation key's name in `app-small` secondary text at the right, 8 pt gaps and side padding; it becomes a button with a hover capsule when a fix exists. The content pane has 20 pt padding and 16 pt between the title and each group. Switching panes is a 130 ms cross-fade; Command-1 to 4 and the up and down arrows change pane.
+- **Settings window:** 848 × 600 pt. The sidebar (`app-size-sidebar`, `GlassTheme.sidebarWidth`) has 12 pt padding at the sides and bottom and 52 pt at the top, which leaves room for the system window buttons. Five panes sit 2 pt apart (General, Speech model, Cleanup, Words, Permissions), each a 28 pt capsule with a 16 pt SF Symbol (`gearshape`, `mic`, `sparkles`, `book`, `lock`), an 8 pt gap and 8 pt side padding. At its foot, the status line: an 8 pt status dot, the short status in `app-label`, then the dictation key's name in `app-small` secondary text at the right, 8 pt gaps and side padding; it becomes a button with a hover capsule when a fix exists. The content pane has 20 pt padding and 16 pt between the title and each group. Switching panes is a 130 ms cross-fade; Command-1 to 5 and the up and down arrows change pane.
 - **Groups:** a section header (title, then description 2 pt below, both inset 4 pt), then a raised panel 8 pt below holding the rows. The Cleanup pane has no section header.
 - **Rows:** at least 44 pt tall (`app-size-row-min`, `GlassTheme.rowMinHeight`), 8 pt top and bottom and 12 pt side padding, 12 pt between the text and the control at the right end, a 1 pt rule between rows. Title and detail sit 2 pt apart. A row may carry a 20 pt leading status icon 12 pt before the text, and an error line between the title and detail.
 - **Controls:** 28 pt tall (`app-size-control-m`, `GlassTheme.controlHeight`); toggles 38 × 22 pt; the General pane's rows are Dictation key, Paste last transcript, Live words and Launch at login. The settings panes have no filled button; the only primary button is Done on the first-run window.
 - **Menu bar popover:** 280 pt wide. Top to bottom: the status row, at least 38 pt tall with 16 pt side and 8 pt top and bottom padding and 8 pt gaps, with an optional detail line and an optional secondary fix button, both inset 16 pt; a rule; the history, up to 20 dictations in a list at most 400 pt tall, inset 6 pt, each row with 10 pt corners and 10 pt side, 8 pt top and bottom padding, or when empty a message with 16 pt padding; a rule; then the Settings… and Quit rows as 28 pt capsules with 10 pt side padding, inset 6 pt. No model line. The panel opens 4 pt below the menu bar button, centred on it, and is kept 8 pt inside the screen.
 - **First-run window:** 540 pt wide and as tall as its content; 20 pt side, 44 pt top and 20 pt bottom padding, 16 pt between blocks. Top to bottom: the title, a one-line body 4 pt below; one raised panel of three rows (Microphone, Accessibility, Speech model, the last with a progress bar inset 44 pt left, 12 pt right and 10 pt from the bottom); the dictation key group at 40% opacity until both permissions are allowed; the Done button at the right.
+- **Speech model pane:** two raised tables, On this Mac and Available to download, that share their columns so names and figures line up. Each opens with a 28 pt header row (`app-size-model-header`), then 48 pt model rows (`app-size-model-row`). The First word and Updates every columns are 76 pt wide (`app-size-model-figure`) and Live vs final is 84 pt (`app-size-model-live-vs-final`), 8 pt apart. A model downloading shows a 48 × 4 pt capsule bar under its name (`app-size-progress-track-w`, `app-size-progress-track-h`).
 - **Spacing:** there is no spacing scale in code; gaps are bare numbers. Most are 8, 12 or 16 pt; inner insets and message gaps are 6 pt, the popover rows and quiet buttons use 10 pt, icon buttons are 24 pt, and words rows are at least 36 pt.
 - **Other sizes:** the Cleanup key field is 254 pt wide with 12 pt inner padding; the cleanup rules editor is 140 pt tall with 8 pt padding; the shortcut recorder is 160 pt wide with 5 pt inner padding and 4 pt gaps.
 

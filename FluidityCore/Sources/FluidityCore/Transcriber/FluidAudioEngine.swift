@@ -11,16 +11,43 @@ public actor FluidAudioEngine: SpeechEngine, VoiceDetecting, WordListRechecking 
     private var vad: VadManager?
     private var ctc: CtcModels?
     private var boosting: (wordList: [String], session: VocabularyBoostingSession)?
+    private let asrLoads = SingleFlight()
+    private let supportLoads = SingleFlight()
 
     public init() {}
 
     /// FluidAudio caches the models under Application Support, so only the first launch downloads them.
     public func load(progress: @escaping @Sendable (Double) -> Void) async throws {
-        let models = try await AsrModels.downloadAndLoad(version: .v2) { progress(0.8 * $0.fractionCompleted) }
-        asr = AsrManager(config: .default, models: models)
-        vad = try await VadManager(progressHandler: { progress(0.8 + 0.05 * $0.fractionCompleted) })
-        ctc = try await CtcModels.downloadAndLoad()
+        // Silero takes 0.05 of the bar, CTC 0.15 and TDT v2 the last 0.8.
+        try await loadSupport { progress(0.2 * $0) }
+        try await asrLoads.run { try await self.loadASR(progress: progress) }
         progress(1)
+    }
+
+    private func loadASR(progress: @escaping @Sendable (Double) -> Void) async throws {
+        guard asr == nil else { return }
+        let models = try await AsrModels.downloadAndLoad(version: .v2) { progress(0.2 + 0.8 * $0.fractionCompleted) }
+        asr = AsrManager(config: .default, models: models)
+    }
+
+    /// Loads only Silero and CTC 110M, which every speech model needs for the voice check and the word-list recheck.
+    public func loadSupport(progress: @escaping @Sendable (Double) -> Void) async throws {
+        try await supportLoads.run { try await self.loadSupportOnce(progress: progress) }
+    }
+
+    private func loadSupportOnce(progress: @escaping @Sendable (Double) -> Void) async throws {
+        if vad == nil {
+            vad = try await VadManager(progressHandler: { progress(0.25 * $0.fractionCompleted) })
+        }
+        if ctc == nil {
+            ctc = try await CtcModels.downloadAndLoad()
+        }
+        progress(1)
+    }
+
+    /// Drops Parakeet TDT v2 only; Silero and CTC stay, since every speech model uses them.
+    public func unload() async {
+        asr = nil
     }
 
     public func transcribe(_ audio: [Float]) async throws -> Transcript {

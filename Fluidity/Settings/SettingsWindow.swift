@@ -1,7 +1,7 @@
 import AppKit
 import SwiftUI
 
-/// The 720 × 520 settings window. The app shell keeps one and calls `show(pane:)`.
+/// The 848 × 600 settings window. The app shell keeps one and calls `show(pane:)`.
 @MainActor
 final class SettingsWindow {
     let model: SettingsModel
@@ -28,7 +28,7 @@ final class SettingsWindow {
 
     private func makeWindow() -> NSWindow {
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 720, height: 520),
+            contentRect: NSRect(x: 0, y: 0, width: 848, height: 600),
             styleMask: [.titled, .closable, .miniaturizable, .fullSizeContentView],
             backing: .buffered, defer: false)
         window.title = "Fluidity Settings"
@@ -58,6 +58,7 @@ struct SettingsView: View {
                         .accessibilityAddTraits(.isHeader)
                     switch model.pane {
                     case .general: GeneralPane(model: model)
+                    case .speechModel: SpeechModelPane(model: model)
                     case .cleanup: CleanupPane(model: model)
                     case .words: WordsPane(model: model)
                     case .permissions: PermissionsPane(model: model)
@@ -71,15 +72,18 @@ struct SettingsView: View {
             .transition(.opacity)
         }
         .animation(GlassTheme.snap, value: model.pane)
-        .frame(width: 720, height: 520)
+        .frame(width: 848, height: 600)
         .glassShell(isLive: model.isMicLive)
         .focusEffectDisabled()
         .ignoresSafeArea()
-        .onChange(of: model.pane) { model.endRecording() }
+        .onChange(of: model.pane) { old, _ in
+            model.endRecording()
+            if old == .speechModel { model.onClearReadyModel() }
+        }
     }
 }
 
-/// The sidebar: four panes 2 pt apart under the window controls, the status line at its foot.
+/// The sidebar: five panes 2 pt apart under the window controls, the status line at its foot.
 private struct SettingsSidebar: View {
     let model: SettingsModel
 
