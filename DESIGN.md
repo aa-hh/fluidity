@@ -358,7 +358,7 @@ Depth comes from one translucent shell and the lit top edge.
 
 ### Retry bubble
 - Splits off the right of the pill using the island's split spring (damping 0.141, response 0.222 s, 130 ms head start). The bubble scales 1.16 × 1, then 1.12 × 1.08, then 1, with sideways nudges of 2.33, 1.67 and 0.33 island points. The pill swells to 1.08, then 1.11 × 1.10 with a 4 island-point recoil away from the bubble, then settles. The split starts 0.04 s after the state change, or 0.13 s when coming out of processing.
-- Hover eases in over 0.09 s and out over 0.16 s: ring tone +0.12, light ×1.4, halo ×1.9, halo reach +0.4 pt. The icon is a 1.6 pt stroke with round caps, in three kinds: send arrow, crossed-out mic, lock. The send arrow shows only on hover; the mic and lock rest at 0.72 and reach 1 on hover.
+- Hover eases in over 0.09 s and out over 0.16 s: ring tone +0.12, light ×1.4, halo ×1.9, halo reach +0.4 pt. The icon is a 1.6 pt stroke with round caps, in three kinds: send arrow, crossed-out mic, lock. The send arrow, mic and lock rest at 0.72 and reach 1 on hover.
 - A click fires 0.12 s after the press bump starts: a failed paste retries, a lock opens System Settings. A retry that fails again shows soft orange for 600 ms and shakes once by 8 island points (about 6.1 pt) on the shake spring. The paste-last-transcript shortcut flashes the hover look for 0.32 s. VoiceOver reads it as a button: "Paste transcript", "Open Accessibility settings" or "Open Microphone settings".
 
 ### Motion
