@@ -56,7 +56,7 @@ public struct CoreAudioDevices: Sendable {
                                        UInt32(MemoryLayout<CFString>.size), $0, &size, &device)
         }
         guard status == noErr, device != kAudioObjectUnknown else {
-            log.error("input: chosen microphone \(uid, privacy: .public) is gone; using the macOS default")
+            log.error("input: microphone \(uid, privacy: .public) is gone; using the macOS default")
             return nil
         }
         return device

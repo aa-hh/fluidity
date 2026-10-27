@@ -1,5 +1,6 @@
 import AppKit
 import AVFoundation
+import CoreAudio
 import FluidityCore
 import os
 import ServiceManagement
@@ -15,6 +16,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let controller: DictationController
     private let settings: Settings
     private let devices: CoreAudioDevices
+    private let input: CoreAudioInput
+    /// The device the saved choice resolves to, read by `input` on every start.
+    private let microphone: OSAllocatedUnfairLock<AudioDeviceID?>
     private let keychain: Keychain
     private let store: DictationStore
     private let storeChanges: AsyncStream<Void>
@@ -51,11 +55,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let downloads = ModelDownloads(fetcher: FluidAudioModelFetcher(), network: NetworkMonitor())
         let settingsModel = SettingsModel(shortcuts: settings)
         let devices = CoreAudioDevices()
+        let microphone = OSAllocatedUnfairLock<AudioDeviceID?>(initialState: nil)
+        let input = CoreAudioInput { microphone.withLock { $0 } }
         // The one microphone capture, shared by dictation and the compare window.
-        let audioCapture = AudioCapture(input: CoreAudioInput {
-            Microphones.resolve(saved: settings.microphone, devices: devices.microphones(), defaultInput: devices.defaultInputUID())
-                .uid.flatMap(devices.device(uid:))
-        })
+        let audioCapture = AudioCapture(input: input)
         let models = ModelCoordinator(
             chosenModel: { settings.speechModel },
             setChosenModel: {
@@ -97,6 +100,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
         self.settings = settings
         self.devices = devices
+        self.input = input
+        self.microphone = microphone
         self.keychain = keychain
         self.permissions = permissions
         self.store = store
@@ -210,7 +215,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             settings.liveWords = choice
             PillPresenter.shared.liveWords = choice
         }
-        model.onMicrophoneChange = { settings.microphone = $0 }
+        model.onMicrophoneChange = { [unowned self] in
+            settings.microphone = $0
+            refreshMicrophones()
+        }
         model.onCleanupEnabledChange = { on in
             settings.isCleanupEnabled = on
             controller.refreshMenuBar()
@@ -296,13 +304,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         refreshPermissions()
     }
 
-    /// Lists the microphones for the windows, and resets a saved choice whose microphone is gone to Automatic.
+    /// Resolves the device to record from and prepares the input on it, resets a saved choice whose microphone is
+    /// gone to Automatic, and lists the microphones for the windows.
     private func refreshMicrophones() {
         let list = devices.microphones()
+        let choice = Microphones.resolve(saved: settings.microphone, devices: list, defaultInput: devices.defaultInputUID())
+        if choice.clearsSaved { settings.microphone = nil }
+        let device = choice.uid.flatMap(devices.device(uid:))
+        microphone.withLock { $0 = device }
+        input.prepare()
         settingsModel.microphones = list
-        if Microphones.resolve(saved: settings.microphone, devices: list, defaultInput: devices.defaultInputUID()).clearsSaved {
-            settings.microphone = nil
-        }
         settingsModel.chosenMicrophone = settings.microphone
     }
 

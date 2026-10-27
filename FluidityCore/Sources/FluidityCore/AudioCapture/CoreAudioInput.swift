@@ -10,9 +10,9 @@ private let log = Logger(subsystem: "com.fluidity.app", category: "audio")
 /// The real microphone: Core Audio's input unit (AUHAL) on the chosen input device, converted to 16 kHz mono
 /// with FluidAudio's `AudioConverter`.
 ///
-/// The unit is built and initialised ahead of time, at launch and whenever the default input device changes, but
+/// The unit is built and initialised ahead of time, by `prepare()` whenever the device to record from changes, but
 /// started only for a recording. So the microphone is in use only while recording, and a key press costs one start
-/// call plus the hardware's own delay to the first audio. A changed choice rebuilds the unit on the next start.
+/// call plus the hardware's own delay to the first audio.
 public final class CoreAudioInput: AudioInput, @unchecked Sendable {
     public enum Failure: Error { case noInputDevice, coreAudio(OSStatus) }
 
@@ -47,23 +47,24 @@ public final class CoreAudioInput: AudioInput, @unchecked Sendable {
 
     public init(device: @escaping @Sendable () -> AudioDeviceID?) {
         chosenDevice = device
-        // razor: the listener lives as long as the app, so it is never removed.
-        var address = propertyAddress(kAudioHardwarePropertyDefaultInputDevice)
-        AudioObjectAddPropertyListenerBlock(AudioObjectID(kAudioObjectSystemObject), &address, queue) { [weak self] _, _ in
-            guard let self else { return }
-            // A new default leaves a chosen microphone, or Automatic's built-in one, recording as it was.
-            guard unitLock.withLock({ unit?.isCurrent(for: chosenDevice() ?? defaultInputDevice()) != true }) else { return }
-            inputChanged("default input device changed")
-        }
+    }
+
+    /// Builds the unit for the device to record from now, unless it is already on it, so the next start need not.
+    /// Call at launch and whenever the choice, the device list or the default input changes.
+    public func prepare() {
         queue.async { [weak self] in
             guard let self else { return }
-            unitLock.withLock { rebuild() }
+            unitLock.withLock {
+                // A recording keeps its device; the next start moves to the new one.
+                guard lock.withLock({ session == nil }), unit?.isCurrent(for: wantedDevice()) != true else { return }
+                rebuild()
+            }
         }
     }
 
     public func start(_ handler: @escaping @Sendable (AudioInputEvent) -> Void) throws {
         try unitLock.withLock {
-            if unit?.isCurrent(for: chosenDevice() ?? defaultInputDevice()) != true { rebuild() }
+            if unit?.isCurrent(for: wantedDevice()) != true { rebuild() }
             guard let built = unit else { throw Failure.noInputDevice }
             let session = Session(handler: handler, device: built.name)
             lock.withLock { self.session = session }
@@ -117,7 +118,7 @@ public final class CoreAudioInput: AudioInput, @unchecked Sendable {
         }
     }
 
-    /// On `queue`. Rebuilds the unit for the current default device and ends a recording in progress.
+    /// On `queue`. Rebuilds the unit for the device to record from and ends a recording in progress.
     private func inputChanged(_ reason: String) {
         let lost = lock.withLock {
             defer { session = nil }
@@ -141,7 +142,7 @@ public final class CoreAudioInput: AudioInput, @unchecked Sendable {
         }
         let fallback = defaultInputDevice()
         guard let device = chosenDevice() ?? fallback else {
-            log.error("input: no default input device")
+            log.error("input: no input device")
             return
         }
         build(device)
@@ -151,6 +152,8 @@ public final class CoreAudioInput: AudioInput, @unchecked Sendable {
             build(fallback)
         }
     }
+
+    private func wantedDevice() -> AudioDeviceID? { chosenDevice() ?? defaultInputDevice() }
 
     /// Call with `unitLock` held.
     private func build(_ device: AudioDeviceID) {
