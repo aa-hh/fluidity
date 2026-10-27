@@ -44,6 +44,7 @@ private func withDefaults(_ body: (UserDefaults) throws -> Void) rethrows {
         first.wordList = ["SwiftUI", "Cerebras"]
         first.liveWords = .above
         first.speechModel = .parakeetUnified
+        first.microphone = "usb"
 
         let second = Settings(defaults: defaults, keyStore: keychain)
         #expect(second.shortcut(as: TestShortcut.self) == TestShortcut(keyCode: 61, modifiers: 524_288))
@@ -52,6 +53,9 @@ private func withDefaults(_ body: (UserDefaults) throws -> Void) rethrows {
         #expect(second.wordList == ["SwiftUI", "Cerebras"])
         #expect(second.liveWords == .above)
         #expect(second.speechModel == .parakeetUnified)
+        #expect(second.microphone == "usb")
+        second.microphone = nil
+        #expect(Settings(defaults: defaults, keyStore: keychain).microphone == nil)
     }
 }
 

@@ -34,6 +34,7 @@ public final class Settings: @unchecked Sendable {
         static let wordList = "wordList"
         static let liveWords = "liveWords"
         static let speechModel = "speechModel"
+        static let microphone = "microphone"
     }
 
     private let defaults: UserDefaults
@@ -99,6 +100,14 @@ public final class Settings: @unchecked Sendable {
     public var speechModel: SpeechModelID {
         get { defaults.string(forKey: Key.speechModel).flatMap(SpeechModelID.init(rawValue:)) ?? .parakeetTDTv2 }
         set { defaults.set(newValue.rawValue, forKey: Key.speechModel) }
+    }
+
+    /// The chosen microphone's Core Audio UID, or `nil` for Automatic.
+    public var microphone: String? {
+        get { defaults.string(forKey: Key.microphone) }
+        set {
+            if let newValue { defaults.set(newValue, forKey: Key.microphone) } else { defaults.removeObject(forKey: Key.microphone) }
+        }
     }
 
     public var hasAPIKey: Bool { (try? keyStore.get()) != nil }

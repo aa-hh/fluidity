@@ -2,10 +2,10 @@
 
 ## Purpose
 
-Records each dictation's audio from the microphone as 16 kHz mono Float32, with
+Records each dictation as 16 kHz mono Float32, with
 a silent lead-in, tail, the 19/20 minute limits and the dead-microphone check.
 The logic sits over `AudioInput` so tests feed it by hand; only
-`CoreAudioInput` touches the hardware, and it stays thin and untested.
+`CoreAudioInput` and `CoreAudioDevices` touch the hardware, untested.
 
 ## Rules
 
@@ -33,5 +33,7 @@ The logic sits over `AudioInput` so tests feed it by hand; only
 - `AudioCapture` → the recording logic.
 - `AudioInput` → what the logic needs from a microphone.
 - `CoreAudioInput` → the real microphone, converted with FluidAudio.
-- `AudioRecording` → one dictation's samples and duration.
+- `CoreAudioDevices` → input devices and their changes.
+- `Microphones` → which device to record from.
+- `AudioRecording` → one dictation's samples.
 - `AudioCaptureEvent` → silence, limit and lost-input warnings.

@@ -1,5 +1,6 @@
 import AppKit
 import AVFoundation
+import CoreAudio
 import FluidityCore
 import os
 import ServiceManagement
@@ -14,6 +15,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private let controller: DictationController
     private let settings: Settings
+    private let devices: CoreAudioDevices
+    private let input: CoreAudioInput
+    /// The device the saved choice resolves to, read by `input` on every start.
+    private let microphone: OSAllocatedUnfairLock<AudioDeviceID?>
     private let keychain: Keychain
     private let store: DictationStore
     private let storeChanges: AsyncStream<Void>
@@ -49,8 +54,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         ]
         let downloads = ModelDownloads(fetcher: FluidAudioModelFetcher(), network: NetworkMonitor())
         let settingsModel = SettingsModel(shortcuts: settings)
+        let devices = CoreAudioDevices()
+        let microphone = OSAllocatedUnfairLock<AudioDeviceID?>(initialState: nil)
+        let input = CoreAudioInput { microphone.withLock { $0 } }
         // The one microphone capture, shared by dictation and the compare window.
-        let audioCapture = AudioCapture(input: CoreAudioInput())
+        let audioCapture = AudioCapture(input: input)
         let models = ModelCoordinator(
             chosenModel: { settings.speechModel },
             setChosenModel: {
@@ -91,6 +99,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             wordListVersion: { settings.wordListVersion }
         )
         self.settings = settings
+        self.devices = devices
+        self.input = input
+        self.microphone = microphone
         self.keychain = keychain
         self.permissions = permissions
         self.store = store
@@ -110,6 +121,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         wireSettings()
         wirePopover()
         refreshSettingsModel()
+        devices.watch { [unowned self] in refreshMicrophones() }
         menuBarItem = MenuBarItem(model: popoverModel, settings: settingsModel) { [unowned self] in
             refreshSettingsModel()
             await reloadRecords()
@@ -203,6 +215,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             settings.liveWords = choice
             PillPresenter.shared.liveWords = choice
         }
+        model.onMicrophoneChange = { [unowned self] in
+            settings.microphone = $0
+            refreshMicrophones()
+        }
         model.onCleanupEnabledChange = { on in
             settings.isCleanupEnabled = on
             controller.refreshMenuBar()
@@ -272,7 +288,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    /// Copies `Settings`, the keychain, launch at login and the permissions into the windows' model.
+    /// Copies `Settings`, the keychain, launch at login, the microphones and the permissions into the windows' model.
     private func refreshSettingsModel() {
         let model = settingsModel
         model.launchAtLogin = SMAppService.mainApp.status == .enabled
@@ -284,7 +300,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let key = try? keychain.get()
         model.apiKey = key ?? ""
         model.cleanupKey = key == nil ? .noKey : .accepted
+        refreshMicrophones()
         refreshPermissions()
+    }
+
+    /// Resolves the device to record from and prepares the input on it, resets a saved choice whose microphone is
+    /// gone to Automatic, and lists the microphones for the windows.
+    private func refreshMicrophones() {
+        let list = devices.microphones()
+        let choice = Microphones.resolve(saved: settings.microphone, devices: list, defaultInput: devices.defaultInputUID())
+        if choice.clearsSaved { settings.microphone = nil }
+        let device = choice.uid.flatMap(devices.device(uid:))
+        microphone.withLock { $0 = device }
+        input.prepare()
+        settingsModel.microphones = list
+        settingsModel.chosenMicrophone = settings.microphone
     }
 
     private func refreshPermissions() {

@@ -7,10 +7,10 @@ import os
 
 private let log = Logger(subsystem: "com.fluidity.app", category: "audio")
 
-/// The real microphone: Core Audio's input unit (AUHAL) on the default input device, converted to 16 kHz mono
+/// The real microphone: Core Audio's input unit (AUHAL) on the chosen input device, converted to 16 kHz mono
 /// with FluidAudio's `AudioConverter`.
 ///
-/// The unit is built and initialised ahead of time, at launch and whenever the default input device changes, but
+/// The unit is built and initialised ahead of time, by `prepare()` whenever the device to record from changes, but
 /// started only for a recording. So the microphone is in use only while recording, and a key press costs one start
 /// call plus the hardware's own delay to the first audio.
 public final class CoreAudioInput: AudioInput, @unchecked Sendable {
@@ -42,22 +42,29 @@ public final class CoreAudioInput: AudioInput, @unchecked Sendable {
     /// Converts and delivers audio in order, and handles device changes, off the I/O thread.
     private let queue = DispatchQueue(label: "com.fluidity.audio-input")
     private let converter = AudioConverter()
+    /// The device to record from, or `nil` for the macOS default. Read on every start, so keep it cheap.
+    private let chosenDevice: @Sendable () -> AudioDeviceID?
 
-    public init() {
-        // razor: the listener lives as long as the app, so it is never removed.
-        var address = propertyAddress(kAudioHardwarePropertyDefaultInputDevice)
-        AudioObjectAddPropertyListenerBlock(AudioObjectID(kAudioObjectSystemObject), &address, queue) { [weak self] _, _ in
-            self?.inputChanged("default input device changed")
-        }
+    public init(device: @escaping @Sendable () -> AudioDeviceID?) {
+        chosenDevice = device
+    }
+
+    /// Builds the unit for the device to record from now, unless it is already on it, so the next start need not.
+    /// Call at launch and whenever the choice, the device list or the default input changes.
+    public func prepare() {
         queue.async { [weak self] in
             guard let self else { return }
-            unitLock.withLock { rebuild() }
+            unitLock.withLock {
+                // A recording keeps its device; the next start moves to the new one.
+                guard lock.withLock({ session == nil }), unit?.isCurrent(for: wantedDevice()) != true else { return }
+                rebuild()
+            }
         }
     }
 
     public func start(_ handler: @escaping @Sendable (AudioInputEvent) -> Void) throws {
         try unitLock.withLock {
-            if unit?.isCurrent != true { rebuild() }
+            if unit?.isCurrent(for: wantedDevice()) != true { rebuild() }
             guard let built = unit else { throw Failure.noInputDevice }
             let session = Session(handler: handler, device: built.name)
             lock.withLock { self.session = session }
@@ -111,7 +118,7 @@ public final class CoreAudioInput: AudioInput, @unchecked Sendable {
         }
     }
 
-    /// On `queue`. Rebuilds the unit for the current default device and ends a recording in progress.
+    /// On `queue`. Rebuilds the unit for the device to record from and ends a recording in progress.
     private func inputChanged(_ reason: String) {
         let lost = lock.withLock {
             defer { session = nil }
@@ -123,7 +130,8 @@ public final class CoreAudioInput: AudioInput, @unchecked Sendable {
         lost.handler(.lost)
     }
 
-    /// Drops the unit and builds a stopped one for the default input device. Call with `unitLock` held.
+    /// Drops the unit and builds a stopped one for the chosen device, falling back to the macOS default.
+    /// Call with `unitLock` held.
     private func rebuild() {
         unit?.dispose()
         unit = nil
@@ -132,10 +140,23 @@ public final class CoreAudioInput: AudioInput, @unchecked Sendable {
             AudioObjectRemovePropertyListenerBlock(device, &address, queue, block)
             aliveListener = nil
         }
-        guard let device = defaultInputDevice() else {
-            log.error("input: no default input device")
+        let fallback = defaultInputDevice()
+        guard let device = chosenDevice() ?? fallback else {
+            log.error("input: no input device")
             return
         }
+        build(device)
+        if unit == nil, let fallback, fallback != device {
+            // The chosen device vanished between choosing it and building the unit.
+            log.error("input: using the macOS default instead")
+            build(fallback)
+        }
+    }
+
+    private func wantedDevice() -> AudioDeviceID? { chosenDevice() ?? defaultInputDevice() }
+
+    /// Call with `unitLock` held.
+    private func build(_ device: AudioDeviceID) {
         do {
             let built = try InputUnit.make(device: device) { [weak self] in
                 self?.received($0)
@@ -219,9 +240,9 @@ private final class InputUnit: @unchecked Sendable {
         }
     }
 
-    /// Whether the unit still matches the default input device and its format, so it can start as built.
-    var isCurrent: Bool {
-        guard defaultInputDevice() == device,
+    /// Whether the unit is still on `wanted` and its format, so it can start as built.
+    func isCurrent(for wanted: AudioDeviceID?) -> Bool {
+        guard wanted == device,
               let hardware = try? getProperty(audioUnit, kAudioUnitProperty_StreamFormat, kAudioUnitScope_Input, 1, AudioStreamBasicDescription())
         else { return false }
         return hardware.mSampleRate == format.sampleRate && hardware.mChannelsPerFrame == format.channelCount
@@ -285,29 +306,8 @@ private func getProperty<T>(_ unit: AudioUnit, _ property: AudioUnitPropertyID, 
     return value
 }
 
-private func propertyAddress(_ selector: AudioObjectPropertySelector) -> AudioObjectPropertyAddress {
-    AudioObjectPropertyAddress(mSelector: selector, mScope: kAudioObjectPropertyScopeGlobal, mElement: kAudioObjectPropertyElementMain)
-}
-
-private func defaultInputDevice() -> AudioDeviceID? {
-    var address = propertyAddress(kAudioHardwarePropertyDefaultInputDevice)
-    var device = AudioDeviceID(kAudioObjectUnknown)
-    var size = UInt32(MemoryLayout<AudioDeviceID>.size)
-    let status = AudioObjectGetPropertyData(AudioObjectID(kAudioObjectSystemObject), &address, 0, nil, &size, &device)
-    return status == noErr && device != kAudioObjectUnknown ? device : nil
-}
-
 /// The device's name and how it connects (`bltn`, `usb `, `blue`), for the logs.
 private func deviceName(_ device: AudioDeviceID) -> String {
-    var address = propertyAddress(kAudioObjectPropertyName)
-    var name: Unmanaged<CFString>?
-    var size = UInt32(MemoryLayout<Unmanaged<CFString>?>.size)
-    let label = AudioObjectGetPropertyData(device, &address, 0, nil, &size, &name) == noErr
-        ? (name?.takeRetainedValue() as String?) ?? "unknown" : "unknown"
-    address = propertyAddress(kAudioDevicePropertyTransportType)
-    var transport: UInt32 = 0
-    size = UInt32(MemoryLayout<UInt32>.size)
-    AudioObjectGetPropertyData(device, &address, 0, nil, &size, &transport)
-    let code = withUnsafeBytes(of: transport.bigEndian) { String(decoding: $0, as: UTF8.self) }
-    return "\(label) [\(code)]"
+    let code = withUnsafeBytes(of: transportType(device).bigEndian) { String(decoding: $0, as: UTF8.self) }
+    return "\(stringProperty(device, kAudioObjectPropertyName) ?? "unknown") [\(code)]"
 }

@@ -17,6 +17,19 @@ struct GeneralPane: View {
                     ShortcutRecorderField(model: model, slot: .pasteAgain, name: "Paste last transcript")
                 }
                 GlassRule()
+                GlassRow(title: "Microphone",
+                         detail: "Automatic uses your Mac's own microphone instead of Bluetooth headphones, so they keep full sound quality.") {
+                    MicrophoneMenu(model: model) {
+                        HStack(spacing: 8) {
+                            Text(model.chosenMicrophoneName)
+                            Image(systemName: "chevron.up.chevron.down").font(.system(size: 10, weight: .semibold))
+                        }
+                    }
+                    .menuStyle(.button)
+                    .buttonStyle(.glassSecondary)
+                    .fixedSize()
+                }
+                GlassRule()
                 GlassRow(title: "Live words", detail: "Shows what you say as you speak, before cleanup.") {
                     GlassSegmentedControl(
                         name: "Live words",

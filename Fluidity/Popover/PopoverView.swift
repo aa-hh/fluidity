@@ -2,7 +2,7 @@ import AppKit
 import FluidityCore
 import SwiftUI
 
-/// The menu bar popover, 280 pt wide: status row, the last dictations, Settings and Quit.
+/// The menu bar popover, 280 pt wide: status row, the last dictations, the microphone, Settings and Quit.
 /// It draws its own Glass shell, so its host should give it a clear background.
 struct PopoverView: View {
     let model: PopoverModel
@@ -21,6 +21,7 @@ struct PopoverView: View {
             }
             GlassRule()
             VStack(spacing: 0) {
+                MicrophoneRow(settings: settings)
                 MenuRow(title: "Settings…", shortcut: "⌘ ,") { model.onOpenSettings(nil) }
                     .keyboardShortcut(",", modifiers: .command)
                 MenuRow(title: "Quit Fluidity", shortcut: "⌘ Q", action: model.onQuit)
@@ -270,6 +271,34 @@ private struct CopyGlyph: Shape {
         path.addCurve(to: p(13.5, 4.5), control1: p(12.83, 2.5), control2: p(13.5, 3.17))
         path.addLine(to: p(13.5, 10.5))
         return path
+    }
+}
+
+/// Opens the microphone menu from a row styled like Settings and Quit. Shows the saved choice, never what
+/// Automatic picked.
+private struct MicrophoneRow: View {
+    let settings: SettingsModel
+    @State private var isHovering = false
+
+    var body: some View {
+        MicrophoneMenu(model: settings) {
+            HStack(spacing: 8) {
+                Image(systemName: "mic").font(GlassTheme.label).foregroundStyle(GlassTheme.textPrimary)
+                Text("Microphone: \(settings.chosenMicrophoneName)").font(GlassTheme.label).foregroundStyle(GlassTheme.textPrimary)
+                    .lineLimit(1)
+                Spacer(minLength: 8)
+                Image(systemName: "chevron.up.chevron.down").font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(GlassTheme.textSecondary)
+            }
+            .padding(.horizontal, 10)
+            .frame(height: GlassTheme.controlHeight)
+            .background { if isHovering { Capsule().fill(GlassTheme.selected) } }
+            .contentShape(Capsule())
+            .glassFocusRing(Capsule())
+        }
+        .menuStyle(.button)
+        .buttonStyle(.plain)
+        .onHover { isHovering = $0 }
     }
 }
 

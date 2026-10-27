@@ -68,6 +68,13 @@ final class SettingsModel {
     private(set) var shortcutProblem: ShortcutProblem?
     var launchAtLogin = false
     var liveWords: LiveWords = .inPill
+    var microphones: [Microphone] = []
+    /// The saved microphone's UID, or `nil` for Automatic.
+    var chosenMicrophone: String?
+    /// The saved choice in words; never what Automatic picked.
+    var chosenMicrophoneName: String {
+        microphones.first { $0.uid == chosenMicrophone }?.name ?? "Automatic"
+    }
 
     // MARK: Cleanup
 
@@ -108,6 +115,7 @@ final class SettingsModel {
 
     var onLaunchAtLoginChange: (Bool) -> Void = { _ in }
     var onLiveWordsChange: (LiveWords) -> Void = { _ in }
+    var onMicrophoneChange: (String?) -> Void = { _ in }
     var onCleanupEnabledChange: (Bool) -> Void = { _ in }
     /// The user entered a key; the shell saves it and marks any saved key `.accepted` without checking it.
     var onAPIKeySubmit: (String) -> Void = { _ in }
@@ -152,6 +160,11 @@ final class SettingsModel {
     func changeLiveWords(_ choice: LiveWords) {
         liveWords = choice
         onLiveWordsChange(choice)
+    }
+
+    func changeMicrophone(_ uid: String?) {
+        chosenMicrophone = uid
+        onMicrophoneChange(uid)
     }
 
     func changeSpeechModel(_ id: SpeechModelID) {
