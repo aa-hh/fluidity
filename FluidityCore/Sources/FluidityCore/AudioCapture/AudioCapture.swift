@@ -24,12 +24,12 @@ public enum AudioCaptureEvent: Equatable, Sendable {
 }
 
 public enum AudioCaptureError: Error, Equatable {
-    /// `start()` was called before the previous recording was collected with `stop()` or dropped with `cancel()`.
+    /// `start()` was called before the previous recording was collected with `stop()`.
     case alreadyRecording
 }
 
 /// Records dictations from an `AudioInput`: 300 ms of silent lead-in, a 200 ms tail, a 19/20 minute limit
-/// and a dead-microphone check. The input runs only from `start()` until the recording is collected or dropped.
+/// and a dead-microphone check. The input runs only from `start()` until the recording is collected.
 /// Sample counts decide the tail and limits; the clock decides only how long the tail may take.
 public final class AudioCapture: Sendable {
     public static let sampleRate = 16_000

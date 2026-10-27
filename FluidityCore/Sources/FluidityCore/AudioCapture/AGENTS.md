@@ -9,8 +9,8 @@ The logic sits over `AudioInput` so tests feed it by hand; only
 
 ## Rules
 
-- **The microphone runs only from `start()` until the recording is collected
-  or cancelled.** An open mic holds AirPods in their low-quality call mode.
+- **The microphone runs only from `start()` until the recording is
+  collected.** An open mic holds AirPods in their low-quality call mode.
   Speed comes from building the input unit early and only starting it.
 - **Raw audio only:** the model and retraining need room noise. Never use
   voice processing; on AirPods it delivered exact zeros after a second.
