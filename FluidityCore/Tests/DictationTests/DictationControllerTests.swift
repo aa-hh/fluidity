@@ -318,8 +318,7 @@ struct DictationControllerTests {
         #expect(h.parts.snapshot.saved.isEmpty)
     }
 
-    // Turns red if the menu bar stops following a dictation through recording and mic warm back to ready,
-    // or the 3 minutes of mic warm change.
+    // Turns red if the menu bar stops following a dictation through recording back to ready.
     @Test func menuBarFollowsADictation() async {
         let h = Harness()
         #expect(h.controller.menuBar == .ready)
@@ -329,12 +328,7 @@ struct DictationControllerTests {
         h.controller.keyUp()
         await h.advance(.milliseconds(200))
         await h.untilDone()
-        #expect(h.controller.menuBar == .micWarm)
-        await h.advance(.seconds(180) - .milliseconds(1))
-        await h.settle()
-        #expect(h.controller.menuBar == .micWarm)
-        await h.advance(.milliseconds(1))
-        await h.until { h.controller.menuBar == .ready }
+        #expect(h.controller.menuBar == .ready)
     }
 
     struct MenuBarCase: Sendable, CustomTestStringConvertible {

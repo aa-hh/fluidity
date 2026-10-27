@@ -22,7 +22,6 @@ public final class DictationController {
     private static let silenceLimit: Duration = .seconds(5)
     private static let recordingWarning: Duration = .seconds(19 * 60)
     private static let recordingLimit: Duration = .seconds(20 * 60)
-    private static let micWarmLength: Duration = .seconds(3 * 60)
     private static let cancelledShownFor: Duration = .milliseconds(120)
     private static let pastedShownFor: Duration = .milliseconds(600)
 
@@ -39,8 +38,6 @@ public final class DictationController {
     private let timeline: Timeline
 
     @ObservationIgnored private var session: Session?
-    @ObservationIgnored private var micWarm = false
-    @ObservationIgnored private var micWarmTask: Task<Void, Never>?
     @ObservationIgnored private var hideTask: Task<Void, Never>?
 
     public init(
@@ -117,8 +114,6 @@ public final class DictationController {
             .recording
         } else if !cleanup.isOn {
             .cleanupOff
-        } else if micWarm {
-            .micWarm
         } else {
             .ready
         }
@@ -350,7 +345,6 @@ public final class DictationController {
     private func end(showing finalPill: PillState, for shownFor: Duration? = nil, phase newPhase: Phase = .ready) {
         phase = newPhase
         show(finalPill, hidingAfter: shownFor)
-        warmMicrophone()
         refreshMenuBar()
     }
 
@@ -363,17 +357,6 @@ public final class DictationController {
         hideTask = Task {
             guard await sleep(until: deadline) else { return }
             pill = .hidden
-        }
-    }
-
-    private func warmMicrophone() {
-        micWarmTask?.cancel()
-        micWarm = true
-        let deadline = timeline.now() + Self.micWarmLength
-        micWarmTask = Task {
-            guard await sleep(until: deadline) else { return }
-            micWarm = false
-            refreshMenuBar()
         }
     }
 

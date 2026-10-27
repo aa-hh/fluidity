@@ -3,6 +3,8 @@ import FluidityTestSupport
 import Testing
 
 private let rate = AudioCapture.sampleRate
+/// The 300 ms of silence every recording starts with.
+private let leadIn = [Float](repeating: 0, count: rate * 3 / 10)
 
 /// `count` samples with distinct non-zero values, so a misplaced sample shows up in a comparison.
 private func ramp(_ count: Int, from first: Int = 1) -> [Float] {
@@ -40,23 +42,34 @@ struct AudioCaptureTests {
 
     init() { capture = AudioCapture(input: input, clock: clock) }
 
-    @Test func warmStartBeginsWithTheLast300msAndNothingOlder() async throws {
-        // Turns red if start() takes more or less than 300 ms of pre-roll, or restarts a warm engine.
+    @Test func eachRecordingRunsTheInputOnlyUntilStopAndBeginsWith300msOfSilence() async throws {
+        // Turns red if the lead-in changes length, stop() leaves the microphone running, or the next
+        // recording does not restart the input.
         _ = try capture.start()
         input.deliver(ramp(rate))
         _ = await stop(capture, input, tail: ramp(rate / 5))
+        #expect(input.stops == 1)
 
-        let beforeKeyPress = ramp(rate, from: 100_000)
-        input.deliver(beforeKeyPress)
         let chunks = try capture.start()
+        #expect(input.starts == 2)
         let body = ramp(rate, from: 200_000)
         input.deliver(body)
         let tail = ramp(rate / 5, from: 300_000)
         let recording = await stop(capture, input, tail: tail)
 
-        #expect(recording.samples == Array(beforeKeyPress.suffix(rate * 3 / 10)) + body + tail)
+        #expect(recording.samples == leadIn + body + tail)
         #expect(await collect(chunks) == recording.samples)
-        #expect(input.starts == 1)
+        #expect(input.stops == 2)
+    }
+
+    @Test func cancelStopsTheInput() async throws {
+        // Turns red if cancelling a dictation leaves the microphone running.
+        _ = try capture.start()
+        input.deliver(ramp(rate))
+        capture.cancel()
+
+        #expect(input.stops == 1)
+        #expect(await capture.stop().samples.isEmpty)
     }
 
     @Test func stopKeepsExactly200msOfAudioAfterRelease() async throws {
@@ -67,7 +80,7 @@ struct AudioCaptureTests {
         let afterRelease = ramp(rate / 2, from: 100_000)
         let recording = await stop(capture, input, tail: afterRelease)
 
-        #expect(recording.samples == body + afterRelease.prefix(rate / 5))
+        #expect(recording.samples == leadIn + body + afterRelease.prefix(rate / 5))
     }
 
     @Test func stopReturnsWhatItHasWhenTheTailNeverArrives() async throws {
@@ -78,7 +91,7 @@ struct AudioCaptureTests {
         let stopping = Task.immediate { await capture.stop() }
         await clock.advance(by: .seconds(1))
 
-        #expect(await stopping.value.samples == body)
+        #expect(await stopping.value.samples == leadIn + body)
     }
 
     enum Feed: Sendable, CustomTestStringConvertible {
@@ -116,53 +129,33 @@ struct AudioCaptureTests {
     }
 
     @Test(arguments: [
-        (1139, [AudioCaptureEvent.inputLost], 1139),
-        (1140, [.limitNear, .inputLost], 1140),
-        (1260, [.limitNear, .limitReached], 1200),
+        (1139, [AudioCaptureEvent.inputLost], 1139 * rate + leadIn.count),
+        (1140, [.limitNear, .inputLost], 1140 * rate + leadIn.count),
+        (1260, [.limitNear, .limitReached], 1200 * rate),
     ])
-    func longRecordingsWarnAt19MinutesAndEndAt20(seconds: Int, expected: [AudioCaptureEvent], keptSeconds: Int) async throws {
-        // Turns red if the warning or the limit moves, or audio past 20 minutes is kept.
+    func longRecordingsWarnAt19MinutesAndEndAt20(seconds: Int, expected: [AudioCaptureEvent], kept: Int) async throws {
+        // Turns red if the warning or the limit moves, or audio past 20 minutes (lead-in included) is kept.
         _ = try capture.start()
         let second = [Float](repeating: 0.1, count: rate)
         for _ in 0..<seconds { input.deliver(second) }
         input.lose()
 
         #expect(await eventsUntilRecordingEnds(capture) == expected)
-        #expect(await capture.stop().samples.count == keptSeconds * rate)
+        #expect(await capture.stop().samples.count == kept)
     }
 
-    @Test func lostInputKeepsTheRecordingSoFarAndTheNextStartRestartsTheEngine() async throws {
-        // Turns red if a device change drops the recording, makes stop() wait for a tail, or leaves the engine marked warm.
+    @Test func lostInputKeepsTheRecordingSoFarAndTheNextStartRestartsTheInput() async throws {
+        // Turns red if a device change drops the recording, makes stop() wait for a tail, or stops an input
+        // that already stopped itself.
         let chunks = try capture.start()
         let body = ramp(rate)
         input.deliver(body)
         input.lose()
 
-        #expect(await collect(chunks) == body)
-        #expect(await capture.stop().samples == body)
-        #expect(!capture.isWarm)
-        _ = try capture.start()
-        #expect(input.starts == 2)
-    }
-
-    @Test func engineStops3MinutesAfterADictationAndTheNextStartBeginsAtTheKeyPress() async throws {
-        // Turns red if the warm period changes, the engine never stops, or a cold start keeps stale pre-roll.
-        _ = try capture.start()
-        input.deliver(ramp(rate))
-        _ = await stop(capture, input, tail: ramp(rate / 5))
-
-        await clock.advance(by: .seconds(179))
-        #expect(capture.isWarm)
+        #expect(await collect(chunks) == leadIn + body)
+        #expect(await capture.stop().samples == leadIn + body)
         #expect(input.stops == 0)
-        await clock.advance(by: .seconds(1))
-        _ = await input.stopped.first { _ in true }
-        #expect(!capture.isWarm)
-
         _ = try capture.start()
-        let body = ramp(rate, from: 500_000)
-        input.deliver(body)
-        let tail = ramp(rate / 5, from: 600_000)
-        #expect(await stop(capture, input, tail: tail).samples == body + tail)
         #expect(input.starts == 2)
     }
 }

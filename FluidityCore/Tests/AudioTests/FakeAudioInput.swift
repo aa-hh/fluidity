@@ -10,11 +10,6 @@ final class FakeAudioInput: AudioInput {
     }
 
     private let state = Mutex(State())
-    private let stopSink: AsyncStream<Void>.Continuation
-    /// One element per `stop()` call.
-    let stopped: AsyncStream<Void>
-
-    init() { (stopped, stopSink) = AsyncStream.makeStream() }
 
     var starts: Int { state.withLock { $0.starts } }
     var stops: Int { state.withLock { $0.stops } }
@@ -31,7 +26,6 @@ final class FakeAudioInput: AudioInput {
             s.stops += 1
             s.handler = nil
         }
-        stopSink.yield()
     }
 
     func deliver(_ samples: [Float]) { send(.samples(samples)) }

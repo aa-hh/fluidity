@@ -416,7 +416,7 @@ Each control is drawn by the app in Glass colours and reports to VoiceOver as th
 
 #### Status marks
 - **StatusIcon:** a 20 pt circle with a 10 pt bold glyph in `app-action-on-primary`. Done: `app-state-done` with a checkmark. Attention: `app-state-attention` with an exclamation mark. Info: `app-text-secondary` with an i.
-- **StatusDot:** 8 pt. Neutral: `app-text-secondary`. Attention: `app-state-attention`. Hollow: a 1 pt `app-text-secondary` ring, used for "mic kept ready". Live: as in Elevation & Depth.
+- **StatusDot:** 8 pt. Neutral: `app-text-secondary`. Attention: `app-state-attention`. Hollow: a 1 pt `app-text-secondary` ring, used for "Loading" in the compare window. Live: as in Elevation & Depth.
 
 #### Status row
 - 8 pt top and bottom and 12 pt side padding, 12 pt gaps: a status icon, then a title in `app-label` and detail in `app-detail` secondary text. Attention rows carry a secondary button at the right. Used in the Permissions pane and on first run.
@@ -433,7 +433,7 @@ Each control is drawn by the app in Glass colours and reports to VoiceOver as th
 - The panel closes at once, with no animation.
 
 #### Menu bar icon
-- An 18 × 18 pt template image: a 16 × 9 pt pill outline at 1.5 pt with round caps. Ready: the outline alone. Recording: the pill filled. Mic kept ready: an inner 9.5 × 3.5 pt capsule. Cleanup off: a 6.5 pt dot at the lower right with 1.25 pt of clear space around it. Permission missing: a diagonal slash with 1.25 pt of clear space on each side.
+- An 18 × 18 pt template image: a 16 × 9 pt pill outline at 1.5 pt with round caps. Ready: the outline alone. Recording: the pill filled. Cleanup off: a 6.5 pt dot at the lower right with 1.25 pt of clear space around it. Permission missing: a diagonal slash with 1.25 pt of clear space on each side.
 - Each state has its own VoiceOver description, such as "Fluidity, listening".
 
 #### Settings window

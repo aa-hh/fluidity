@@ -1,8 +1,8 @@
-/// The microphone as `AudioCapture` sees it: 16 kHz mono Float32 audio from a running engine.
+/// The microphone as `AudioCapture` sees it: 16 kHz mono Float32 audio while started.
 public protocol AudioInput: Sendable {
-    /// Starts the engine. `handler` receives events in order, on any thread, until `stop()` or `.lost`.
+    /// Starts the microphone. `handler` receives events in order, on any thread, until `stop()` or `.lost`.
     func start(_ handler: @escaping @Sendable (AudioInputEvent) -> Void) throws
-    /// Stops the engine. Waits for a handler call in progress, so never call it while holding a lock the handler takes.
+    /// Stops the microphone. Waits for handler calls in progress or queued, so never call it while holding a lock the handler takes.
     func stop()
 }
 
