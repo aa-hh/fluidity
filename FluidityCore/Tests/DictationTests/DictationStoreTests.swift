@@ -99,6 +99,25 @@ func shortAudioIsPaddedToAReadableFLAC(sampleCount: Int) async throws {
     #expect(try AVAudioFile(forReading: folders.drive.appending(path: name)).length == 4_608)
 }
 
+// Turns red if the 300 ms of silence every recording begins with reaches the training clip, or if the
+// word timings are not moved to match the shorter clip.
+@Test func savedClipLeavesOutTheSilentLeadIn() async throws {
+    let folders = Folders()
+    try folders.mountDrive()
+    let leadIn = [Float](repeating: 0, count: 4_800)
+    var saved = record()
+    saved.wordTimings = [WordTiming(word: "hello", start: 0.5, end: 0.9)]
+
+    await StoreAdapter(store: folders.store())
+        .save(saved, recording: DictationController.Recording(samples: leadIn + tone, sampleRate: 16_000))
+
+    let name = try #require(folders.names(in: folders.drive).first { $0.hasSuffix(".flac") })
+    let audio = try AVAudioFile(forReading: folders.drive.appending(path: name))
+    #expect(audio.length == AVAudioFramePosition(tone.count))
+    let timing = try #require(try folders.lines(folders.drive.appending(path: "2026-10-22.jsonl")).first?.wordTimings.first)
+    #expect(abs(timing.start - 0.2) < 1e-9 && abs(timing.end - 0.6) < 1e-9)
+}
+
 // Turns red if save writes anywhere but the holding folder while the drive is missing, or creates the drive folder.
 @Test func saveHoldsTheDictationWhileTheDriveIsMissing() async throws {
     let folders = Folders()
