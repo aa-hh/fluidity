@@ -14,6 +14,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private let controller: DictationController
     private let settings: Settings
+    private let devices: CoreAudioDevices
     private let keychain: Keychain
     private let store: DictationStore
     private let storeChanges: AsyncStream<Void>
@@ -49,8 +50,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         ]
         let downloads = ModelDownloads(fetcher: FluidAudioModelFetcher(), network: NetworkMonitor())
         let settingsModel = SettingsModel(shortcuts: settings)
+        let devices = CoreAudioDevices()
         // The one microphone capture, shared by dictation and the compare window.
-        let audioCapture = AudioCapture(input: CoreAudioInput())
+        let audioCapture = AudioCapture(input: CoreAudioInput {
+            Microphones.resolve(saved: settings.microphone, devices: devices.microphones(), defaultInput: devices.defaultInputUID())
+                .uid.flatMap(devices.device(uid:))
+        })
         let models = ModelCoordinator(
             chosenModel: { settings.speechModel },
             setChosenModel: {
@@ -91,6 +96,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             wordListVersion: { settings.wordListVersion }
         )
         self.settings = settings
+        self.devices = devices
         self.keychain = keychain
         self.permissions = permissions
         self.store = store
@@ -110,6 +116,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         wireSettings()
         wirePopover()
         refreshSettingsModel()
+        devices.watch { [unowned self] in refreshMicrophones() }
         menuBarItem = MenuBarItem(model: popoverModel, settings: settingsModel) { [unowned self] in
             refreshSettingsModel()
             await reloadRecords()
@@ -203,6 +210,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             settings.liveWords = choice
             PillPresenter.shared.liveWords = choice
         }
+        model.onMicrophoneChange = { settings.microphone = $0 }
         model.onCleanupEnabledChange = { on in
             settings.isCleanupEnabled = on
             controller.refreshMenuBar()
@@ -272,7 +280,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    /// Copies `Settings`, the keychain, launch at login and the permissions into the windows' model.
+    /// Copies `Settings`, the keychain, launch at login, the microphones and the permissions into the windows' model.
     private func refreshSettingsModel() {
         let model = settingsModel
         model.launchAtLogin = SMAppService.mainApp.status == .enabled
@@ -284,7 +292,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let key = try? keychain.get()
         model.apiKey = key ?? ""
         model.cleanupKey = key == nil ? .noKey : .accepted
+        refreshMicrophones()
         refreshPermissions()
+    }
+
+    /// Lists the microphones for the windows, and resets a saved choice whose microphone is gone to Automatic.
+    private func refreshMicrophones() {
+        let list = devices.microphones()
+        settingsModel.microphones = list
+        if Microphones.resolve(saved: settings.microphone, devices: list, defaultInput: devices.defaultInputUID()).clearsSaved {
+            settings.microphone = nil
+        }
+        settingsModel.chosenMicrophone = settings.microphone
     }
 
     private func refreshPermissions() {
