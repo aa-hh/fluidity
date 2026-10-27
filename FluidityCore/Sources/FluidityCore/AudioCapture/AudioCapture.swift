@@ -130,32 +130,33 @@ public final class AudioCapture: Sendable {
             }
             ceiling.cancel()
         }
-        let recording = state.withLock { s in
+        let recording = clearingAndStoppingInput { s in
             guard let r = s.recording, r.ended else { return AudioRecording(samples: []) }
             s.recording = nil
             return AudioRecording(samples: r.samples)
         }
-        stopInput()
         log.notice("capture stop: returning \(recording.samples.count, privacy: .public) samples (ceiling task used=\(ceiling != nil, privacy: .public))")
         return recording
     }
 
     /// Drops the recording without returning it, and stops the input.
     public func cancel() {
-        state.withLock { s in
+        clearingAndStoppingInput { s in
             endRecording(&s)
             s.recording = nil
         }
-        stopInput()
     }
 
-    private func stopInput() {
+    /// Runs `body` on the state and stops the input in one `control` hold, so a `start()` cannot land
+    /// between clearing the recording and stopping the input, which would stop the new recording's input.
+    private func clearingAndStoppingInput<T>(_ body: (inout State) -> T) -> T {
         control.withLock { _ in
-            let wasRunning = state.withLock { s in
+            let (result, wasRunning) = state.withLock { s in
                 defer { s.running = false }
-                return s.running
+                return (body(&s), s.running)
             }
             if wasRunning { log.notice("capture: stopping input"); input.stop() }
+            return result
         }
     }
 

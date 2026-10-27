@@ -137,7 +137,13 @@ public final class CoreAudioInput: AudioInput, @unchecked Sendable {
             return
         }
         do {
-            let built = try InputUnit.make(device: device) { [weak self] in self?.received($0) }
+            let built = try InputUnit.make(device: device) { [weak self] in
+                self?.received($0)
+            } onFailure: { [weak self] status in
+                // A format change mid-recording makes every render fail, so the recording ends as lost.
+                guard let self else { return }
+                queue.async { self.inputChanged("audio render failed (\(status))") }
+            }
             unit = built
             let block: AudioObjectPropertyListenerBlock = { [weak self] _, _ in self?.inputChanged("input device went away") }
             var address = propertyAddress(kAudioDevicePropertyDeviceIsAlive)
@@ -160,18 +166,24 @@ private final class InputUnit: @unchecked Sendable {
     /// Filled on the I/O thread; each render is copied out before `onBuffer`.
     private let buffer: AVAudioPCMBuffer
     private let onBuffer: (AVAudioPCMBuffer) -> Void
+    /// Called on the I/O thread on the first failed render only.
+    private let onFailure: (OSStatus) -> Void
+    /// Touched only on the I/O thread.
+    private var failed = false
 
     private init(audioUnit: AudioUnit, device: AudioDeviceID, format: AVAudioFormat, buffer: AVAudioPCMBuffer,
-                 onBuffer: @escaping (AVAudioPCMBuffer) -> Void) {
+                 onBuffer: @escaping (AVAudioPCMBuffer) -> Void, onFailure: @escaping (OSStatus) -> Void) {
         self.audioUnit = audioUnit
         self.device = device
         self.name = deviceName(device)
         self.format = format
         self.buffer = buffer
         self.onBuffer = onBuffer
+        self.onFailure = onFailure
     }
 
-    static func make(device: AudioDeviceID, onBuffer: @escaping (AVAudioPCMBuffer) -> Void) throws -> InputUnit {
+    static func make(device: AudioDeviceID, onBuffer: @escaping (AVAudioPCMBuffer) -> Void,
+                     onFailure: @escaping (OSStatus) -> Void) throws -> InputUnit {
         var description = AudioComponentDescription(
             componentType: kAudioUnitType_Output, componentSubType: kAudioUnitSubType_HALOutput,
             componentManufacturer: kAudioUnitManufacturer_Apple, componentFlags: 0, componentFlagsMask: 0)
@@ -195,7 +207,8 @@ private final class InputUnit: @unchecked Sendable {
             guard let format = AVAudioFormat(streamDescription: &client),
                   let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: max(maxFrames, 4096))
             else { throw CoreAudioInput.Failure.noInputDevice }
-            let unit = InputUnit(audioUnit: audioUnit, device: device, format: format, buffer: buffer, onBuffer: onBuffer)
+            let unit = InputUnit(audioUnit: audioUnit, device: device, format: format, buffer: buffer,
+                                 onBuffer: onBuffer, onFailure: onFailure)
             let callback = AURenderCallbackStruct(inputProc: renderInput, inputProcRefCon: Unmanaged.passUnretained(unit).toOpaque())
             try setProperty(audioUnit, kAudioOutputUnitProperty_SetInputCallback, kAudioUnitScope_Global, 0, callback)
             try check(AudioUnitInitialize(audioUnit))
@@ -223,10 +236,11 @@ private final class InputUnit: @unchecked Sendable {
     /// On the I/O thread.
     func render(_ flags: UnsafeMutablePointer<AudioUnitRenderActionFlags>, _ timeStamp: UnsafePointer<AudioTimeStamp>,
                 _ bus: UInt32, _ frames: UInt32) -> OSStatus {
-        guard frames <= buffer.frameCapacity else { return kAudioUnitErr_TooManyFramesToProcess }
+        guard frames <= buffer.frameCapacity else { return fail(kAudioUnitErr_TooManyFramesToProcess) }
         buffer.frameLength = frames
         let status = AudioUnitRender(audioUnit, flags, timeStamp, bus, frames, buffer.mutableAudioBufferList)
-        guard status == noErr, let copy = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frames),
+        guard status == noErr else { return fail(status) }
+        guard let copy = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frames),
               let to = copy.floatChannelData else { return status }
         copy.frameLength = frames
         // Reads the buffer list, not `floatChannelData`, in case the render pointed it at the unit's own memory.
@@ -237,6 +251,14 @@ private final class InputUnit: @unchecked Sendable {
         }
         onBuffer(copy)
         return noErr
+    }
+
+    private func fail(_ status: OSStatus) -> OSStatus {
+        if !failed {
+            failed = true
+            onFailure(status)
+        }
+        return status
     }
 }
 
@@ -250,15 +272,16 @@ private func check(_ status: OSStatus) throws {
 
 private func setProperty<T>(_ unit: AudioUnit, _ property: AudioUnitPropertyID, _ scope: AudioUnitScope,
                             _ element: AudioUnitElement, _ value: T) throws {
-    var value = value
-    try check(AudioUnitSetProperty(unit, property, scope, element, &value, UInt32(MemoryLayout<T>.size)))
+    try check(withUnsafePointer(to: value) {
+        AudioUnitSetProperty(unit, property, scope, element, $0, UInt32(MemoryLayout<T>.size))
+    })
 }
 
 private func getProperty<T>(_ unit: AudioUnit, _ property: AudioUnitPropertyID, _ scope: AudioUnitScope,
                             _ element: AudioUnitElement, _ initial: T) throws -> T {
     var value = initial
     var size = UInt32(MemoryLayout<T>.size)
-    try check(AudioUnitGetProperty(unit, property, scope, element, &value, &size))
+    try check(withUnsafeMutablePointer(to: &value) { AudioUnitGetProperty(unit, property, scope, element, $0, &size) })
     return value
 }
 
