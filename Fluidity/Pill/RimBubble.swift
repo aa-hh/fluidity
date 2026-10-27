@@ -8,7 +8,7 @@ import Foundation
 /// `makeFlux`, `updateFlux` and `fluxGeom` in the prototype's rim.js.
 nonisolated struct RimBubble {
     enum Kind: Equatable {
-        /// A transcript waits; hovering shows a send arrow.
+        /// A transcript waits; the bubble shows a send arrow.
         case send
         /// The microphone stopped; the bubble shows a crossed-out mic.
         case microphone
@@ -219,11 +219,9 @@ nonisolated struct RimBubble {
         let canHover = waitingKind != nil && self.isWaiting
         let hoverNow: Float = canHover ? max(self.hoverTarget, self.flash > 0 ? 1 : 0) : 0
         self.hover += (hoverNow - self.hover) * rimEase(dt, hoverNow > self.hover ? 0.09 : 0.16)
-        // The transcript's arrow shows on hover; the mic always shows, brighter on hover.
+        // The arrow, mic and lock always show, brighter on hover.
         let iconTarget: Float
-        if self.kind == .send {
-            iconTarget = hoverNow
-        } else if self.kind == .loading {
+        if self.kind == .loading {
             // Reduce Motion: the arc does not turn; it fades between 40% and 72% over the line's 1.5 s breath.
             let rest: Float = reduced ? 0.56 + 0.16 * sin(2 * .pi * self.clock / p.pulsePeriod) : 0.72
             // The arc fades as the bubble slides back, so it never shows inside the pill.
