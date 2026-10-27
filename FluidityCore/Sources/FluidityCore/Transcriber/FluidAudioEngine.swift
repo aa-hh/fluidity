@@ -1,5 +1,8 @@
 import FluidAudio
 import Foundation
+import OSLog
+
+private let log = Logger(subsystem: "com.fluidity.app", category: "models")
 
 /// Parakeet TDT v2 for every pass, Silero voice detection, and the Parakeet CTC 110M word-list recheck, from FluidAudio.
 public actor FluidAudioEngine: SpeechEngine, VoiceDetecting, WordListRechecking {
@@ -12,21 +15,31 @@ public actor FluidAudioEngine: SpeechEngine, VoiceDetecting, WordListRechecking 
     private var ctc: CtcModels?
     private var boosting: (wordList: [String], session: VocabularyBoostingSession)?
     private let asrLoads = SingleFlight()
+    private let vadLoads = SingleFlight()
     private let supportLoads = SingleFlight()
 
     public init() {}
 
     /// FluidAudio caches the models under Application Support, so only the first launch downloads them.
     public func load(progress: @escaping @Sendable (Double) -> Void) async throws {
-        // Silero takes 0.05 of the bar, CTC 0.15 and TDT v2 the last 0.8.
-        try await loadSupport { progress(0.2 * $0) }
+        // Silero takes 0.05 of the bar and TDT v2 the rest.
+        try await vadLoads.run { try await self.loadVAD { progress(0.05 * $0) } }
         try await asrLoads.run { try await self.loadASR(progress: progress) }
         progress(1)
+        // CTC 110M only feeds the word-list recheck, which skips until it lands, so dictation does not wait for
+        // its Neural Engine compile (about 25 s whenever macOS has purged the saved one).
+        Task {
+            do {
+                try await self.loadSupport { _ in }
+            } catch {
+                log.error("CTC 110M load failed: \(String(describing: error), privacy: .public)")
+            }
+        }
     }
 
     private func loadASR(progress: @escaping @Sendable (Double) -> Void) async throws {
         guard asr == nil else { return }
-        let models = try await AsrModels.downloadAndLoad(version: .v2) { progress(0.2 + 0.8 * $0.fractionCompleted) }
+        let models = try await AsrModels.downloadAndLoad(version: .v2) { progress(0.05 + 0.95 * $0.fractionCompleted) }
         asr = AsrManager(config: .default, models: models)
     }
 
@@ -36,13 +49,16 @@ public actor FluidAudioEngine: SpeechEngine, VoiceDetecting, WordListRechecking 
     }
 
     private func loadSupportOnce(progress: @escaping @Sendable (Double) -> Void) async throws {
-        if vad == nil {
-            vad = try await VadManager(progressHandler: { progress(0.25 * $0.fractionCompleted) })
-        }
+        try await vadLoads.run { try await self.loadVAD { progress(0.25 * $0) } }
         if ctc == nil {
             ctc = try await CtcModels.downloadAndLoad()
         }
         progress(1)
+    }
+
+    private func loadVAD(progress: @escaping @Sendable (Double) -> Void) async throws {
+        guard vad == nil else { return }
+        vad = try await VadManager(progressHandler: { progress($0.fractionCompleted) })
     }
 
     /// Drops Parakeet TDT v2 only; Silero and CTC stay, since every speech model uses them.
