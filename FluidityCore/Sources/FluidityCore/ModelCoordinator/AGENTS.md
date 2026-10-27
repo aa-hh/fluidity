@@ -28,4 +28,4 @@ its own, except the launch fallback when the chosen one is gone.
 
 - `ModelCoordinator` → launch choice, switching, compare loads and unloads.
 - `ModelLoadProgress` → which launch load is running, and its download.
-- `LoadingGrid` → when each of the pill's 32 loading squares lights.
+- `LoadingGrid` → when each of the pill's 12 loading squares lights.

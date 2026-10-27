@@ -35,9 +35,11 @@ nonisolated enum RimUniform {
     static let waveAmount = 116, waveOpacity = 117, waveHeight = 118, wave = 119
     /// The bubble's centre below the pill's (negative is above), its corner cap and how bright its ring is.
     static let bubbleY = RimUniform.wave + RimWaveform.sampleCount, bubbleRadius = RimUniform.bubbleY + 1, bubbleLight = RimUniform.bubbleY + 2
-    /// Whether the centre line shows as disabled, and the loading bubble's 32 squares, one light level each in fill order.
+    /// Whether the centre line shows as disabled, the loading bubble's 12 squares, one fill level each in fill order,
+    /// and the grid's blue as three sRGB floats, 0...1.
     static let lineDisabled = RimUniform.bubbleLight + 1, loadingGrid = RimUniform.bubbleLight + 2
-    static let count = RimUniform.loadingGrid + 32
+    static let loadingColour = RimUniform.loadingGrid + 12
+    static let count = RimUniform.loadingColour + 3
 
     static let maxBlooms = 6
     static let maxLineBlooms = 4
@@ -140,8 +142,8 @@ nonisolated struct RimSimulation {
     var problem: RimBubble.Kind = .microphone
     /// The speech model is still loading: a bubble with a grid of squares waits beside the pill and the centre line shows as disabled.
     var modelLoading = false
-    /// The loading grid's light level for each of its 32 squares, 0...1, in fill order.
-    var loadingLights = [Float](repeating: 0.18, count: 32)
+    /// The loading grid's fill level for each of its 12 squares, 0...1, in fill order.
+    var loadingLights = [Float](repeating: 0, count: 12)
 
     /// Live words go in the pill, so it shows no waveform while listening.
     var liveWordsInPill = false
@@ -553,7 +555,11 @@ nonisolated struct RimSimulation {
         u[RimUniform.hoverGlow] = p.hoverGlow
         u[RimUniform.iconKind] = self.bubble.kind.icon
         for index in 0..<self.loadingLights.count { u[RimUniform.loadingGrid + index] = self.loadingLights[index] }
-        // Switches at once when the model is ready, as ivory turns mint at once.
+        let blue = RimParameters.loadingGrid
+        u[RimUniform.loadingColour] = Float((blue >> 16) & 0xff) / 255
+        u[RimUniform.loadingColour + 1] = Float((blue >> 8) & 0xff) / 255
+        u[RimUniform.loadingColour + 2] = Float(blue & 0xff) / 255
+        // Switches off at once, with no ease, when the grid is done and the bubble starts back.
         u[RimUniform.lineDisabled] = self.modelLoading ? 1 : 0
         u[RimUniform.melt] = self.meltAmount
         u[RimUniform.meltSigma] = p.blobRadius * h / RimSpring.islandHeight

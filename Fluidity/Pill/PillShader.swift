@@ -77,7 +77,8 @@ nonisolated enum PillShader {
     #define U_BUBBLE_LIGHT 185
     #define U_LINE_DISABLED 186
     #define U_LOADING_GRID 187
-    #define U_COUNT 219
+    #define U_LOADING_COLOUR 199
+    #define U_COUNT 202
 
     constant float TAU = 6.28318530718;
     constant float PI_F = 3.14159265359;
@@ -377,23 +378,29 @@ nonisolated enum PillShader {
         colour += innerC * innerA * bodyA;
         if (u[U_ICON] > 0.01 && u[U_BUBBLE + 1] > 0.01) {
             float iconA = 0.0;
+            float3 iconC;
             if (u[U_ICON_KIND] > 2.5) {
-                // The loading grid: 32 squares of 2 pt at a 2.8 pt pitch, rows of 4, 6, 6, 6, 6, 4 from the bottom,
-                // centred on the bubble. The lengths are for the 28 pt pill and scale with the pill's height.
-                // Every row's squares sit on one 6 x 6 lattice; the bottom and top rows leave out its corners.
+                // The loading grid: 12 squares of 5 pt at a 6.7 pt pitch, rows of 2, 4, 4, 2 from the bottom, centred
+                // on the bubble. The lengths are for the 28 pt pill and scale with the pill's height. Every square is
+                // a 1 pt outline inside its edge, filled to its own level (0 dark inside, 1 solid), all in one sRGB blue.
                 float k = u[U_PILL_H] / 28.0;
-                float pitch = 2.8 * k;
-                int row = clamp(int(floor(3.0 - pb.y / pitch)), 0, 5);  // 0 is the bottom row; y grows downward
-                int column = clamp(int(floor(pb.x / pitch + 3.0)), 0, 5);
-                bool shortRow = row == 0 || row == 5;
+                float pitch = 6.7 * k;
+                float stroke = 1.0 * k;
+                iconC = float3(u[U_LOADING_COLOUR], u[U_LOADING_COLOUR + 1], u[U_LOADING_COLOUR + 2]);
+                int row = clamp(int(floor(2.0 - pb.y / pitch)), 0, 3);  // 0 is the bottom row; y grows downward
+                int column = clamp(int(floor(pb.x / pitch + 2.0)), 0, 3);
+                bool shortRow = row == 0 || row == 3;
                 int c = shortRow ? column - 1 : column;
-                int count = shortRow ? 4 : 6;
-                if (c >= 0 && c < count) {
-                    float2 centre = float2((float(c) - 0.5 * float(count - 1)) * pitch, (2.5 - float(row)) * pitch);
-                    float2 q = abs(pb - centre) - 1.0 * k;
+                int count = shortRow ? 2 : 4;
+                if (c >= 0 && c < count) {  // the short rows leave out the outer columns
+                    float2 centre = float2((float(c) - 0.5 * float(count - 1)) * pitch, (1.5 - float(row)) * pitch);
+                    float2 q = abs(pb - centre) - 2.5 * k;
                     float dSquare = length(max(q, 0.0)) + min(max(q.x, q.y), 0.0);
-                    int index = (row == 0 ? 0 : 6 * row - 2) + c;  // row starts 0, 4, 10, 16, 22, 28
-                    iconA = (1.0 - smoothstep(-aa, aa, dSquare)) * u[U_LOADING_GRID + index] * u[U_ICON] * bodyA;
+                    int index = (row == 0 ? 0 : 4 * row - 2) + c;  // row starts 0, 2, 6, 10
+                    float inner = smoothstep(-stroke - aa, -stroke + aa, dSquare);
+                    float outline = inner * (1.0 - smoothstep(-aa, aa, dSquare));
+                    float fill = 1.0 - inner;
+                    iconA = (outline + fill * u[U_LOADING_GRID + index]) * u[U_ICON] * bodyA;
                 }
             } else {
                 // The bubble's icon, like an SF Symbol: a 1.6 pt stroke with round caps.
@@ -402,8 +409,9 @@ nonisolated enum PillShader {
                 float dIcon = iconDistance(a, u[U_ICON_KIND]);
                 float stroke = 0.8 / iconRadius, edge = aa / iconRadius;
                 iconA = (1.0 - smoothstep(stroke - edge, stroke + edge, dIcon)) * u[U_ICON] * bodyA;
+                iconC = whiten(tint(u, hueB, 0.9), 0.3);
             }
-            colour = colour * (1.0 - iconA) + whiten(tint(u, hueB, 0.9), 0.3) * iconA;
+            colour = colour * (1.0 - iconA) + iconC * iconA;
         }
         colour += haloC * halo;
         alpha = min(1.0, alpha + halo);

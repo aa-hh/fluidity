@@ -1,10 +1,10 @@
 import Foundation
 
-/// When each of the pill's 32 loading squares lights, from the launch load's reports. Every call takes `now`, the
+/// When each of the pill's 12 loading squares lights, from the launch load's reports. Every call takes `now`, the
 /// time since the first report; squares only ever add, and each keeps the time it was scheduled for, so a grid
 /// updated after a pause catches up with past times instead of flashing.
 public struct LoadingGrid: Sendable {
-    public static let squareCount = 32
+    public static let squareCount = 12
 
     /// How a square comes on: a flicker, at most one a second, or a plain fade.
     public enum Arrival: Equatable, Sendable { case flicker, fade }
@@ -20,7 +20,7 @@ public struct LoadingGrid: Sendable {
     public var litCount: Int { lit.count }
     /// True once a report says every load has finished.
     public private(set) var isFinishing = false
-    /// When the 32nd square lights, once it is scheduled.
+    /// When the last square lights, once it is scheduled.
     public private(set) var allLitAt: Duration?
 
     private let reduceMotion: Bool
@@ -28,7 +28,7 @@ public struct LoadingGrid: Sendable {
     private var owned: [Int] = []
     /// How long each load usually takes, which paces its estimate.
     private var typical: [Duration] = []
-    /// Squares the speech model's download owns: 16 when the launch downloads it, else 0.
+    /// Squares the speech model's download owns: 6 when the launch downloads it, else 0.
     private var downloadOwned = 0
     /// The load running now; equals `owned.count` once all are done.
     private var running = 0
@@ -48,7 +48,7 @@ public struct LoadingGrid: Sendable {
     private static let burstSpacing = Duration.milliseconds(40)
     private static let flickerGap = Duration.seconds(1)
     private static let batchGap = Duration.milliseconds(500)
-    private static let downloadSquares = 16
+    private static let downloadSquares = 6
 
     public init(reduceMotion: Bool) {
         self.reduceMotion = reduceMotion
@@ -59,9 +59,9 @@ public struct LoadingGrid: Sendable {
             let two = progress.stepCount == 2
             if progress.needsDownload {
                 downloadOwned = Self.downloadSquares
-                owned = two ? [2, 14] : [2, 6, 8]
+                owned = two ? [1, 5] : [1, 2, 3]
             } else {
-                owned = two ? [4, 28] : [4, 12, 16]
+                owned = two ? [2, 10] : [2, 4, 6]
             }
             typical = two ? [.seconds(1), .seconds(30)] : [.seconds(1), .seconds(25), .seconds(30)]
             stepStart = estimateWaitsForDownload ? nil : now
@@ -127,7 +127,7 @@ public struct LoadingGrid: Sendable {
         return now - last >= Self.flickerGap ? last + Self.flickerGap : nil
     }
 
-    /// True 260 ms after the 32nd square lights.
+    /// True 260 ms after the last square lights.
     public func isDone(at now: Duration) -> Bool {
         guard let allLitAt else { return false }
         return now >= allLitAt + .milliseconds(260)
