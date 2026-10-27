@@ -16,44 +16,60 @@ public actor FluidAudioEngine: SpeechEngine, VoiceDetecting, WordListRechecking 
     private var boosting: (wordList: [String], session: VocabularyBoostingSession)?
     private let asrLoads = SingleFlight()
     private let vadLoads = SingleFlight()
-    private let supportLoads = SingleFlight()
+    private let ctcLoads = SingleFlight()
 
     public init() {}
 
+    /// Loads Silero then Parakeet TDT v2, reporting TDT v2's download alone from 0 to 1, not its compile;
     /// FluidAudio caches the models under Application Support, so only the first launch downloads them.
     public func load(progress: @escaping @Sendable (Double) -> Void) async throws {
-        // Silero takes 0.05 of the bar and TDT v2 the rest.
-        try await vadLoads.run { try await self.loadVAD { progress(0.05 * $0) } }
+        try await vadLoads.run { try await self.loadVAD { _ in } }
         try await asrLoads.run { try await self.loadASR(progress: progress) }
         progress(1)
         // CTC 110M only feeds the word-list recheck, which skips until it lands, so dictation does not wait for
         // its Neural Engine compile (about 25 s whenever macOS has purged the saved one).
         Task {
             do {
-                try await self.loadSupport { _ in }
+                try await self.loadWordCheck()
             } catch {
                 log.error("CTC 110M load failed: \(String(describing: error), privacy: .public)")
             }
         }
     }
 
+    /// FluidAudio counts each model file's download as 0 to 0.5 of its fraction and the compile as 0.5 to 1.
+    private static let downloadPhaseWeight = 0.5
+
     private func loadASR(progress: @escaping @Sendable (Double) -> Void) async throws {
         guard asr == nil else { return }
-        let models = try await AsrModels.downloadAndLoad(version: .v2) { progress(0.05 + 0.95 * $0.fractionCompleted) }
+        // FluidAudio restarts its fraction for every model file, so send the highest download value so far:
+        // the first-run window's bar reads it and must never move back.
+        let downloaded = OSAllocatedUnfairLock(initialState: 0.0)
+        let models = try await AsrModels.downloadAndLoad(version: .v2) { report in
+            downloaded.withLock { last in
+                switch report.phase {
+                case .downloading: last = max(last, min(1, report.fractionCompleted / Self.downloadPhaseWeight))
+                case .compiling: last = 1
+                case .listing: break
+                }
+                progress(last)
+            }
+        }
         asr = AsrManager(config: .default, models: models)
     }
 
-    /// Loads only Silero and CTC 110M, which every speech model needs for the voice check and the word-list recheck.
-    public func loadSupport(progress: @escaping @Sendable (Double) -> Void) async throws {
-        try await supportLoads.run { try await self.loadSupportOnce(progress: progress) }
+    /// Loads Silero, which every speech model needs for the voice check.
+    public func loadVoiceDetector() async throws {
+        try await vadLoads.run { try await self.loadVAD { _ in } }
     }
 
-    private func loadSupportOnce(progress: @escaping @Sendable (Double) -> Void) async throws {
-        try await vadLoads.run { try await self.loadVAD { progress(0.25 * $0) } }
-        if ctc == nil {
-            ctc = try await CtcModels.downloadAndLoad()
-        }
-        progress(1)
+    /// Loads CTC 110M, which every speech model needs for the word-list recheck.
+    public func loadWordCheck() async throws {
+        try await ctcLoads.run { try await self.loadCTC() }
+    }
+
+    private func loadCTC() async throws {
+        if ctc == nil { ctc = try await CtcModels.downloadAndLoad() }
     }
 
     private func loadVAD(progress: @escaping @Sendable (Double) -> Void) async throws {

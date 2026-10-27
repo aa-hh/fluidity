@@ -46,13 +46,29 @@ final class PillPresenter {
     var liveWords: LiveWords = .inPill {
         didSet { self.fitPanel() }
     }
-    /// The speech model is still loading: while the pill shows, a bubble with a turning arc waits
-    /// beside it and the centre line is dim and grey until the model is ready.
+    /// The speech model is still loading: while the pill shows, a bubble with the loading grid waits
+    /// beside it and the centre line is dim and grey. Once loading ends, the bubble stays until the
+    /// grid has filled, or goes at once when the load failed.
     var isModelLoading = false {
         didSet {
-            self.simulation.modelLoading = self.isModelLoading
+            if self.isModelLoading { self.simulation.modelLoading = true }
             self.wake()
         }
+    }
+    /// Which loading-grid squares have lit, from the launch load's reports.
+    private var grid: LoadingGrid?
+    /// When the first report came; the grid's clock counts from it.
+    private var loadStartedAt: CFTimeInterval = 0
+
+    /// One report from the launch load; the loading bubble's squares follow it.
+    func reportModelLoad(_ progress: ModelLoadProgress) {
+        if self.grid == nil || progress.step == 0 {
+            self.grid = LoadingGrid(reduceMotion: NSWorkspace.shared.accessibilityDisplayShouldReduceMotion)
+            self.loadStartedAt = CACurrentMediaTime()
+        }
+        self.grid?.report(progress, at: .seconds(CACurrentMediaTime() - self.loadStartedAt))
+        if progress.isDone { self.isModelLoading = false }
+        self.wake()
     }
 
     /// Splits the microphone's audio into the rim's voice bands.
@@ -345,6 +361,16 @@ final class PillPresenter {
         self.simulation.wordsShown = self.liveWords == .inPill && self.words.hasWords
         self.simulation.wordsAbove = self.wordsAboveTarget
         self.simulation.wordsGap = RimWordsBubble.gap * Float(self.words.scale)
+        let loadTime = Duration.seconds(now - self.loadStartedAt)
+        self.grid?.update(at: loadTime)
+        if let grid = self.grid {
+            self.simulation.loadingLights = RimLoadingGrid.lights(grid: grid, at: loadTime, reduced: self.reduceMotion)
+            self.simulation.modelLoading = self.isModelLoading || (grid.isFinishing && !grid.isDone(at: loadTime))
+        }
+        if !self.isModelLoading, self.grid?.isDone(at: loadTime) ?? true {
+            self.simulation.modelLoading = false
+            self.grid = nil
+        }
         self.simulation.update(
             dt: dt, state: self.state, features: features, reduced: self.reduceMotion, pill: self.words.pillSize(base: RimParameters.pillSize)
         )

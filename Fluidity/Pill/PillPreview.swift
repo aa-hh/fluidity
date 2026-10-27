@@ -6,7 +6,7 @@ import FluidityCore
 /// Launch with `FLUIDITY_PILL_PREVIEW` set to listening, finishing, cleaning,
 /// pasted, pastedRawTranscript, nowhereToPaste, cancelled, microphoneMissing,
 /// accessibilityMissing, micSilent, recordingLimitNear,
-/// recordingStoppedAtLimit or modelLoading, and optionally `FLUIDITY_PILL_WORDS` to inPill,
+/// recordingStoppedAtLimit, modelLoading or modelLoadingDownload, and optionally `FLUIDITY_PILL_WORDS` to inPill,
 /// above or off. Most states follow two seconds of made-up speech; pasted and
 /// cancelled repeat every five seconds. A click on the retry bubble fails.
 @MainActor
@@ -17,8 +17,8 @@ enum PillPreview {
         var repeatsEvery: Double?
         /// The made-up voice: silent after the listening part, or still speaking.
         var speaksAfter: Bool?
-        /// Seconds from the start during which the speech model is still loading.
-        var loadingUntil: Double?
+        /// The launch load's reports, at seconds from the start; the speech model loads from 0 until the done report.
+        var loads: [(at: Double, progress: ModelLoadProgress)] = []
     }
 
     private static let sentence = "so this is how the words look while you are still talking to the pill".split(separator: " ")
@@ -26,6 +26,7 @@ enum PillPreview {
     private static var script = Script()
     private static var startedAt = Date()
     private static var nextStep = 0
+    private static var nextLoad = 0
     private static var sample = 0
 
     static func startIfAsked() {
@@ -62,7 +63,21 @@ enum PillPreview {
         case "recordingLimitNear": return Script(then: [(0, .recordingLimitNear)], speaksAfter: true)
         case "recordingStoppedAtLimit": return Script(then: [(0, .recordingStoppedAtLimit)])
         case "modelLoading":
-            return Script(then: [(0, .finishing), (2.8, .pasted(text: pasted)), (3.4, .hidden)], repeatsEvery: 7, loadingUntil: 4.5)
+            let load = { (step: Int) in ModelLoadProgress(step: step, stepCount: 2, needsDownload: false, downloaded: nil) }
+            return Script(
+                then: [(0, .finishing), (18.5, .pasted(text: pasted)), (19.1, .hidden)], repeatsEvery: 23,
+                loads: [(0, load(0)), (1, load(1)), (19, load(2))]
+            )
+        case "modelLoadingDownload":
+            let load = { (step: Int, downloaded: Double?) in
+                ModelLoadProgress(step: step, stepCount: 2, needsDownload: true, downloaded: downloaded)
+            }
+            // The download reports every tick from 1 s to 9 s.
+            let ramp = stride(from: 1.0, through: 9.0, by: Self.tick).map { (at: $0, progress: load(1, ($0 - 1) / 8)) }
+            return Script(
+                then: [(0, .finishing), (21.5, .pasted(text: pasted)), (22.1, .hidden)], repeatsEvery: 26,
+                loads: [(0, load(0, nil))] + ramp + [(22, load(2, nil))]
+            )
         default: return nil
         }
     }
@@ -70,6 +85,7 @@ enum PillPreview {
     private static func restart() {
         Self.startedAt = Date()
         Self.nextStep = 0
+        Self.nextLoad = 0
     }
 
     private static func step() {
@@ -80,7 +96,12 @@ enum PillPreview {
             t = 0
         }
         let listening = Self.script.listensFor ?? 0
-        let loading = Self.script.loadingUntil.map { t < $0 } ?? false
+        while Self.nextLoad < Self.script.loads.count, t >= Self.script.loads[Self.nextLoad].at {
+            pill.reportModelLoad(Self.script.loads[Self.nextLoad].progress)
+            Self.nextLoad += 1
+        }
+        let doneAt = Self.script.loads.first { $0.progress.isDone }?.at
+        let loading = doneAt.map { t < $0 } ?? false
         if pill.isModelLoading != loading { pill.isModelLoading = loading }
         if t < listening {
             // No live words come while the speech model loads.

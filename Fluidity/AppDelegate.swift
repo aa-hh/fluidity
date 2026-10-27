@@ -59,7 +59,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             },
             engines: engines,
             downloads: downloads,
-            loadSupport: { try await fluid.loadSupport { _ in } },
+            loadVoiceDetector: { try await fluid.loadVoiceDetector() },
+            loadWordCheck: { try await fluid.loadWordCheck() },
             makeTranscriber: { Transcriber(engine: $0, model: $1, voiceDetector: fluid, rechecker: fluid) },
             makeCompareSession: { CompareSession(audio: AudioCaptureAdapter(capture: audioCapture), makeTranscriber: $0) })
         let field = FieldContextAdapter(field: FocusedField())
@@ -393,15 +394,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func loadModel() async {
         PillPresenter.shared.isModelLoading = true
-        defer { PillPresenter.shared.isModelLoading = false }
         do {
             try await models.prepare { progress in
-                Task { @MainActor in self.firstRunModel.modelProgress = progress }
+                Task { @MainActor in
+                    self.firstRunModel.modelProgress = progress.downloadFraction
+                    PillPresenter.shared.reportModelLoad(progress)
+                }
             }
             firstRunModel.isModelReady = true
             UserDefaults.standard.set(true, forKey: Self.modelPreparedKey)
         } catch {
             Self.log.error("Loading the speech model failed: \(String(describing: error), privacy: .public)")
+            PillPresenter.shared.isModelLoading = false
             firstRunModel.modelError = "The download failed. Quit and reopen Fluidity to try again."
         }
     }

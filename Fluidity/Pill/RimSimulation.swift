@@ -35,9 +35,9 @@ nonisolated enum RimUniform {
     static let waveAmount = 116, waveOpacity = 117, waveHeight = 118, wave = 119
     /// The bubble's centre below the pill's (negative is above), its corner cap and how bright its ring is.
     static let bubbleY = RimUniform.wave + RimWaveform.sampleCount, bubbleRadius = RimUniform.bubbleY + 1, bubbleLight = RimUniform.bubbleY + 2
-    /// How far the bubble's loading arc has turned, and whether the centre line shows as disabled.
-    static let iconTurn = RimUniform.bubbleLight + 1, lineDisabled = RimUniform.bubbleLight + 2
-    static let count = RimUniform.lineDisabled + 1
+    /// Whether the centre line shows as disabled, and the loading bubble's 32 squares, one light level each in fill order.
+    static let lineDisabled = RimUniform.bubbleLight + 1, loadingGrid = RimUniform.bubbleLight + 2
+    static let count = RimUniform.loadingGrid + 32
 
     static let maxBlooms = 6
     static let maxLineBlooms = 4
@@ -138,8 +138,10 @@ nonisolated struct RimSimulation {
 
     /// What the amber pill's bubble holds: the lost mic's fix, or a lock for a revoked permission.
     var problem: RimBubble.Kind = .microphone
-    /// The speech model is still loading: a bubble with a turning arc waits beside the pill and the centre line shows as disabled.
+    /// The speech model is still loading: a bubble with a grid of squares waits beside the pill and the centre line shows as disabled.
     var modelLoading = false
+    /// The loading grid's light level for each of its 32 squares, 0...1, in fill order.
+    var loadingLights = [Float](repeating: 0.18, count: 32)
 
     /// Live words go in the pill, so it shows no waveform while listening.
     var liveWordsInPill = false
@@ -550,7 +552,7 @@ nonisolated struct RimSimulation {
         u[RimUniform.icon] = self.bubble.icon
         u[RimUniform.hoverGlow] = p.hoverGlow
         u[RimUniform.iconKind] = self.bubble.kind.icon
-        u[RimUniform.iconTurn] = self.bubble.turn
+        for index in 0..<self.loadingLights.count { u[RimUniform.loadingGrid + index] = self.loadingLights[index] }
         // Switches at once when the model is ready, as ivory turns mint at once.
         u[RimUniform.lineDisabled] = self.modelLoading ? 1 : 0
         u[RimUniform.melt] = self.meltAmount

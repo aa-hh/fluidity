@@ -20,7 +20,12 @@ its own, except the launch fallback when the chosen one is gone.
   one keeps the comparison from starting, by the key or by Speak Now.
 - **The in-use set reaches `ModelDownloads`,** which refuses to delete or
   download those models.
+- **The coordinator owns the launch steps** (voice detector, word check,
+  speech model) and their order, so a step reported to the pill is one the
+  user waits for.
 
 ## Map
 
 - `ModelCoordinator` → launch choice, switching, compare loads and unloads.
+- `ModelLoadProgress` → which launch load is running, and its download.
+- `LoadingGrid` → when each of the pill's 32 loading squares lights.

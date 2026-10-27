@@ -14,7 +14,7 @@ nonisolated struct RimBubble {
         case microphone
         /// A permission was turned off while the app ran; the bubble shows a lock.
         case lock
-        /// The speech model is still loading; the bubble shows a turning arc and takes no click.
+        /// The speech model is still loading; the bubble shows a grid of squares and takes no click.
         case loading
 
         /// Which icon the shader draws.
@@ -112,8 +112,6 @@ nonisolated struct RimBubble {
     private(set) var hover: Float = 0
     private var hoverTarget: Float = 0
     private(set) var icon: Float = 0
-    /// How far the loading arc has turned, 0...1; once a second, and still under Reduce Motion.
-    private(set) var turn: Float = 0
     /// Time left on a failed retry's soft orange.
     private(set) var failTime: Float = 0
 
@@ -159,7 +157,6 @@ nonisolated struct RimBubble {
             return
         }
         self.clock += dt
-        self.turn = self.kind == .loading && !reduced ? rimWrap(self.turn + dt) : 0
 
         if waitingKind != nil, self.mode == .split {
             if self.clock >= self.startsAt, self.bubbleProgress.phase < 0 {
@@ -222,10 +219,9 @@ nonisolated struct RimBubble {
         // The arrow, mic and lock always show, brighter on hover.
         let iconTarget: Float
         if self.kind == .loading {
-            // Reduce Motion: the arc does not turn; it fades between 40% and 72% over the line's 1.5 s breath.
-            let rest: Float = reduced ? 0.56 + 0.16 * sin(2 * .pi * self.clock / p.pulsePeriod) : 0.72
-            // The arc fades as the bubble slides back, so it never shows inside the pill.
-            iconTarget = self.isInPlace ? rest : 0
+            // The grid's squares carry their own light levels, with or without Reduce Motion.
+            // The grid fades as the bubble slides back, so it never shows inside the pill.
+            iconTarget = self.isInPlace ? 1 : 0
         } else if canHover {
             iconTarget = 0.72 + 0.28 * hoverNow
         } else {
