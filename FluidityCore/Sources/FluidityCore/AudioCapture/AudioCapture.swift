@@ -4,7 +4,7 @@ import os
 
 private let log = Logger(subsystem: "com.fluidity.app", category: "audio")
 
-/// One dictation's audio: 16 kHz mono Float32, from the pre-roll to the end of the tail.
+/// One dictation's audio: 16 kHz mono Float32, from the silent lead-in to the end of the tail.
 public struct AudioRecording: Equatable, Sendable {
     public var samples: [Float]
     public var duration: TimeInterval { Double(samples.count) / Double(AudioCapture.sampleRate) }
@@ -19,26 +19,27 @@ public enum AudioCaptureEvent: Equatable, Sendable {
     case limitNear
     /// The recording reached 20 minutes and has ended; call `stop()` to collect it.
     case limitReached
-    /// The device changed or the engine stopped; the recording has ended with what it had. Call `stop()` to collect it.
+    /// The device changed, went away or stopped delivering audio; the recording has ended with what it had. Call `stop()` to collect it.
     case inputLost
 }
 
 public enum AudioCaptureError: Error, Equatable {
-    /// `start()` was called before the previous recording was collected with `stop()` or dropped with `cancel()`.
+    /// `start()` was called before the previous recording was collected with `stop()`.
     case alreadyRecording
 }
 
-/// Records dictations from an `AudioInput`: 300 ms of pre-roll, a 200 ms tail, a 19/20 minute limit,
-/// a dead-microphone check, and an engine that stays running for 3 minutes after each dictation.
-/// Sample counts decide the pre-roll, tail and limits; the clock decides only the warm period and how long the tail may take.
+/// Records dictations from an `AudioInput`: 300 ms of silent lead-in, a 200 ms tail, a 19/20 minute limit
+/// and a dead-microphone check. The input runs only from `start()` until the recording is collected.
+/// Sample counts decide the tail and limits; the clock decides only how long the tail may take.
 public final class AudioCapture: Sendable {
     public static let sampleRate = 16_000
-    static let preRollSamples = sampleRate * 3 / 10
+    /// Silence before the first audio, so the speech model has a lead-in before the first word.
+    /// Audio from before the key press would need the microphone open all the time.
+    static let leadInSamples = sampleRate * 3 / 10
     static let tailSamples = sampleRate / 5
     static let silenceSamples = sampleRate * 5
     static let limitNearSamples = sampleRate * 60 * 19
     static let limitSamples = sampleRate * 60 * 20
-    static let warmPeriod = Duration.seconds(180)
     /// If the tail's audio has not arrived by then, stop returns what it has.
     static let tailCeiling = Duration.seconds(1)
 
@@ -67,10 +68,7 @@ public final class AudioCapture: Sendable {
     private struct State {
         var running = false
         var inputGeneration = 0
-        var preRoll: [Float] = []
         var recording: Recording?
-        var warmTimer: Task<Void, Never>?
-        var warmGeneration = 0
     }
 
     public init(input: any AudioInput, clock: any Clock<Duration> = ContinuousClock()) {
@@ -79,28 +77,21 @@ public final class AudioCapture: Sendable {
         (events, eventSink) = AsyncStream.makeStream()
     }
 
-    /// Whether the engine is running, so the microphone is in use.
-    public var isWarm: Bool { state.withLock { $0.running } }
-
-    /// Starts a recording and returns its audio as it arrives, beginning with the pre-roll when the engine is warm.
+    /// Starts the input and a recording, and returns its audio as it arrives, beginning with the silent lead-in.
     /// The stream finishes when the recording ends.
     public func start() throws -> AsyncStream<[Float]> {
         try control.withLock { _ throws(any Error) in
             let (stream, chunks) = AsyncStream<[Float]>.makeStream()
-            let generation = try state.withLock { s throws(AudioCaptureError) -> Int? in
+            let generation = try state.withLock { s throws(AudioCaptureError) -> Int in
                 guard s.recording == nil else { throw .alreadyRecording }
-                s.warmTimer?.cancel()
-                s.warmTimer = nil
-                s.warmGeneration += 1
-                if !s.preRoll.isEmpty { chunks.yield(s.preRoll) }
-                s.recording = Recording(samples: s.preRoll, chunks: chunks)
-                guard !s.running else { return nil }
+                let leadIn = [Float](repeating: 0, count: Self.leadInSamples)
+                chunks.yield(leadIn)
+                s.recording = Recording(samples: leadIn, chunks: chunks)
                 s.running = true
                 s.inputGeneration += 1
                 return s.inputGeneration
             }
-            log.notice("capture start: startingInput=\(generation != nil, privacy: .public)")
-            guard let generation else { return stream }
+            log.notice("capture start")
             do {
                 try input.start { [weak self] event in self?.receive(event, generation: generation) }
             } catch {
@@ -116,8 +107,8 @@ public final class AudioCapture: Sendable {
         }
     }
 
-    /// Ends the recording after 200 ms more audio and returns all of it. Returns at once if the recording
-    /// already ended on a limit or lost input, and returns an empty recording if none was started.
+    /// Ends the recording after 200 ms more audio, stops the input and returns all of it. Returns at once if the
+    /// recording already ended on a limit or lost input, and returns an empty recording if none was started.
     nonisolated(nonsending) public func stop() async -> AudioRecording {
         // Marks the release point before the first suspension, so audio arriving after this call is the tail.
         let ceiling: Task<Void, Never>? = state.withLock { s in
@@ -139,21 +130,19 @@ public final class AudioCapture: Sendable {
             }
             ceiling.cancel()
         }
-        let recording = state.withLock { s in
-            guard let r = s.recording, r.ended else { return AudioRecording(samples: []) }
-            s.recording = nil
-            return AudioRecording(samples: r.samples)
+        // One `control` hold for clearing and stopping, so a `start()` cannot land between them
+        // and have its new input stopped.
+        let recording = control.withLock { _ in
+            let (recording, stopInput) = state.withLock { s in
+                guard let r = s.recording, r.ended else { return (AudioRecording(samples: []), false) }
+                defer { s.running = false; s.recording = nil }
+                return (AudioRecording(samples: r.samples), s.running)
+            }
+            if stopInput { log.notice("capture: stopping input"); input.stop() }
+            return recording
         }
         log.notice("capture stop: returning \(recording.samples.count, privacy: .public) samples (ceiling task used=\(ceiling != nil, privacy: .public))")
         return recording
-    }
-
-    /// Drops the recording without returning it.
-    public func cancel() {
-        state.withLock { s in
-            endRecording(&s)
-            s.recording = nil
-        }
     }
 
     private func receive(_ event: AudioInputEvent, generation: Int) {
@@ -164,16 +153,11 @@ public final class AudioCapture: Sendable {
                 let had = s.recording?.samples.count ?? -1
                 log.error("capture: input lost; recording had \(had, privacy: .public) samples")
                 s.running = false
-                s.preRoll = []
                 if let r = s.recording, !r.ended {
                     eventSink.yield(.inputLost)
                     endRecording(&s)
                 }
             case .samples(let samples):
-                s.preRoll.append(contentsOf: samples)
-                if s.preRoll.count > Self.preRollSamples {
-                    s.preRoll.removeFirst(s.preRoll.count - Self.preRollSamples)
-                }
                 record(samples, into: &s)
             }
         }
@@ -185,8 +169,8 @@ public final class AudioCapture: Sendable {
         s.recording = nil
         if !r.firstAudioLogged {
             r.firstAudioLogged = true
-            let zero = samples.allSatisfy { $0 == 0 }, held = r.samples.count
-            log.notice("capture: first audio for this recording, \(samples.count, privacy: .public) samples, allZero=\(zero, privacy: .public), preRollHeld=\(held, privacy: .public)")
+            let zero = samples.allSatisfy { $0 == 0 }
+            log.notice("capture: first audio for this recording, \(samples.count, privacy: .public) samples, allZero=\(zero, privacy: .public)")
         }
         if samples.allSatisfy({ $0 == 0 }) {
             r.zeroRun += samples.count
@@ -219,7 +203,7 @@ public final class AudioCapture: Sendable {
         }
     }
 
-    /// Ends the recording in place, keeping its samples for `stop()`, and starts the warm period.
+    /// Ends the recording in place, keeping its samples for `stop()`.
     private func endRecording(_ s: inout State) {
         guard var r = s.recording, !r.ended else { return }
         r.ended = true
@@ -227,24 +211,6 @@ public final class AudioCapture: Sendable {
         r.stopWaiter?.resume()
         r.stopWaiter = nil
         s.recording = r
-        guard s.running else { return }
-        s.warmGeneration += 1
-        let generation = s.warmGeneration
-        s.warmTimer?.cancel()
-        s.warmTimer = after(Self.warmPeriod) { [weak self] in self?.coolDown(generation) }
-    }
-
-    private func coolDown(_ generation: Int) {
-        control.withLock { _ in
-            let stopInput = state.withLock { s in
-                guard s.running, s.warmGeneration == generation, s.recording?.ended ?? true else { return false }
-                s.running = false
-                s.preRoll = []
-                s.warmTimer = nil
-                return true
-            }
-            if stopInput { log.notice("capture: warm period over, stopping input"); input.stop() }
-        }
     }
 
     private func after(_ delay: Duration, _ action: @escaping @Sendable () -> Void) -> Task<Void, Never> {

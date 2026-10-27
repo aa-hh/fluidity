@@ -20,7 +20,6 @@ enum MenuBarIcon {
         switch state {
         case .ready: "Fluidity"
         case .recording: "Fluidity, listening"
-        case .micWarm: "Fluidity, microphone kept ready"
         case .cleanupOff: "Fluidity, cleanup off"
         case .permissionMissing(.microphone): "Fluidity, microphone access is off"
         case .permissionMissing(.accessibility): "Fluidity, Accessibility access is off"
@@ -48,9 +47,6 @@ enum MenuBarIcon {
         context.strokePath()
 
         switch state {
-        case .micWarm:
-            context.addPath(capsule(CGRect(x: 4.25, y: 7.25, width: 9.5, height: 3.5)))
-            context.fillPath()
         case .cleanupOff:
             let dot = CGRect(x: 10.75, y: 10.25, width: 6.5, height: 6.5)
             context.setBlendMode(.clear)

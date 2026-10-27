@@ -16,9 +16,16 @@ public struct StoreAdapter: DictationStoring {
         self.didChange = didChange
     }
 
+    /// Leaves out the silence `AudioCapture` puts before every recording, which is there for the speech model
+    /// only, and moves the word timings to match the shorter clip.
     public func save(_ record: DictationRecord, recording: DictationController.Recording) async {
+        let shift = Double(AudioCapture.leadInSamples) / Double(AudioCapture.sampleRate)
+        var record = record
+        record.wordTimings = record.wordTimings.map {
+            WordTiming(word: $0.word, start: max(0, $0.start - shift), end: max(0, $0.end - shift))
+        }
         do {
-            try await store.save(record: record, audio: recording.samples)
+            try await store.save(record: record, audio: Array(recording.samples.dropFirst(AudioCapture.leadInSamples)))
         } catch {
             Self.log.error("Saving dictation \(record.id) failed: \(String(describing: error), privacy: .public)")
         }

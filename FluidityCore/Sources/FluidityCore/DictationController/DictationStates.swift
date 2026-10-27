@@ -27,8 +27,6 @@ public enum MenuBarState: Equatable, Sendable {
     case ready
     /// From key down until the paste or cancel.
     case recording
-    /// The 3 minutes after a dictation, while macOS still shows the microphone in use.
-    case micWarm
     /// Cleanup is switched off or has no key, so the raw transcript is pasted.
     case cleanupOff
     case permissionMissing(DictationController.Permission)

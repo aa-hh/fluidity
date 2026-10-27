@@ -50,7 +50,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let downloads = ModelDownloads(fetcher: FluidAudioModelFetcher(), network: NetworkMonitor())
         let settingsModel = SettingsModel(shortcuts: settings)
         // The one microphone capture, shared by dictation and the compare window.
-        let audioCapture = AudioCapture(input: AVAudioEngineInput())
+        let audioCapture = AudioCapture(input: CoreAudioInput())
         let models = ModelCoordinator(
             chosenModel: { settings.speechModel },
             setChosenModel: {

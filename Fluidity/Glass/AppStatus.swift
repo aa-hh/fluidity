@@ -68,10 +68,6 @@ struct AppStatus: Equatable {
         case (.cleanupOff, _):
             AppStatus(shortTitle: "Cleanup off", title: "Ready", detail: "Cleanup off · raw transcript pasted",
                       tone: .neutral, fix: nil, offersFixButton: false, showsKey: true)
-        case (.micWarm, _):
-            AppStatus(shortTitle: "Mic kept ready", title: "Mic kept ready",
-                      detail: "macOS shows the orange dot for 3 minutes after a dictation, so the next one starts at once.",
-                      tone: .hollow, fix: nil, offersFixButton: false, showsKey: true)
         case (.ready, _):
             AppStatus(shortTitle: "Ready", title: "Ready", detail: nil,
                       tone: .neutral, fix: nil, offersFixButton: false, showsKey: true)
