@@ -46,27 +46,23 @@ final class PillPresenter {
     var liveWords: LiveWords = .inPill {
         didSet { self.fitPanel() }
     }
-    /// The speech model is still loading: while the pill shows, a bubble with the loading grid waits
-    /// beside it and the centre line is dim and grey. Once loading ends, the bubble stays until the
-    /// grid has filled, or goes at once when the load failed.
+    /// The speech model is still loading; while it loads the pill looks as it always does, and a release
+    /// before it is ready draws the processing line as a track that fills with the load.
     var isModelLoading = false {
-        didSet {
-            if self.isModelLoading { self.simulation.modelLoading = true }
-            self.wake()
-        }
+        didSet { self.wake() }
     }
-    /// Which loading-grid squares have lit, from the launch load's reports.
-    private var grid: LoadingGrid?
-    /// When the first report came; the grid's clock counts from it.
+    /// The loading line's fill, from the launch load's reports.
+    private var line: LoadingLine?
+    /// When the first report came; the line's clock counts from it.
     private var loadStartedAt: CFTimeInterval = 0
 
-    /// One report from the launch load; the loading bubble's squares follow it.
+    /// One report from the launch load; the loading line's fill follows it.
     func reportModelLoad(_ progress: ModelLoadProgress) {
-        if self.grid == nil || progress.step == 0 {
-            self.grid = LoadingGrid(reduceMotion: NSWorkspace.shared.accessibilityDisplayShouldReduceMotion)
+        if self.line == nil || progress.step == 0 {
+            self.line = LoadingLine(reduceMotion: NSWorkspace.shared.accessibilityDisplayShouldReduceMotion)
             self.loadStartedAt = CACurrentMediaTime()
         }
-        self.grid?.report(progress, at: .seconds(CACurrentMediaTime() - self.loadStartedAt))
+        self.line?.report(progress, at: .seconds(CACurrentMediaTime() - self.loadStartedAt))
         if progress.isDone { self.isModelLoading = false }
         self.wake()
     }
@@ -362,14 +358,14 @@ final class PillPresenter {
         self.simulation.wordsAbove = self.wordsAboveTarget
         self.simulation.wordsGap = RimWordsBubble.gap * Float(self.words.scale)
         let loadTime = Duration.seconds(now - self.loadStartedAt)
-        self.grid?.update(at: loadTime)
-        if let grid = self.grid {
-            self.simulation.loadingLights = RimLoadingGrid.lights(grid: grid, at: loadTime, reduced: self.reduceMotion)
-            self.simulation.modelLoading = self.isModelLoading || (grid.isFinishing && !grid.isDone(at: loadTime))
-        }
-        if !self.isModelLoading, self.grid?.isDone(at: loadTime) ?? true {
-            self.simulation.modelLoading = false
-            self.grid = nil
+        // A load that ended without finishing (it failed) drops the line at once; a finishing one eases to full first.
+        if !self.isModelLoading, let line = self.line, !line.isFinishing { self.line = nil }
+        self.line?.update(at: loadTime)
+        if let line = self.line {
+            self.simulation.loadingFill = Float(line.fraction(at: loadTime))
+            if line.isDone(at: loadTime) { self.line = nil }
+        } else {
+            self.simulation.loadingFill = self.isModelLoading ? 0 : 1
         }
         self.simulation.update(
             dt: dt, state: self.state, features: features, reduced: self.reduceMotion, pill: self.words.pillSize(base: RimParameters.pillSize)

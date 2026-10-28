@@ -6,7 +6,7 @@ import FluidityCore
 /// Launch with `FLUIDITY_PILL_PREVIEW` set to listening, finishing, cleaning,
 /// pasted, pastedRawTranscript, nowhereToPaste, cancelled, microphoneMissing,
 /// accessibilityMissing, micSilent, recordingLimitNear,
-/// recordingStoppedAtLimit, modelLoading or modelLoadingDownload, and optionally `FLUIDITY_PILL_WORDS` to inPill,
+/// recordingStoppedAtLimit, modelLoadingLine or modelLoadingLineDownload, and optionally `FLUIDITY_PILL_WORDS` to inPill,
 /// above or off. Most states follow two seconds of made-up speech; pasted and
 /// cancelled repeat every five seconds. A click on the retry bubble fails.
 @MainActor
@@ -62,20 +62,20 @@ enum PillPreview {
         case "micSilent": return Script(then: [(0, .micSilent)], speaksAfter: false)
         case "recordingLimitNear": return Script(then: [(0, .recordingLimitNear)], speaksAfter: true)
         case "recordingStoppedAtLimit": return Script(then: [(0, .recordingStoppedAtLimit)])
-        case "modelLoading":
+        case "modelLoadingLine":
             let load = { (step: Int) in ModelLoadProgress(step: step, stepCount: 2, needsDownload: false, downloaded: nil) }
             return Script(
-                then: [(0, .finishing), (18.5, .pasted(text: pasted)), (19.1, .hidden)], repeatsEvery: 23,
-                loads: [(0, load(0)), (1, load(1)), (19, load(2))]
+                listensFor: 4, then: [(0, .finishing), (17.75, .pasted(text: pasted)), (18.35, .hidden)], repeatsEvery: 23,
+                loads: [(0, load(0)), (1, load(1)), (21, load(2))]
             )
-        case "modelLoadingDownload":
+        case "modelLoadingLineDownload":
             let load = { (step: Int, downloaded: Double?) in
                 ModelLoadProgress(step: step, stepCount: 2, needsDownload: true, downloaded: downloaded)
             }
             // The download reports every tick from 1 s to 9 s.
             let ramp = stride(from: 1.0, through: 9.0, by: Self.tick).map { (at: $0, progress: load(1, ($0 - 1) / 8)) }
             return Script(
-                then: [(0, .finishing), (21.5, .pasted(text: pasted)), (22.1, .hidden)], repeatsEvery: 26,
+                listensFor: 4, then: [(0, .finishing), (18.75, .pasted(text: pasted)), (19.35, .hidden)], repeatsEvery: 24,
                 loads: [(0, load(0, nil))] + ramp + [(22, load(2, nil))]
             )
         default: return nil

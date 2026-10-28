@@ -48,8 +48,6 @@ nonisolated struct RimParameters: Equatable {
     // pill height / `RimSpring.islandHeight`.
     /// Bubble diameter as a share of the pill's height.
     var fluxSize: Float = 1
-    /// The loading bubble's diameter as a multiple of the waiting bubble's: 36 pt on the 28 pt pill.
-    var loadingSize: Float = 36.0 / 28.0
     /// Clear space between the pill and the bubble, island points. Ali has not settled it yet.
     var fluxGap: Float = 8
     /// Which way the pill recoils when it kicks the bubble out: 1 away from
@@ -111,8 +109,6 @@ nonisolated struct RimParameters: Equatable {
     static let problem: [UInt32] = [0xffb020, 0xffcf6a, 0xff8a00, 0xffc24d]
     /// Soft orange: a retried paste that failed again.
     static let retryFailed: [UInt32] = [0xff9a5c, 0xffb27e, 0xff8b57, 0xffc196]
-    /// The loading grid's blue, outline and fill.
-    static let loadingGrid: UInt32 = 0x7cc8ff
 
     static let approved = RimParameters()
     /// The pill at rest: 120 pt wide and 28 pt tall, the medium size of the pill this was ported from.

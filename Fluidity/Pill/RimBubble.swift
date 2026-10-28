@@ -2,9 +2,7 @@ import Foundation
 
 /// The bubble that splits off the pill when something waits on the user: a
 /// transcript whose paste failed, or the fix for a lost microphone or a
-/// revoked permission. It also waits beside the pill while the speech model
-/// loads, grown to 36 pt until the model is ready, then shrinking back. It moves
-/// with the Dynamic Island's split ("mitosis") from SpringBoard. Port of
+/// revoked permission. It moves with the Dynamic Island's split ("mitosis") from SpringBoard. Port of
 /// `makeFlux`, `updateFlux` and `fluxGeom` in the prototype's rim.js.
 nonisolated struct RimBubble {
     enum Kind: Equatable {
@@ -14,8 +12,6 @@ nonisolated struct RimBubble {
         case microphone
         /// A permission was turned off while the app ran; the bubble shows a lock.
         case lock
-        /// The speech model is still loading; the bubble shows a grid of squares and takes no click.
-        case loading
 
         /// Which icon the shader draws.
         var icon: Float {
@@ -23,7 +19,6 @@ nonisolated struct RimBubble {
             case .send: return 0
             case .microphone: return 1
             case .lock: return 2
-            case .loading: return 3
             }
         }
     }
@@ -95,8 +90,6 @@ nonisolated struct RimBubble {
 
     private var position = RimSpring(RimSpring.size, at: 0)
     private var grow = RimSpring(RimSpring.size, at: 0)
-    /// The loading bubble's size as a multiple of the waiting bubble's.
-    private var loadingGrow = RimSpring(RimSpring.size, at: 1)
     private var bubbleScaleX = RimSpring(RimSpring.size, at: 1)
     private var bubbleScaleY = RimSpring(RimSpring.size, at: 1)
     private var bubbleNudge = RimSpring(RimSpring.size, at: 0)
@@ -119,8 +112,8 @@ nonisolated struct RimBubble {
 
     /// True once the bubble has reached its place.
     private var isInPlace: Bool { self.isActive && self.mode == .split && self.position.x > 0.8 }
-    /// True once the bubble has reached its place and can take a click; the loading bubble never can.
-    var isWaiting: Bool { self.isInPlace && self.kind != .loading }
+    /// True once the bubble has reached its place and can take a click.
+    var isWaiting: Bool { self.isInPlace }
 
     mutating func setHover(_ on: Bool) {
         self.hoverTarget = on ? 1 : 0
@@ -142,13 +135,12 @@ nonisolated struct RimBubble {
     }
 
     /// `problem` is what the amber pill's bubble holds: the lost mic or a lock.
-    /// `loading` keeps the loading bubble beside the pill while it listens or processes.
     mutating func update(
         dt: Float, state: RimState, previous: RimState, params p: RimParameters, reduced: Bool,
-        problem: Kind = .microphone, loading: Bool = false
+        problem: Kind = .microphone
     ) {
         self.failTime = max(0, self.failTime - dt)
-        let waitingKind = Self.waitingKind(for: state, problem: problem, loading: loading)
+        let waitingKind = Self.waitingKind(for: state, problem: problem)
         if let waitingKind, self.isActive, self.mode == .split { self.kind = waitingKind }
         if let waitingKind, !self.isActive || self.mode != .split, previous != state {
             self.start(kind: waitingKind, fromLine: previous == .think, params: p, reduced: reduced)
@@ -174,7 +166,6 @@ nonisolated struct RimBubble {
                 self.mode = .dissolve
                 self.settleAll(params: p)
                 self.grow.set(RimSpring.collapse)
-                self.loadingGrow.set(RimSpring.collapse)
                 self.grow.target = 0
                 self.hoverTarget = 0
             }
@@ -187,7 +178,6 @@ nonisolated struct RimBubble {
                 self.mode = .recombine
                 self.settleAll(params: p)
                 self.position.set(RimSpring.recombine)
-                self.loadingGrow.set(RimSpring.recombine)
                 self.position.target = 0
                 self.grow.target = 0
                 self.hoverTarget = 0
@@ -199,12 +189,10 @@ nonisolated struct RimBubble {
             return
         }
 
-        self.loadingGrow.target = self.kind == .loading && self.mode == .split && self.isInPlace ? p.loadingSize : 1
         if !reduced {
             self.pressBump.set((p.pressDamping, p.pressResponse))
             self.position.step(dt)
             self.grow.step(dt)
-            self.loadingGrow.step(dt)
             self.bubbleScaleX.step(dt)
             self.bubbleScaleY.step(dt)
             self.bubbleNudge.step(dt)
@@ -216,8 +204,6 @@ nonisolated struct RimBubble {
             self.shakeOffset.step(dt)
             self.advanceBubble(params: p)
             self.advancePill(params: p)
-        } else {
-            self.loadingGrow.reset(to: self.loadingGrow.target)
         }
 
         self.flash = max(0, self.flash - dt)
@@ -226,12 +212,7 @@ nonisolated struct RimBubble {
         self.hover += (hoverNow - self.hover) * rimEase(dt, hoverNow > self.hover ? 0.09 : 0.16)
         // The arrow, mic and lock always show, brighter on hover.
         let iconTarget: Float
-        if self.kind == .loading {
-            // The grid's squares carry their own fill levels, with or without Reduce Motion.
-            // The grid fades as the bubble slides back, so it never shows inside the pill, and waits for the bubble
-            // to reach its loading size, so its corners are never clipped by the 28 pt circle.
-            iconTarget = self.isInPlace && self.loadingGrow.x > 1.25 ? 1 : 0
-        } else if canHover {
+        if canHover {
             iconTarget = 0.72 + 0.28 * hoverNow
         } else {
             iconTarget = self.mode == .split ? 0 : self.icon
@@ -239,8 +220,7 @@ nonisolated struct RimBubble {
         self.icon += (iconTarget - self.icon) * rimEase(dt, iconTarget > self.icon ? 0.11 : 0.08)
     }
 
-    private static func waitingKind(for state: RimState, problem: Kind, loading: Bool) -> Kind? {
-        if loading, state == .listen || state == .think { return .loading }
+    private static func waitingKind(for state: RimState, problem: Kind) -> Kind? {
         switch state {
         case .flux: return .send
         case .problem: return problem
@@ -341,7 +321,7 @@ nonisolated struct RimBubble {
     /// `side` -1 puts the bubble on the left, for a pill against the right edge of the screen.
     func geometry(width w: Float, height h: Float, params p: RimParameters, side: Float = 1) -> Geometry {
         let k = h / RimSpring.islandHeight
-        let radius = 0.5 * p.fluxSize * h * self.loadingGrow.x
+        let radius = 0.5 * p.fluxSize * h
         let inside = w * 0.5 - h * 0.5
         let outside = w * 0.5 + p.fluxGap * k + radius
         let size = max(0, self.grow.x)

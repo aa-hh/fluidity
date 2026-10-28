@@ -75,10 +75,8 @@ nonisolated enum PillShader {
     #define U_BUBBLE_Y 183
     #define U_BUBBLE_RADIUS 184
     #define U_BUBBLE_LIGHT 185
-    #define U_LINE_DISABLED 186
-    #define U_LOADING_GRID 187
-    #define U_LOADING_COLOUR 199
-    #define U_COUNT 202
+    #define U_LINE_FILL 186
+    #define U_COUNT 187
 
     constant float TAU = 6.28318530718;
     constant float PI_F = 3.14159265359;
@@ -364,10 +362,15 @@ nonisolated enum PillShader {
                     ? tint(u, u[U_HUE_CYCLES] * 0.5 * along + u[U_HUE] + 0.08, 0.55 + 0.12 * min(1.0, front))
                     : float3(1.0, 0.965, 0.918);
                 innerA = pow(min(1.3, amp), 1.2) * 0.9 * u[U_CORE_ON] * (0.6 + 0.4 * strength);
-                if (doneT < 0.0 && u[U_LINE_DISABLED] > 0.0) {
-                    // The speech model is still loading: a dim grey line, like a disabled control.
-                    innerC = mix(innerC, float3(dot(innerC, float3(0.299, 0.587, 0.114))), 0.85 * u[U_LINE_DISABLED]);
-                    innerA *= 1.0 - 0.65 * u[U_LINE_DISABLED];
+                if (doneT < 0.0 && u[U_LINE_FILL] < 1.0) {
+                    // The speech model is still loading, so the line is a dim grey track (35% light, 85% of its colour
+                    // removed) filled from the left to the load's fraction, the fill's leading end feathered over 4 pt.
+                    float fill = u[U_LINE_FILL];
+                    float feather = 4.0 * (u[U_PILL_H] / 28.0) / max(1.0, 2.0 * halfNow);
+                    float warm = 1.0 - smoothstep(fill, fill + feather, along);
+                    float3 track = mix(innerC, float3(dot(innerC, float3(0.299, 0.587, 0.114))), 0.85);
+                    innerC = mix(track, innerC, warm);
+                    innerA *= mix(0.35, 1.0, warm);
                 }
             }
         }
@@ -379,38 +382,13 @@ nonisolated enum PillShader {
         if (u[U_ICON] > 0.01 && u[U_BUBBLE + 1] > 0.01) {
             float iconA = 0.0;
             float3 iconC;
-            if (u[U_ICON_KIND] > 2.5) {
-                // The loading grid: 12 squares of 5 pt at a 6.7 pt pitch, rows of 2, 4, 4, 2 from the bottom, centred
-                // on the bubble. The lengths are for the 28 pt pill and scale with the pill's height. Every square is
-                // a 1 pt outline inside its edge, filled to its own level (0 dark inside, 1 solid), all in one sRGB blue.
-                float k = u[U_PILL_H] / 28.0;
-                float pitch = 6.7 * k;
-                float stroke = 1.0 * k;
-                iconC = float3(u[U_LOADING_COLOUR], u[U_LOADING_COLOUR + 1], u[U_LOADING_COLOUR + 2]);
-                int row = clamp(int(floor(2.0 - pb.y / pitch)), 0, 3);  // 0 is the bottom row; y grows downward
-                int column = clamp(int(floor(pb.x / pitch + 2.0)), 0, 3);
-                bool shortRow = row == 0 || row == 3;
-                int c = shortRow ? column - 1 : column;
-                int count = shortRow ? 2 : 4;
-                if (c >= 0 && c < count) {  // the short rows leave out the outer columns
-                    float2 centre = float2((float(c) - 0.5 * float(count - 1)) * pitch, (1.5 - float(row)) * pitch);
-                    float2 q = abs(pb - centre) - 2.5 * k;
-                    float dSquare = length(max(q, 0.0)) + min(max(q.x, q.y), 0.0);
-                    int index = (row == 0 ? 0 : 4 * row - 2) + c;  // row starts 0, 2, 6, 10
-                    float inner = smoothstep(-stroke - aa, -stroke + aa, dSquare);
-                    float outline = inner * (1.0 - smoothstep(-aa, aa, dSquare));
-                    float fill = 1.0 - inner;
-                    iconA = (outline + fill * u[U_LOADING_GRID + index]) * u[U_ICON] * bodyA;
-                }
-            } else {
-                // The bubble's icon, like an SF Symbol: a 1.6 pt stroke with round caps.
-                float iconRadius = 0.5 * min(u[U_BUBBLE + 1], u[U_BUBBLE + 2]) * (0.86 + 0.14 * u[U_ICON]);
-                float2 a = pb / iconRadius + float2(0.0, 0.08 * (1.0 - u[U_ICON]));
-                float dIcon = iconDistance(a, u[U_ICON_KIND]);
-                float stroke = 0.8 / iconRadius, edge = aa / iconRadius;
-                iconA = (1.0 - smoothstep(stroke - edge, stroke + edge, dIcon)) * u[U_ICON] * bodyA;
-                iconC = whiten(tint(u, hueB, 0.9), 0.3);
-            }
+            // The bubble's icon, like an SF Symbol: a 1.6 pt stroke with round caps.
+            float iconRadius = 0.5 * min(u[U_BUBBLE + 1], u[U_BUBBLE + 2]) * (0.86 + 0.14 * u[U_ICON]);
+            float2 a = pb / iconRadius + float2(0.0, 0.08 * (1.0 - u[U_ICON]));
+            float dIcon = iconDistance(a, u[U_ICON_KIND]);
+            float stroke = 0.8 / iconRadius, edge = aa / iconRadius;
+            iconA = (1.0 - smoothstep(stroke - edge, stroke + edge, dIcon)) * u[U_ICON] * bodyA;
+            iconC = whiten(tint(u, hueB, 0.9), 0.3);
             colour = colour * (1.0 - iconA) + iconC * iconA;
         }
         colour += haloC * halo;
