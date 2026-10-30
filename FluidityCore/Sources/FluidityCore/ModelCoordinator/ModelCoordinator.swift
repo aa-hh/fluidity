@@ -58,7 +58,7 @@ public final class ModelCoordinator {
     @ObservationIgnored private var closedCompare: CompareSession?
 
     /// - Parameters:
-    ///   - loadVoiceDetector: loads Silero for the voice check, which every model other than Parakeet TDT v2 needs on its own.
+    ///   - loadVoiceDetector: loads Silero for the voice check, before every model's load, Parakeet TDT v2 included.
     ///   - loadWordCheck: loads CTC 110M for the word-list recheck, which every model other than Parakeet TDT v2 needs on its own.
     ///   - makeTranscriber: builds a transcriber on an engine, for dictation and for each compare column.
     ///   - makeCompareSession: builds a compare session over the shared microphone with the given transcriber factory.

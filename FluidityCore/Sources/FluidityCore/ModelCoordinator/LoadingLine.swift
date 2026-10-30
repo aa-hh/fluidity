@@ -84,6 +84,17 @@ public struct LoadingLine: Sendable {
         fraction(at: now) >= 1
     }
 
+    /// One frame of the pill's line: returns the fill to draw and drops `line` once it is over. A load that ended
+    /// without finishing (it failed) drops the line at once; a finishing one eases to full first. With no line the
+    /// fill is empty while loading and full otherwise.
+    public static func step(_ line: inout LoadingLine?, isModelLoading: Bool, at now: Duration) -> Double {
+        if !isModelLoading, line?.isFinishing == false { line = nil }
+        line?.update(at: now)
+        guard let current = line else { return isModelLoading ? 0 : 1 }
+        if current.isDone(at: now) { line = nil }
+        return current.fraction(at: now)
+    }
+
     /// The download layout's last load starts its estimate only once its download ends.
     private var estimateWaitsForDownload: Bool {
         downloadOwned > 0 && running == owned.count - 1

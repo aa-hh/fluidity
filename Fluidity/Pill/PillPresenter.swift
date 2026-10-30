@@ -357,16 +357,8 @@ final class PillPresenter {
         self.simulation.wordsShown = self.liveWords == .inPill && self.words.hasWords
         self.simulation.wordsAbove = self.wordsAboveTarget
         self.simulation.wordsGap = RimWordsBubble.gap * Float(self.words.scale)
-        let loadTime = Duration.seconds(now - self.loadStartedAt)
-        // A load that ended without finishing (it failed) drops the line at once; a finishing one eases to full first.
-        if !self.isModelLoading, let line = self.line, !line.isFinishing { self.line = nil }
-        self.line?.update(at: loadTime)
-        if let line = self.line {
-            self.simulation.loadingFill = Float(line.fraction(at: loadTime))
-            if line.isDone(at: loadTime) { self.line = nil }
-        } else {
-            self.simulation.loadingFill = self.isModelLoading ? 0 : 1
-        }
+        self.simulation.loadingFill = Float(LoadingLine.step(
+            &self.line, isModelLoading: self.isModelLoading, at: .seconds(now - self.loadStartedAt)))
         self.simulation.update(
             dt: dt, state: self.state, features: features, reduced: self.reduceMotion, pill: self.words.pillSize(base: RimParameters.pillSize)
         )

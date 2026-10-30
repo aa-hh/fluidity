@@ -380,16 +380,13 @@ nonisolated enum PillShader {
         float alpha = bodyA;
         colour += innerC * innerA * bodyA;
         if (u[U_ICON] > 0.01 && u[U_BUBBLE + 1] > 0.01) {
-            float iconA = 0.0;
-            float3 iconC;
             // The bubble's icon, like an SF Symbol: a 1.6 pt stroke with round caps.
             float iconRadius = 0.5 * min(u[U_BUBBLE + 1], u[U_BUBBLE + 2]) * (0.86 + 0.14 * u[U_ICON]);
             float2 a = pb / iconRadius + float2(0.0, 0.08 * (1.0 - u[U_ICON]));
             float dIcon = iconDistance(a, u[U_ICON_KIND]);
             float stroke = 0.8 / iconRadius, edge = aa / iconRadius;
-            iconA = (1.0 - smoothstep(stroke - edge, stroke + edge, dIcon)) * u[U_ICON] * bodyA;
-            iconC = whiten(tint(u, hueB, 0.9), 0.3);
-            colour = colour * (1.0 - iconA) + iconC * iconA;
+            float iconA = (1.0 - smoothstep(stroke - edge, stroke + edge, dIcon)) * u[U_ICON] * bodyA;
+            colour = colour * (1.0 - iconA) + whiten(tint(u, hueB, 0.9), 0.3) * iconA;
         }
         colour += haloC * halo;
         alpha = min(1.0, alpha + halo);

@@ -28,4 +28,4 @@ its own, except the launch fallback when the chosen one is gone.
 
 - `ModelCoordinator` → launch choice, switching, compare loads and unloads.
 - `ModelLoadProgress` → which launch load is running, and its download.
-- `LoadingLine` → how far the pill's loading line has filled, from the launch load's reports.
+- `LoadingLine` → how far the pill's loading line has filled.

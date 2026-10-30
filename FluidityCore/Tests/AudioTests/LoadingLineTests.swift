@@ -137,6 +137,34 @@ private func close(_ a: Double, _ b: Double, within tolerance: Double = 1e-9) ->
         #expect(line.fraction(at: .milliseconds(800)) == held)
     }
 
+    @Test func aLoadThatEndsWithoutFinishingShowsAFullLineAtOnce() {
+        // Keeping a failed load's line, so the pill stays part filled after the load gave up, turns this red.
+        var line: LoadingLine? = LoadingLine(reduceMotion: false)
+        line?.report(progress(0, of: 2), at: .zero)
+        #expect(LoadingLine.step(&line, isModelLoading: true, at: .seconds(1)) < 1)
+        #expect(LoadingLine.step(&line, isModelLoading: false, at: .seconds(1)) == 1)
+        #expect(line == nil)
+    }
+
+    @Test func aFinishingLoadKeepsItsLineUntilFullThenDropsIt() {
+        // Dropping the line when the load ends instead of once it has eased to full, or keeping it after, turns this red.
+        var line: LoadingLine? = LoadingLine(reduceMotion: false)
+        line?.report(progress(0, of: 2), at: .zero)
+        line?.report(progress(1, of: 2), at: .zero)
+        line?.report(progress(2, of: 2), at: .seconds(5))
+        #expect(LoadingLine.step(&line, isModelLoading: false, at: .seconds(5) + .milliseconds(150)) < 1)
+        #expect(line != nil)
+        #expect(LoadingLine.step(&line, isModelLoading: false, at: .seconds(5) + .milliseconds(300)) == 1)
+        #expect(line == nil)
+    }
+
+    @Test(arguments: [(true, 0.0), (false, 1.0)])
+    func withNoLineTheFillFollowsWhetherTheModelIsLoading(isModelLoading: Bool, fill: Double) {
+        // Swapping the empty fill while loading and the full one otherwise, when no report has come, turns this red.
+        var line: LoadingLine?
+        #expect(LoadingLine.step(&line, isModelLoading: isModelLoading, at: .zero) == fill)
+    }
+
     @Test func theDownloadLayoutsEstimateWaitsForTheDownload() {
         // Starting the speech model's estimate before its download ends turns this red.
         var line = LoadingLine(reduceMotion: false)
