@@ -93,6 +93,9 @@ final class PillPresenter {
     private var extractor = RimFeatureExtractor(attack: RimParameters.approved.attack, release: RimParameters.approved.release)
     private var words = RimWords(measure: { PillWordsView.width(of: $0, size: $1) })
     private var reduceMotion = false
+    /// Played as the pill appears and as a paste lands; loaded once so playing never waits on the disk.
+    private let startSound = NSSound(named: "fluidity-start")
+    private let finishSound = NSSound(named: "fluidity-finish")
 
     private init() {
         NotificationCenter.default.addObserver(forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main) { _ in
@@ -185,6 +188,7 @@ final class PillPresenter {
     /// Key down: the pill grows from a point and the rim listens.
     private func beginListening() {
         guard self.prepare() else { return }
+        self.play(self.startSound)
         // A new dictation supersedes anything waiting: the bubble merges back into the pill.
         self.isHoldingFailedPaste = false
         self.isRetrying = false
@@ -227,8 +231,14 @@ final class PillPresenter {
     private func finish(pasted: Bool) {
         guard self.state == .listen || self.state == .think else { return }
         self.audio.setActive(false)
-        if !pasted { self.words.dropAll() }
+        if pasted { self.play(self.finishSound) } else { self.words.dropAll() }
         self.enter(pasted ? .done : .idle)
+    }
+
+    /// Restarts the sound if it is still playing, so two quick dictations each get theirs.
+    private func play(_ sound: NSSound?) {
+        sound?.stop()
+        sound?.play()
     }
 
     /// A paste found nowhere to go, and its transcript waits in a bubble beside the pill for a click.
@@ -246,6 +256,7 @@ final class PillPresenter {
         guard self.isHoldingFailedPaste, self.prepare() else { return }
         self.isHoldingFailedPaste = false
         self.isRetrying = false
+        self.play(self.finishSound)
         self.enter(.pasted)
     }
 
