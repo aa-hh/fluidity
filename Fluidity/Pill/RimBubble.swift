@@ -172,7 +172,7 @@ nonisolated struct RimBubble {
             if reduced { self.fade = max(0, self.fade - dt / 0.2) }
             if (self.grow.x < 0.02 && abs(self.grow.v) < 0.5) || self.fade <= 0 { self.isActive = false }
         } else if state == .listen || state == .think || state == .done {
-            // A new dictation supersedes the wait, or the model finished loading:
+            // A new dictation supersedes the wait:
             // the bubble slides back into the pill on the recombine spring.
             if self.mode != .recombine {
                 self.mode = .recombine

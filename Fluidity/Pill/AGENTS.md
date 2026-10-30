@@ -31,7 +31,6 @@ holds no dictation logic.
 - `PillBubbleTarget` → hover and click on the waiting bubble.
 - `RimSimulation` → the rim's per-frame state and shader values.
 - `RimBubble`, `RimWordsBubble` → bubble beside the pill, bubble above it.
-- `RimLoadingGrid` → loading-grid state to one light level per square.
 - `RimWords` → live words layout, scroll and cleanup diff.
 - `RimAudioAnalyzer`, `RimFeatureExtractor` → microphone audio to voice bands.
 - `RimParameters`, `RimSpring` → approved values and the island spring.
