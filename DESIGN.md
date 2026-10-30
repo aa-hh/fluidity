@@ -320,7 +320,7 @@ When the bubble splits off or merges back, the shapes are blurred together and c
 ### App surfaces
 Depth comes from one translucent shell and the lit top edge.
 - **Shell:** `app-window` over macOS's behind-window material (`NSVisualEffectView` with `.underWindowBackground`, a view that blurs whatever is behind the window). The system sets the blur; there is no fixed radius. A 1 pt `app-line-rule` outline sits inside the edge. The shadow is the system window shadow. The settings window, the popover and the first-run window use the shell.
-- **Inside the shell:** raised panels and controls are plain fills with no blur. One small shadow, shared by the toggle knob and the selected segment of a segmented control (SwiftUI shadow radius 1, offset 1 pt down, black at 22%).
+- **Inside the shell:** raised panels and controls are plain fills with no blur. One small shadow, on the toggle knob (SwiftUI shadow radius 1, offset 1 pt down, black at 22%).
 - **Lit top edge, resting:** a 1 pt line along the top edge of every floating panel (the window, the popover, the first-run window, a focused text field or shortcut recorder), a gradient of `ivory-white` from transparent at both ends to full at the centre. It is inset 16 pt from each end of a shell and 14 pt on a field.
 - **Lit top edge, live:** while the mic is live it brightens to the pill's four-tone rim: a 1.2 pt line of `ivory-warm`, `ivory-white`, `ivory-apricot` and `ivory-cream`, the four tones repeating three times along the width, over a 2.6 pt band of the same gradient at 70% opacity, blurred 4 pt. The band runs along and below the edge and does not reach outward.
 - **Focus ring:** a 2 pt ring drawn 1 pt outside the control's edge in `app-focus-ring` (SwiftUI padding −3, then a 2 pt stroke), no blur. Capsule controls get a capsule ring; icon buttons a circle; the history row's text an 8 pt (`app-inner`) rounded rectangle; the rules editor an 11 pt rounded rectangle. Words list rows draw a 2 pt rectangle inside the row instead, since the panel clips anything outside it. Every window root turns the system focus ring off, so a control shows no focus until it opts in.
@@ -333,7 +333,7 @@ Depth comes from one translucent shell and the lit top edge.
 - **Retry bubble:** a circle.
 
 ### App surfaces
-- **Capsules** (`app-capsule`, SwiftUI `Capsule()`): buttons, text fields, the Cleanup key field, the shortcut recorder, toggles, the segmented control's track and segments, sidebar items, the Settings and Quit rows, and the status line's hover fill.
+- **Capsules** (`app-capsule`, SwiftUI `Capsule()`): buttons, text fields, the Cleanup key field, the shortcut recorder, toggles, sidebar items, the Settings and Quit rows, and the status line's hover fill.
 - **Window, popover and first-run window** (`app-window`, `GlassTheme.windowRadius`): 16 pt corners.
 - **Raised panels** (`app-container`, `GlassTheme.containerRadius`): 14 pt corners.
 - **History rows** (`app-history-row`): 10 pt corners.
@@ -399,9 +399,6 @@ Each control is drawn by the app in Glass colours and reports to VoiceOver as th
 #### Toggle
 - `toggle`: 38 × 22 pt capsule, 2 pt padding, 18 pt knob, 1 pt outline when off. On: `app-action-primary` track, `app-action-on-primary` knob. Off: `app-selected` track with an `app-line-rule` outline, `app-control-knob` knob. Drawn as a button, with a hidden native toggle for VoiceOver.
 
-#### Segmented control
-- A 28 pt capsule track on `app-hover` with a 1 pt `app-line-rule` outline, 2 pt top and bottom and 3 pt side padding, 2 pt between segments. Segments are equal-width capsules 24 pt tall with 12 pt side padding, labels in `app-label`: the selected one on `app-raised` with a 1 pt `app-line-strong` outline and the knob shadow, its label in primary text; the others' labels in secondary text. Selection moves over 130 ms. Each segment takes the capsule focus ring. VoiceOver reads it as a native picker. Used for Live words (Off, In the pill, Bubble above) on the General pane.
-
 #### Sidebar
 - `sidebar-item` and `sidebar-item-selected`: 28 pt tall, 8 pt side padding, 16 pt icon, 8 pt gap, label in `app-label`. Hover adds `app-hover`; the selected pane is an `app-selected` capsule. The fill changes with no animation.
 - The sidebar itself is a column of buttons (a SwiftUI `VStack`), not a system sidebar list: `app-sidebar` fill over the shell, a 1 pt `app-line-rule` on its right edge.
@@ -440,6 +437,7 @@ Each control is drawn by the app in Glass colours and reports to VoiceOver as th
 #### Settings window
 - `settings-window`: shell material, system shadow, resting lit top edge; the edge goes live while the mic is live. The title bar is transparent, the title hidden, and the window drags by its background.
 - Microphone row (General): a fixed help line, "Automatic uses your Mac's own microphone instead of Bluetooth headphones, so they keep full sound quality.", and a secondary pop-up button showing the saved choice with the `chevron.up.chevron.down` chevron. Its menu is the system menu: Automatic, a separator, then each microphone by its macOS name, with a check on the saved one. No text in the row changes with the devices.
+- Live words row (General): the same secondary pop-up button and chevron, showing the saved choice. Its menu is the system menu: Off, In the pill, Bubble above, with a check on the saved one.
 
 #### First-run window
 - `first-run-window`: laid out as in Layout, on the shell with a system shadow and a resting lit top edge that goes live while the mic is live.
