@@ -364,10 +364,10 @@ nonisolated enum PillShader {
                 innerA = pow(min(1.3, amp), 1.2) * 0.9 * u[U_CORE_ON] * (0.6 + 0.4 * strength);
                 if (doneT < 0.0 && u[U_LINE_FILL] < 1.0) {
                     // The speech model is still loading, so the line is a dim grey track (35% light, 85% of its colour
-                    // removed) filled from the left to the load's fraction, the fill's leading end feathered over 4 pt.
+                    // removed) filled outward from the middle to the load's fraction, both ends of the fill feathered over 4 pt.
                     float fill = u[U_LINE_FILL];
-                    float feather = 4.0 * (u[U_PILL_H] / 28.0) / max(1.0, 2.0 * halfNow);
-                    float warm = 1.0 - smoothstep(fill, fill + feather, along);
+                    float feather = 4.0 * (u[U_PILL_H] / 28.0) / max(1.0, halfNow);
+                    float warm = 1.0 - smoothstep(fill, fill + feather, abs(lu));
                     float3 track = mix(innerC, float3(dot(innerC, float3(0.299, 0.587, 0.114))), 0.85);
                     innerC = mix(track, innerC, warm);
                     innerA *= mix(0.35, 1.0, warm);
