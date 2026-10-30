@@ -201,6 +201,23 @@ func shortAudioIsPaddedToAReadableFLAC(sampleCount: Int) async throws {
     }
 }
 
+// Turns red if save puts a record with no transcript into the history, where clicking it would paste nothing,
+// or stops writing its audio and line for training.
+@Test func recordWithNoTranscriptIsSavedButKeptOutOfTheHistory() async throws {
+    let folders = Folders()
+    try folders.mountDrive()
+    var failed = record()
+    failed.rawTranscript = ""
+    let store = folders.store()
+
+    try await store.save(record: failed, audio: tone)
+
+    #expect(try folders.lines(folders.drive.appending(path: "2026-10-22.jsonl")) == [failed])
+    #expect(folders.names(in: folders.drive).filter { $0.hasSuffix(".flac") }.count == 1)
+    #expect(await store.recent().isEmpty)
+    #expect(await folders.store().recent().isEmpty)
+}
+
 // Turns red if the history keeps more than 20, orders oldest first, or lives only in memory.
 @Test func recentReturnsTheLastTwentyNewestFirstAfterARestart() async throws {
     let folders = Folders()

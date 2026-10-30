@@ -54,6 +54,8 @@ public actor DictationStore {
             try files.createDirectory(at: holdingRoot, withIntermediateDirectories: true)
             try write(record, audio: audio, under: holdingRoot)
         }
+        // A failed final pass saves no transcript: kept for training, but a blank history row would paste nothing.
+        guard !record.rawTranscript.isEmpty else { return }
         // The dictation is already saved; a history failure must not make the caller save it again.
         try? updateHistory { $0.insert(record, at: 0) }
     }

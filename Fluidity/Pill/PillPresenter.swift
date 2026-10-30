@@ -46,13 +46,25 @@ final class PillPresenter {
     var liveWords: LiveWords = .inPill {
         didSet { self.fitPanel() }
     }
-    /// The speech model is still loading: while the pill shows, a bubble with a turning arc waits
-    /// beside it and the centre line is dim and grey until the model is ready.
+    /// The speech model is still loading; while it loads the pill looks as it always does, and a release
+    /// before it is ready draws the processing line as a track that fills with the load.
     var isModelLoading = false {
-        didSet {
-            self.simulation.modelLoading = self.isModelLoading
-            self.wake()
+        didSet { self.wake() }
+    }
+    /// The loading line's fill, from the launch load's reports.
+    private var line: LoadingLine?
+    /// When the first report came; the line's clock counts from it.
+    private var loadStartedAt: CFTimeInterval = 0
+
+    /// One report from the launch load; the loading line's fill follows it.
+    func reportModelLoad(_ progress: ModelLoadProgress) {
+        if self.line == nil || progress.step == 0 {
+            self.line = LoadingLine(reduceMotion: NSWorkspace.shared.accessibilityDisplayShouldReduceMotion)
+            self.loadStartedAt = CACurrentMediaTime()
         }
+        self.line?.report(progress, at: .seconds(CACurrentMediaTime() - self.loadStartedAt))
+        if progress.isDone { self.isModelLoading = false }
+        self.wake()
     }
 
     /// Splits the microphone's audio into the rim's voice bands.
@@ -345,6 +357,8 @@ final class PillPresenter {
         self.simulation.wordsShown = self.liveWords == .inPill && self.words.hasWords
         self.simulation.wordsAbove = self.wordsAboveTarget
         self.simulation.wordsGap = RimWordsBubble.gap * Float(self.words.scale)
+        self.simulation.loadingFill = Float(LoadingLine.step(
+            &self.line, isModelLoading: self.isModelLoading, at: .seconds(now - self.loadStartedAt)))
         self.simulation.update(
             dt: dt, state: self.state, features: features, reduced: self.reduceMotion, pill: self.words.pillSize(base: RimParameters.pillSize)
         )

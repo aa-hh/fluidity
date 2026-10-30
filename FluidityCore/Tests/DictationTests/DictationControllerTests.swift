@@ -296,15 +296,18 @@ struct DictationControllerTests {
         #expect(s.transcribeCalls + s.transcriberCancels == 1)
     }
 
-    enum QuietEnd: Sendable, CaseIterable { case audioStartFails, finalPassFails, emptyTranscript }
+    enum QuietEnd: Sendable, CaseIterable { case audioStartFails, finalPassFails, secureFinalPassFails, emptyTranscript }
 
-    // Turns red if a dictation with no audio or no words pastes or saves something, or leaves the pill up.
+    // Turns red if a dictation with no audio or no words pastes something, if a failed final pass drops its recording instead of saving it with no transcript, if a failed final pass in a secure field is saved, or if the pill is left up.
     @Test(arguments: QuietEnd.allCases)
     func endsQuietly(_ end: QuietEnd) async {
         let h = Harness {
             switch end {
             case .audioStartFails: $0.audioStartFails = true
             case .finalPassFails: $0.rawTranscript = nil
+            case .secureFinalPassFails:
+                $0.rawTranscript = nil
+                $0.field?.isSecure = true
             case .emptyTranscript: $0.rawTranscript = ""
             }
         }
@@ -314,8 +317,16 @@ struct DictationControllerTests {
         await h.advance(.milliseconds(200))
         await h.until { h.controller.pill == .hidden && h.controller.phase == .ready }
         await h.settle()
-        #expect(h.parts.snapshot.pasted.isEmpty)
-        #expect(h.parts.snapshot.saved.isEmpty)
+        let s = h.parts.snapshot
+        #expect(s.pasted.isEmpty)
+        if end == .finalPassFails {
+            #expect(s.saved.count == 1)
+            #expect(s.saved.first?.rawTranscript == "")
+            #expect(s.saved.first?.pasteLanded == false)
+            #expect(s.saved.first?.pastedText == nil)
+        } else {
+            #expect(s.saved.isEmpty)
+        }
     }
 
     // Turns red if the menu bar stops following a dictation through recording back to ready.
