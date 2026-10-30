@@ -352,6 +352,10 @@ Depth comes from one translucent shell and the lit top edge.
 - **Appear and hide:** the pill grows from a point over 0.18 s, through a 1.2 pt line, to full height. Hidden without a paste, it leaves in 0.12 s. The swell before the collapse rises in 0.09 s.
 - **Words:** each word appears on a spring (damping 0.816, response 0.28 s) with a 2.2 pt rise; leaving words shrink to 0.82 on a 0.45 s spring. Words that would move more than 48 pt on cleanup fade out and back in instead of sliding. In the bubble above, a word the live preview pushes onto another line does the same. Edge fades: 14 pt at the left once the line scrolls (2 pt before), 4 pt at the right, 4 pt at the top of the bubble above. Every word size and distance scales with the pill's height ÷ 28.
 
+### Sound
+- **Start** (`fluidity-start.caf`) plays as the pill appears; **finish** (`fluidity-finish.caf`) plays as a paste lands, a retried one included. Nothing plays for a cancel, a failed paste or a missing permission.
+- Both are the same short "tok", 35 ms before its echo: the start pitched down 6 semitones with its low end cut below 780 Hz, the finish 4 semitones above it with its low end kept, 4.4 dB louder. Both are softened above about 2.7 kHz. Start 287 ms and finish 388 ms with the echo; 48 kHz mono, finish peak −6 dBFS. Alec tuned them; change them only on his word.
+
 ### Bubble above
 - Splits off the top of the pill while you talk, using the island's size spring, from an 18 pt seed, straight to its full 300 pt width, which it keeps; only its height grows, a line at a time. Its ring is the same light as the pill's rim at 60% brightness; it fades in over the first 15% of the travel, and the text shows from 55%. Its blur runs on a spring of damping 0.816, response 0.3 s.
 - When you stop talking it is pulled back into the pill, draining to 9 pt, in mint for a paste, or before the retry bubble splits off for a failed one. On the merge its height responds at 0.36 s, leading the width. When the pill is docked at the top of the screen, the bubble splits off below instead.
