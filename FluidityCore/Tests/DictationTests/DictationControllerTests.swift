@@ -142,12 +142,12 @@ struct DictationControllerTests {
             modelVersion: "parakeet-v2", wordListVersion: "words-2"))
     }
 
-    // Turns red if the text is pasted before the pill has had 220 ms to flash green and leave.
+    // Turns red if the text is pasted before the pill has had 100 ms to flash green and leave.
     @Test func pasteWaitsForThePillToLeave() async {
         let h = Harness()
         await h.dictate()
         await h.until { h.controller.pill == .pasting }
-        await h.advance(.milliseconds(219))
+        await h.advance(.milliseconds(99))
         await h.settle()
         #expect(h.parts.snapshot.pasted.isEmpty)
         await h.advance(.milliseconds(1))

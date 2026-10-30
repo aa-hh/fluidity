@@ -24,8 +24,8 @@ public final class DictationController {
     private static let recordingLimit: Duration = .seconds(20 * 60)
     private static let cancelledShownFor: Duration = .milliseconds(120)
     private static let pastedShownFor: Duration = .milliseconds(600)
-    /// The pill's green flash and quick hide before a paste: `pasteFlash` plus `hideTime` in `RimParameters`.
-    private static let pillLeavesIn: Duration = .milliseconds(220)
+    /// The pill's green flash and fade before a paste: `pasteFlash` in `RimParameters`.
+    private static let pillLeavesIn: Duration = .milliseconds(100)
 
     private let audio: any AudioCapturing
     private let transcriber: any Transcribing

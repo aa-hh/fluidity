@@ -94,6 +94,8 @@ nonisolated struct RimSimulation {
     private(set) var doneClock: Float = 0
     /// 1 is the full pill, 0.4 a thin line, 0 a point and gone.
     var visibility: Float { rimClamp(self.visibilitySpring.x, 0, 1) }
+    /// Before a paste the pill and the words' bubble fade out where they stand, from 1 to 0.
+    private(set) var leaveFade: Float = 1
     private var visibilitySpring: RimSpring
     private var isCollapsing = false
     private var meltAmount: Float = 0
@@ -287,6 +289,8 @@ nonisolated struct RimSimulation {
         // Words in the pill take the line's place, so the line stays out and eases in from nothing once they go.
         let lineShows = !self.wordsShown && (state == .think || (state == .done && !self.collapsesWhenDone) || (lineReturns && self.bubbleClock < p.snapTime))
         self.coreOn += ((lineShows ? 1 : 0) - self.coreOn) * rimEase(dt, 0.14)
+        let leavesForPaste = state == .done && self.collapsesWhenDone
+        if leavesForPaste { self.coreOn = 0 }
 
         // Completion: the line turns green and holds; then one front expands back out
         // to the rim (always shown) or the whole pill collapses and vanishes.
@@ -308,6 +312,13 @@ nonisolated struct RimSimulation {
         }
         let dimTime: Float = state == .think ? 0.3 : (dimTarget > self.dimRim ? 0.05 : 0.07)
         self.dimRim += (dimTarget - self.dimRim) * rimEase(dt, dimTime)
+        // Before a paste the whole rim flashes mint at once, then everything fades where it stands.
+        if leavesForPaste { self.dimRim = 1 }
+        if leavesForPaste {
+            self.leaveFade = 1 - rimSmooth(self.doneClock / max(0.01, p.pasteFlash))
+        } else if state != .idle {
+            self.leaveFade = 1
+        }
 
         self.updateVisibility(dt: dt, state: state, previous: previous, reduced: reduced)
 
@@ -365,20 +376,25 @@ nonisolated struct RimSimulation {
             self.fluid = RimFluidCollapse()
             return
         }
-        // Before a paste the rim flashes and the pill hides quickly; a retried paste holds green and collapses.
-        let hold = state == .done ? p.pasteFlash : p.greenHold
-        let collapseNow = (state == .done || state == .pasted) && self.doneClock >= hold
-        let shows = state != .idle && !collapseNow
+        // A retried paste holds green and collapses; before a paste the pill fades where it stands and is gone after the flash.
+        let collapseNow = state == .pasted && self.doneClock >= p.greenHold
+        let leftForPaste = state == .done && self.doneClock >= p.pasteFlash
+        let shows = state != .idle && !collapseNow && !leftForPaste
         if shows {
             self.isCollapsing = false
-        } else if (collapseNow && state == .pasted) || previous == .fixed {
+        } else if collapseNow || previous == .fixed {
             // Idle after a paste keeps collapsing; idle otherwise hides quickly.
             self.isCollapsing = true
         }
         let duration = shows ? RimParameters.appearTime : self.isCollapsing ? p.collapseTime : RimParameters.hideTime
         self.visibilitySpring.time(to: duration, damping: p.transitionDamping)
         self.visibilitySpring.target = shows ? 1 : 0
-        self.visibilitySpring.step(dt)
+        if leftForPaste {
+            self.visibilitySpring.reset(to: 0)
+            self.wordsBubble.vanish()
+        } else {
+            self.visibilitySpring.step(dt)
+        }
         self.fluid.update(dt: dt, collapsing: p.fluidCollapse && self.isCollapsing && !reduced, shows: shows, params: p)
         // The collapse's last point melts through the island's blob, the way the bubble dissolves.
         // In the fluid collapse the softening grows through the whole collapse, following the width.
@@ -504,7 +520,7 @@ nonisolated struct RimSimulation {
         u[RimUniform.pillW] = shape.width * stretch.x
         u[RimUniform.pillH] = shape.height * stretch.y
         u[RimUniform.fullW] = w
-        u[RimUniform.fade] = shape.fade
+        u[RimUniform.fade] = shape.fade * self.leaveFade
         u[RimUniform.scale] = displayScale
         for index in 0..<3 {
             u[RimUniform.phase + index] = self.phases[index]

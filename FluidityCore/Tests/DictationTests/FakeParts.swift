@@ -223,16 +223,16 @@ struct ControllerHarness {
         await advance(.milliseconds(200))
     }
 
-    /// Lets the pill's 220 ms before a paste pass, then waits until the dictation ends.
+    /// Lets the pill's 100 ms before a paste pass, then waits until the dictation ends.
     func untilDone() async {
         await until { controller.pill == .pasting || [.ready, .watching].contains(controller.phase) }
         if controller.pill == .pasting { await letPillLeave() }
         await until { [.ready, .watching].contains(controller.phase) }
     }
 
-    /// Waits for the pill to start leaving before the paste and lets its 220 ms pass.
+    /// Waits for the pill to start leaving before the paste and lets its 100 ms pass.
     func letPillLeave() async {
         await until { controller.pill == .pasting }
-        await advance(.milliseconds(220))
+        await advance(.milliseconds(100))
     }
 }

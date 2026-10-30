@@ -326,7 +326,7 @@ final class PillPresenter {
         var elapsed = Float(now - self.stateStartedAt)
 
         let p = self.simulation.params
-        let leavesAfter = self.state == .done ? p.pasteFlash + RimParameters.hideTime : p.greenHold + p.collapseTime
+        let leavesAfter = self.state == .done ? p.pasteFlash : p.greenHold + p.collapseTime
         if self.state == .done || self.state == .pasted, elapsed > leavesAfter + 0.05 {
             self.enter(.idle)
             elapsed = 0
@@ -367,10 +367,11 @@ final class PillPresenter {
         return uniforms
     }
 
-    /// The size the words need above the pill. The bubble is for while you talk and while the AI
-    /// works; a paste, or a failed one, takes it back in.
+    /// The size the words need above the pill. The bubble is for while you talk, while the AI
+    /// works and while it flashes before a paste; a retried or failed paste takes it back in.
     private var wordsAboveTarget: CGSize? {
-        let keeps = self.liveWords == .above && self.words.hasWords && (self.state == .listen || self.state == .think)
+        let keeps = self.liveWords == .above && self.words.hasWords
+            && (self.state == .listen || self.state == .think || self.state == .done)
         return keeps ? self.words.aboveSize : nil
     }
 
@@ -388,7 +389,7 @@ final class PillPresenter {
                 box: bubble.size,
                 // The shader's y grows downward and the view's upward.
                 offset: CGPoint(x: 0, y: CGFloat(-bubble.y)),
-                look: (SIMD2(1, 1), bubble.textOpacity),
+                look: (SIMD2(1, 1), bubble.textOpacity * self.simulation.leaveFade),
                 scale: scale
             )
             return
@@ -402,7 +403,7 @@ final class PillPresenter {
             band: self.words.band(thinking: thinking, inner: inner, reduced: self.reduceMotion),
             box: pill,
             offset: CGPoint(x: CGFloat(look.offsetX), y: 0),
-            look: (look.scale, look.opacity),
+            look: (look.scale, look.opacity * self.simulation.leaveFade),
             scale: scale
         )
     }

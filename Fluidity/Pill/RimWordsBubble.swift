@@ -78,6 +78,12 @@ nonisolated struct RimWordsBubble {
         if self.isMerging, self.position.x < 0.03 || reduced { self.isActive = false }
     }
 
+    /// Gone at once, without draining back into the pill.
+    mutating func vanish() {
+        self.isActive = false
+        self.isMerging = false
+    }
+
     private mutating func split(seed: Float) {
         self.isActive = true
         self.isMerging = false
