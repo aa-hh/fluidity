@@ -114,6 +114,7 @@ struct DictationControllerTests {
         let landed = outcome == .landed
         let h = Harness { $0.pasteOutcome = outcome }
         await h.dictate()
+        await h.letPillLeave()
         await h.until { !h.parts.snapshot.saved.isEmpty && h.parts.snapshot.watched.count == (landed ? 1 : 0) }
         let s = h.parts.snapshot
         #expect(h.controller.pill == pill)
@@ -139,6 +140,18 @@ struct DictationControllerTests {
             pasteLanded: true,
             timings: StageTimings(transcription: 0, wordListRecheck: 0.25, cleanup: 0, finishing: 0, paste: 0),
             modelVersion: "parakeet-v2", wordListVersion: "words-2"))
+    }
+
+    // Turns red if the text is pasted before the pill has had 220 ms to flash green and leave.
+    @Test func pasteWaitsForThePillToLeave() async {
+        let h = Harness()
+        await h.dictate()
+        await h.until { h.controller.pill == .pasting }
+        await h.advance(.milliseconds(219))
+        await h.settle()
+        #expect(h.parts.snapshot.pasted.isEmpty)
+        await h.advance(.milliseconds(1))
+        await h.until { h.parts.snapshot.pasted.count == 1 }
     }
 
     // Turns red if the pasted pill stays up, or goes before 600 ms.
@@ -240,6 +253,7 @@ struct DictationControllerTests {
     func watchingEnds(_ end: WatchEnd, reason: WatchStopReason, phase: Phase) async throws {
         let h = Harness()
         await h.dictate()
+        await h.letPillLeave()
         await h.until { h.parts.snapshot.watched.count == 1 }
         let id = try #require(h.parts.snapshot.saved.first?.id)
         switch end {

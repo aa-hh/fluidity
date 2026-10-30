@@ -33,6 +33,8 @@ nonisolated struct RimParameters: Equatable {
     var downloadTime: Float = 0.15
     var lineLength: Float = 0.5
     var greenHold: Float = 0.26
+    /// Before a paste the rim flashes mint this long, then the pill leaves in `hideTime` (Alec, 2026-10-30, AA-369).
+    var pasteFlash: Float = 0.1
     var snapTime: Float = 0.13
     var collapseTime: Float = 0.34
     var lineWidth: Float = 1

@@ -285,7 +285,7 @@ nonisolated struct RimSimulation {
         // A paste that fails straight out of processing first sends the line back out to the rim, in ivory.
         let lineReturns = state == .flux && self.bubble.startsFromLine
         // Words in the pill take the line's place, so the line stays out and eases in from nothing once they go.
-        let lineShows = !self.wordsShown && (state == .think || state == .done || (lineReturns && self.bubbleClock < p.snapTime))
+        let lineShows = !self.wordsShown && (state == .think || (state == .done && !self.collapsesWhenDone) || (lineReturns && self.bubbleClock < p.snapTime))
         self.coreOn += ((lineShows ? 1 : 0) - self.coreOn) * rimEase(dt, 0.14)
 
         // Completion: the line turns green and holds; then one front expands back out
@@ -296,11 +296,11 @@ nonisolated struct RimSimulation {
         switch state {
         case .think:
             dimTarget = self.wordsShown ? Self.wordsRimDim : 0.38
-        case .done where self.wordsShown:
+        case .done where self.wordsShown || self.collapsesWhenDone:
+            // Before a paste the whole rim flashes mint, with no centre line.
             dimTarget = 1
         case .done:
-            let restoresAt = self.collapsesWhenDone ? hold : hold + 0.75 * p.snapTime
-            dimTarget = self.doneClock > restoresAt ? 1 : 0.38
+            dimTarget = self.doneClock > hold + 0.75 * p.snapTime ? 1 : 0.38
         case .flux:
             dimTarget = lineReturns && self.bubbleClock < 0.75 * p.snapTime ? 0.38 : 1
         case .idle, .listen, .problem, .pasted, .fixed:
@@ -354,7 +354,7 @@ nonisolated struct RimSimulation {
     }
 
     /// The pill shown only while dictating grows from a point, collapses after a
-    /// paste and hides otherwise. Each runs on a spring timed to its approved
+    /// retried paste and hides otherwise. Each runs on a spring timed to its approved
     /// duration, so a key press mid-collapse grows back from where the pill is.
     private mutating func updateVisibility(dt: Float, state: RimState, previous: RimState, reduced: Bool) {
         let p = self.params
@@ -365,11 +365,13 @@ nonisolated struct RimSimulation {
             self.fluid = RimFluidCollapse()
             return
         }
-        let collapseNow = (state == .done || state == .pasted) && self.doneClock >= p.greenHold
+        // Before a paste the rim flashes and the pill hides quickly; a retried paste holds green and collapses.
+        let hold = state == .done ? p.pasteFlash : p.greenHold
+        let collapseNow = (state == .done || state == .pasted) && self.doneClock >= hold
         let shows = state != .idle && !collapseNow
         if shows {
             self.isCollapsing = false
-        } else if collapseNow || previous == .fixed {
+        } else if (collapseNow && state == .pasted) || previous == .fixed {
             // Idle after a paste keeps collapsing; idle otherwise hides quickly.
             self.isCollapsing = true
         }

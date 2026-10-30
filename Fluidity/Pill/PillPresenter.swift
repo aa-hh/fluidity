@@ -123,8 +123,8 @@ final class PillPresenter {
             } else if self.state != .think {
                 self.showProcessing()
             }
-        case .pasted, .pastedRawTranscript:
-            // A fallback paste is quiet: it ends in mint like any other.
+        case .pasting, .pasted, .pastedRawTranscript:
+            // The rim flashes mint and the pill leaves before the text lands; a fallback paste looks the same.
             self.finish(pasted: true)
         case let .nowhereToPaste(text):
             self.heldText = text
@@ -211,7 +211,7 @@ final class PillPresenter {
         self.enter(.think)
     }
 
-    /// The dictation finished. A paste turns the line green first; anything else goes straight away.
+    /// The dictation finished. A paste flashes the rim green first; anything else goes straight away.
     private func finish(pasted: Bool) {
         guard self.state == .listen || self.state == .think else { return }
         self.audio.setActive(false)
@@ -326,7 +326,8 @@ final class PillPresenter {
         var elapsed = Float(now - self.stateStartedAt)
 
         let p = self.simulation.params
-        if self.state == .done || self.state == .pasted, elapsed > p.greenHold + p.collapseTime + 0.05 {
+        let leavesAfter = self.state == .done ? p.pasteFlash + RimParameters.hideTime : p.greenHold + p.collapseTime
+        if self.state == .done || self.state == .pasted, elapsed > leavesAfter + 0.05 {
             self.enter(.idle)
             elapsed = 0
         }
