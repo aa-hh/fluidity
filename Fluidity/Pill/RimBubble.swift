@@ -2,9 +2,7 @@ import Foundation
 
 /// The bubble that splits off the pill when something waits on the user: a
 /// transcript whose paste failed, or the fix for a lost microphone or a
-/// revoked permission. It also waits beside the pill while the speech model
-/// loads. It moves
-/// with the Dynamic Island's split ("mitosis") from SpringBoard. Port of
+/// revoked permission. It moves with the Dynamic Island's split ("mitosis") from SpringBoard. Port of
 /// `makeFlux`, `updateFlux` and `fluxGeom` in the prototype's rim.js.
 nonisolated struct RimBubble {
     enum Kind: Equatable {
@@ -14,8 +12,6 @@ nonisolated struct RimBubble {
         case microphone
         /// A permission was turned off while the app ran; the bubble shows a lock.
         case lock
-        /// The speech model is still loading; the bubble shows a turning arc and takes no click.
-        case loading
 
         /// Which icon the shader draws.
         var icon: Float {
@@ -23,7 +19,6 @@ nonisolated struct RimBubble {
             case .send: return 0
             case .microphone: return 1
             case .lock: return 2
-            case .loading: return 3
             }
         }
     }
@@ -112,15 +107,13 @@ nonisolated struct RimBubble {
     private(set) var hover: Float = 0
     private var hoverTarget: Float = 0
     private(set) var icon: Float = 0
-    /// How far the loading arc has turned, 0...1; once a second, and still under Reduce Motion.
-    private(set) var turn: Float = 0
     /// Time left on a failed retry's soft orange.
     private(set) var failTime: Float = 0
 
     /// True once the bubble has reached its place.
     private var isInPlace: Bool { self.isActive && self.mode == .split && self.position.x > 0.8 }
-    /// True once the bubble has reached its place and can take a click; the loading bubble never can.
-    var isWaiting: Bool { self.isInPlace && self.kind != .loading }
+    /// True once the bubble has reached its place and can take a click.
+    var isWaiting: Bool { self.isInPlace }
 
     mutating func setHover(_ on: Bool) {
         self.hoverTarget = on ? 1 : 0
@@ -142,13 +135,12 @@ nonisolated struct RimBubble {
     }
 
     /// `problem` is what the amber pill's bubble holds: the lost mic or a lock.
-    /// `loading` keeps the loading bubble beside the pill while it listens or processes.
     mutating func update(
         dt: Float, state: RimState, previous: RimState, params p: RimParameters, reduced: Bool,
-        problem: Kind = .microphone, loading: Bool = false
+        problem: Kind = .microphone
     ) {
         self.failTime = max(0, self.failTime - dt)
-        let waitingKind = Self.waitingKind(for: state, problem: problem, loading: loading)
+        let waitingKind = Self.waitingKind(for: state, problem: problem)
         if let waitingKind, self.isActive, self.mode == .split { self.kind = waitingKind }
         if let waitingKind, !self.isActive || self.mode != .split, previous != state {
             self.start(kind: waitingKind, fromLine: previous == .think, params: p, reduced: reduced)
@@ -159,7 +151,6 @@ nonisolated struct RimBubble {
             return
         }
         self.clock += dt
-        self.turn = self.kind == .loading && !reduced ? rimWrap(self.turn + dt) : 0
 
         if waitingKind != nil, self.mode == .split {
             if self.clock >= self.startsAt, self.bubbleProgress.phase < 0 {
@@ -181,7 +172,7 @@ nonisolated struct RimBubble {
             if reduced { self.fade = max(0, self.fade - dt / 0.2) }
             if (self.grow.x < 0.02 && abs(self.grow.v) < 0.5) || self.fade <= 0 { self.isActive = false }
         } else if state == .listen || state == .think || state == .done {
-            // A new dictation supersedes the wait, or the model finished loading:
+            // A new dictation supersedes the wait:
             // the bubble slides back into the pill on the recombine spring.
             if self.mode != .recombine {
                 self.mode = .recombine
@@ -221,12 +212,7 @@ nonisolated struct RimBubble {
         self.hover += (hoverNow - self.hover) * rimEase(dt, hoverNow > self.hover ? 0.09 : 0.16)
         // The arrow, mic and lock always show, brighter on hover.
         let iconTarget: Float
-        if self.kind == .loading {
-            // Reduce Motion: the arc does not turn; it fades between 40% and 72% over the line's 1.5 s breath.
-            let rest: Float = reduced ? 0.56 + 0.16 * sin(2 * .pi * self.clock / p.pulsePeriod) : 0.72
-            // The arc fades as the bubble slides back, so it never shows inside the pill.
-            iconTarget = self.isInPlace ? rest : 0
-        } else if canHover {
+        if canHover {
             iconTarget = 0.72 + 0.28 * hoverNow
         } else {
             iconTarget = self.mode == .split ? 0 : self.icon
@@ -234,8 +220,7 @@ nonisolated struct RimBubble {
         self.icon += (iconTarget - self.icon) * rimEase(dt, iconTarget > self.icon ? 0.11 : 0.08)
     }
 
-    private static func waitingKind(for state: RimState, problem: Kind, loading: Bool) -> Kind? {
-        if loading, state == .listen || state == .think { return .loading }
+    private static func waitingKind(for state: RimState, problem: Kind) -> Kind? {
         switch state {
         case .flux: return .send
         case .problem: return problem

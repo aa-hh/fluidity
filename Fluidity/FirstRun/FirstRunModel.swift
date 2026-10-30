@@ -5,7 +5,7 @@ import Observation
 @MainActor
 @Observable
 final class FirstRunModel {
-    /// The download's progress from 0 to 1, as `Transcriber.prepare(progress:)` reports it.
+    /// The speech model's download from 0 to 1, from `ModelLoadProgress.downloadFraction`.
     var modelProgress: Double = 0
     /// The model is downloaded and loaded.
     var isModelReady = false

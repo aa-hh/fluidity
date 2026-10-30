@@ -186,7 +186,28 @@ public final class DictationController {
             await store.dictationCancelled(recording)
             return
         }
-        guard let transcript, !transcript.text.isEmpty else {
+        guard let transcript else {
+            log.notice("run: final pass failed; saving the recording with no transcript")
+            let context = await field.read()
+            guard !Task.isCancelled else {
+                await store.dictationCancelled(recording)
+                return
+            }
+            end(showing: .hidden)
+            guard context?.isSecure != true else { return }
+            let record = DictationRecord(
+                id: current.id,
+                startedAt: current.startedAt,
+                app: context?.app,
+                rawTranscript: "",
+                timings: StageTimings(transcription: seconds(since: transcriptionStart)),
+                modelVersion: "",
+                wordListVersion: wordListVersion()
+            )
+            await store.save(record, recording: recording)
+            return
+        }
+        guard !transcript.text.isEmpty else {
             end(showing: .hidden)
             return
         }

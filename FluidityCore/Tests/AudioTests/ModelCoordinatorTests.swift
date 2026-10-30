@@ -37,7 +37,8 @@ struct ModelCoordinatorTests {
         chosen: SpeechModelID = .parakeetTDTv2,
         installed: Set<SpeechModelID> = [.parakeetTDTv2, .parakeetUnified],
         registered: Set<SpeechModelID> = Set(SpeechModelID.allCases),
-        loadSupport: @escaping @Sendable () async throws -> Void = {}
+        loadVoiceDetector: @escaping @Sendable () async throws -> Void = {},
+        loadWordCheck: @escaping @Sendable () async throws -> Void = {}
     ) -> (ModelCoordinator, ModelDownloads, ChosenModel) {
         let saved = ChosenModel(chosen)
         let downloads = ModelDownloads(fetcher: InstalledModels(installed: installed), network: Online())
@@ -48,7 +49,8 @@ struct ModelCoordinatorTests {
             setChosenModel: { saved.value = $0 },
             engines: all.filter { registered.contains($0.key) },
             downloads: downloads,
-            loadSupport: loadSupport,
+            loadVoiceDetector: loadVoiceDetector,
+            loadWordCheck: loadWordCheck,
             makeTranscriber: { engine, model in
                 Transcriber(
                     engine: engine, model: model, voiceDetector: FakeVoiceDetector(speech: true),
@@ -90,7 +92,7 @@ struct ModelCoordinatorTests {
         // Loading Silero and CTC before the transcriber's load starts, so a final pass made meanwhile skips the wait and
         // runs on the unloaded engine, losing the dictation, turns this red.
         let (support, supportDone) = AsyncStream.makeStream(of: Void.self)
-        let (coordinator, _, _) = make(chosen: .parakeetUnified, loadSupport: { for await _ in support {} })
+        let (coordinator, _, _) = make(chosen: .parakeetUnified, loadWordCheck: { for await _ in support {} })
         unified.hold()
         let preparing = Task { try await coordinator.prepare(progress: { _ in }) }
         await settle()
@@ -104,6 +106,34 @@ struct ModelCoordinatorTests {
         unified.release()
         try await preparing.value
         #expect(try await finishing.value.text == "heard 1")
+    }
+
+    // Reporting a load the launch does not run, skipping one it does, or loading CTC before Silero, turns this red.
+    @Test(arguments: [SpeechModelID.parakeetTDTv2, .parakeetUnified])
+    func prepareReportsEachLaunchLoadInOrder(_ model: SpeechModelID) async throws {
+        let reports = Mutex<[ModelLoadProgress]>([])
+        let calls = Mutex<[String]>([])
+        let (coordinator, _, _) = make(
+            chosen: model,
+            loadVoiceDetector: { calls.withLock { $0.append("voice detector") } },
+            loadWordCheck: { calls.withLock { $0.append("word check") } })
+        try await coordinator.prepare { progress in reports.withLock { $0.append(progress) } }
+        let reported = reports.withLock { $0 }
+        let stepCount = model == .parakeetTDTv2 ? 2 : 3
+        #expect(reported.map { $0.step } == Array(0...stepCount))
+        #expect(reported.allSatisfy { $0.stepCount == stepCount && !$0.needsDownload })
+        #expect(reported.last?.isDone == true)
+        #expect(calls.withLock { $0 } == (model == .parakeetTDTv2 ? ["voice detector"] : ["voice detector", "word check"]))
+    }
+
+    @Test func aFirstLaunchReportsThatItDownloads() async throws {
+        // Reading whether the speech model needs a download after its load, or not at all, turns this red.
+        let reports = Mutex<[ModelLoadProgress]>([])
+        let (coordinator, _, _) = make(installed: [])
+        try await coordinator.prepare { progress in reports.withLock { $0.append(progress) } }
+        let reported = reports.withLock { $0 }
+        #expect(!reported.isEmpty)
+        #expect(reported.allSatisfy { $0.needsDownload })
     }
 
     // MARK: Switching
