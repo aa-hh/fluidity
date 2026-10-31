@@ -27,7 +27,7 @@ nonisolated enum RimUniform {
     static let bands = 19, bloomCount = 27, blooms = 28
     static let width = 52, widthGain = 53, glow = 54, reach = 55, dimRim = 56, strength = 57, restEase = 58
     static let coreOn = 59, doneT = 60, thinkT = 61, reduced = 62, downloadTime = 63, snapTime = 64
-    static let lineWidth = 65, innerGlow = 66, breath = 67, pulseDepth = 68
+    static let lineWidth = 65, innerGlow = 66, breath = 67, pulseDepth = 68, erase = 69, bodyFade = 70
     static let lineBlooms = 72
     static let snapT = 88, lineLength = 89, lineFade = 90
     static let pillX = 91, sigma = 92, hover = 93, icon = 94, hoverGlow = 95, iconKind = 96, melt = 97, meltSigma = 98
@@ -94,7 +94,7 @@ nonisolated struct RimSimulation {
     private(set) var doneClock: Float = 0
     /// 1 is the full pill, 0.4 a thin line, 0 a point and gone.
     var visibility: Float { rimClamp(self.visibilitySpring.x, 0, 1) }
-    /// Before a paste the pill and the words' bubble fade out where they stand, from 1 to 0.
+    /// Before a paste the dark body of the pill and of the words' bubble, and the words, fade from 1 to 0.
     private(set) var leaveFade: Float = 1
     private var visibilitySpring: RimSpring
     private var isCollapsing = false
@@ -312,10 +312,10 @@ nonisolated struct RimSimulation {
         }
         let dimTime: Float = state == .think ? 0.3 : (dimTarget > self.dimRim ? 0.05 : 0.07)
         self.dimRim += (dimTarget - self.dimRim) * rimEase(dt, dimTime)
-        // Before a paste the whole rim turns mint at once and holds, then everything fades where it stands.
+        // Before a paste the whole rim turns mint at once; the body and words fade and the line erases itself.
         if leavesForPaste {
             self.dimRim = 1
-            self.leaveFade = 1 - rimSmooth((self.doneClock - (p.pasteFlash - p.pasteFade)) / max(0.01, p.pasteFade))
+            self.leaveFade = 1 - rimSmooth(self.doneClock / max(0.01, p.pasteFade))
         } else if state != .idle {
             self.leaveFade = 1
         }
@@ -520,7 +520,13 @@ nonisolated struct RimSimulation {
         u[RimUniform.pillW] = shape.width * stretch.x
         u[RimUniform.pillH] = shape.height * stretch.y
         u[RimUniform.fullW] = w
-        u[RimUniform.fade] = shape.fade * self.leaveFade
+        u[RimUniform.fade] = shape.fade
+        u[RimUniform.bodyFade] = self.leaveFade
+        // Before a paste the mint line erases itself around each outline; under Reduce Motion it fades in place instead.
+        if state == .done && self.collapsesWhenDone {
+            let erase = rimSmooth((self.doneClock - p.pasteEraseFrom) / max(0.01, p.pasteFlash - p.pasteEraseFrom))
+            if reduced { u[RimUniform.fade] *= 1 - erase } else { u[RimUniform.erase] = erase }
+        }
         u[RimUniform.scale] = displayScale
         for index in 0..<3 {
             u[RimUniform.phase + index] = self.phases[index]
