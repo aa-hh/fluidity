@@ -14,7 +14,7 @@ private let log = Logger(subsystem: "com.fluidity.app", category: "audio")
 /// started only for a recording. So the microphone is in use only while recording, and a key press costs one start
 /// call plus the hardware's own delay to the first audio.
 public final class CoreAudioInput: AudioInput, @unchecked Sendable {
-    public enum Failure: Error { case noInputDevice, coreAudio(OSStatus) }
+    public enum Failure: Error { case noInputDevice, coreAudio(OSStatus), startTimedOut }
 
     /// One `start()` until `stop()` or a lost device.
     private final class Session: @unchecked Sendable {
@@ -68,19 +68,58 @@ public final class CoreAudioInput: AudioInput, @unchecked Sendable {
             guard let built = unit else { throw Failure.noInputDevice }
             let session = Session(handler: handler, device: built.name)
             lock.withLock { self.session = session }
-            var status = AudioOutputUnitStart(built.audioUnit)
-            if status != noErr {
-                log.error("input start on \(built.name, privacy: .public) failed (\(status, privacy: .public)); rebuilding")
-                rebuild()
-                status = unit.map { AudioOutputUnitStart($0.audioUnit) } ?? status
-            }
-            guard status == noErr else {
+            do {
+                var status = try startWithinLimit(built)
+                if status != noErr {
+                    log.error("input start on \(built.name, privacy: .public) failed (\(status, privacy: .public)); rebuilding")
+                    rebuild()
+                    status = try unit.map { try startWithinLimit($0) } ?? status
+                }
+                guard status == noErr else { throw Failure.coreAudio(status) }
+            } catch {
                 lock.withLock { self.session = nil }
-                throw Failure.coreAudio(status)
+                throw error
             }
             let took = (ContinuousClock.now - session.startedAt) / .milliseconds(1)
             log.notice("input start: \(session.device, privacy: .public), start call took \(took, format: .fixed(precision: 1), privacy: .public) ms")
         }
+    }
+
+    /// How long `AudioOutputUnitStart` may take before a start gives up.
+    private static let startLimit: DispatchTimeInterval = .seconds(3)
+
+    /// Starts `built` on a thread of its own, and drops it when the start takes longer than `startLimit`.
+    /// Call with `unitLock` held.
+    ///
+    /// `AudioOutputUnitStart` can block for good: while Audiout's aggregate device was the macOS output, no app
+    /// could start any microphone. Waiting on it would queue every later key press behind the stuck call.
+    private func startWithinLimit(_ built: InputUnit) throws(Failure) -> OSStatus {
+        final class Attempt: @unchecked Sendable {
+            let lock = NSLock()
+            var status: OSStatus?
+            var abandoned = false
+        }
+        let attempt = Attempt()
+        let done = DispatchSemaphore(value: 0)
+        Thread.detachNewThread {
+            let status = AudioOutputUnitStart(built.audioUnit)
+            let abandoned = attempt.lock.withLock {
+                attempt.status = status
+                return attempt.abandoned
+            }
+            // Nothing else holds an abandoned unit, so it is disposed here if the call ever returns.
+            if abandoned { built.dispose() } else { done.signal() }
+        }
+        _ = done.wait(timeout: .now() + Self.startLimit)
+        let status = attempt.lock.withLock {
+            if attempt.status == nil { attempt.abandoned = true }
+            return attempt.status
+        }
+        if let status { return status }
+        log.error("input start on \(built.name, privacy: .public) did not return within the time limit; dropping the unit")
+        // Disposing it here would block on the same stuck call. The next start builds a fresh unit.
+        if unit === built { unit = nil }
+        throw .startTimedOut
     }
 
     public func stop() {
