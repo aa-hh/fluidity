@@ -55,6 +55,9 @@ final class PillPresenter {
     private var line: LoadingLine?
     /// When the first report came; the line's clock counts from it.
     private var loadStartedAt: CFTimeInterval = 0
+    /// When the loading line last reached full; a paste waits until the full line has shown for `fullLineHold`.
+    private var lineFullAt: CFTimeInterval = 0
+    private static let fullLineHold: CFTimeInterval = 0.45
 
     /// One report from the launch load; the loading line's fill follows it.
     func reportModelLoad(_ progress: ModelLoadProgress) {
@@ -241,6 +244,11 @@ final class PillPresenter {
     /// The dictation finished. A paste flashes the rim green first; anything else goes straight away.
     private func finish(pasted: Bool) {
         guard self.state == .listen || self.state == .think else { return }
+        let wait = self.lineFullAt + Self.fullLineHold - CACurrentMediaTime()
+        if pasted, self.state == .think, self.simulation.loadingFill < 1 || wait > 0 {
+            DispatchQueue.main.asyncAfter(deadline: .now() + max(wait, 1.0 / 30)) { self.finish(pasted: true) }
+            return
+        }
         self.audio.setActive(false)
         if !pasted { self.words.dropAll() }
         self.enter(pasted ? .done : .idle)
@@ -380,8 +388,10 @@ final class PillPresenter {
         self.simulation.wordsShown = self.liveWords == .inPill && self.words.hasWords
         self.simulation.wordsAbove = self.wordsAboveTarget
         self.simulation.wordsGap = RimWordsBubble.gap * Float(self.words.scale)
-        self.simulation.loadingFill = Float(LoadingLine.step(
+        let fill = Float(LoadingLine.step(
             &self.line, isModelLoading: self.isModelLoading, at: .seconds(now - self.loadStartedAt)))
+        if fill >= 1, self.simulation.loadingFill < 1 { self.lineFullAt = now }
+        self.simulation.loadingFill = fill
         self.simulation.update(
             dt: dt, state: self.state, features: features, reduced: self.reduceMotion, pill: self.words.pillSize(base: RimParameters.pillSize)
         )
