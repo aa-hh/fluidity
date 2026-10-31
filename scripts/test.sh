@@ -9,6 +9,9 @@
 set -eu
 cd "$(dirname "$0")/.."
 
+# Best effort: removes worktrees flagged .prunable; never fails the run.
+sh scripts/housekeeping.sh || true
+
 full=0
 [ "${1:-}" = --full ] && { full=1; shift; }
 
