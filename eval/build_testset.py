@@ -5,8 +5,9 @@ Usage: python3 -I eval/build_testset.py [--teardown DIR] [--out DIR]
 Test set: a fixed random half of the Wispr Flow clips that have a Wispr
 transcript, so every test clip can be compared head to head. Everything else
 (the other half, Wispr clips without a transcript, all FluidVoice clips, and
-Fluidity's own saved clips in the --out folder) goes to training. The split is written once to split.json and never redrawn: on
-later runs, clips not yet in split.json go to training only.
+Fluidity's own saved clips in the --out folder) goes to training. The split is
+written once to split.json and never redrawn: on later runs, clips not yet in
+split.json go to training only.
 """
 import argparse
 import glob
