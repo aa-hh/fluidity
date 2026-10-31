@@ -95,3 +95,14 @@ private func withDefaults(_ body: (UserDefaults) throws -> Void) rethrows {
         #expect(settings.wordListVersion != version)
     }
 }
+
+// Turns red if the word pace, the pause after the last word, the processing time or the Reduce Motion short cut of the General pane's preview changes.
+@Test func previewPhasesFollowTheScript() {
+    #expect(SpeechPreview.phase(at: .zero, reduceMotion: false) == .listening(wordsHeard: 1))
+    #expect(SpeechPreview.phase(at: .milliseconds(2420), reduceMotion: false) == .listening(wordsHeard: 12))
+    #expect(SpeechPreview.phase(at: .milliseconds(2810), reduceMotion: false) == .listening(wordsHeard: 12))
+    #expect(SpeechPreview.phase(at: .milliseconds(2820), reduceMotion: false) == .processing)
+    #expect(SpeechPreview.phase(at: .milliseconds(3810), reduceMotion: false) == .processing)
+    #expect(SpeechPreview.phase(at: .milliseconds(3820), reduceMotion: false) == .pasted)
+    #expect(SpeechPreview.phase(at: .zero, reduceMotion: true) == .pasted)
+}

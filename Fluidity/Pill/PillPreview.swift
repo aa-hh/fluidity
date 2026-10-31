@@ -125,7 +125,7 @@ enum PillPreview {
 
     /// One tick of a made-up voice at 16 kHz: a gliding pitch with falling harmonics,
     /// in syllables about six times a second, with a hiss now and then.
-    private static func voice(loud: Float) -> [Float] {
+    static func voice(loud: Float) -> [Float] {
         let rate: Float = 16_000
         let count = Int(Double(rate) * Self.tick)
         var chunk = [Float](repeating: 0, count: count)

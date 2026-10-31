@@ -35,3 +35,4 @@ holds no dictation logic.
 - `RimAudioAnalyzer`, `RimFeatureExtractor` → microphone audio to voice bands.
 - `RimParameters`, `RimSpring` → approved values and the island spring.
 - `PillPreview` → shows one state from `FLUIDITY_PILL_PREVIEW`, to check by eye.
+- `PillSampleView` → scripted pill drawn inside the settings window.
