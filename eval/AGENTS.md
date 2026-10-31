@@ -12,25 +12,24 @@ scoring. The scripts live here; the data never does.
   messages and this repo is on GitHub. Data lives under
   `/Volumes/Space/fluidity-data/`; scripts take the folder as an argument.
 - **The test split is drawn once and never redrawn.** `split.json` on the data
-  drive is the record. Deleting it and rerunning reshuffles which clips are
-  test, and any model already trained on the old training pool has seen test
-  clips, so every later score is meaningless.
-- **Test clips never become training data**, including after their reference
-  text is corrected. New recordings always go to training.
-- **Score only against references Alec has checked by ear.** A draft
-  reference is model output, and scoring a model against it measures
-  agreement, not accuracy.
-- Runs happen on this Mac: the mule cannot see the `Space` drive.
+  drive is the record; redrawing lets trained models see test clips.
+- **Test clips never become training data**, even once corrected.
+- **AssemblyAI's transcripts are the answer key** (`score.py --ref aai`);
+  `--ref reviewed` uses Alec's checked clips to spot-check it. Never score
+  against a majority-vote draft: that measures agreement, not accuracy.
+- **Only misheard real words count.** `score.py` strips fillers, repeats and
+  American/British spelling from both sides; cleanup handles those.
+- **Clips leave this Mac only with Alec's yes** (AssemblyAI uploads, copies
+  to the mule, which cannot see the `Space` drive).
 - **Correction thresholds live in `correction_thresholds.json`, never in
   code**, so changing one re-sorts every past dictation.
 
 ## Map
 
 - `build_testset.py` → exports clips, draws or reuses the split.
-- `transcribe.sh` → runs each Parakeet model over the test clips.
+- `transcribe.sh` → runs each speech model over the test clips.
 - `draft_refs.py` → majority-vote draft references, disagreements marked.
 - `review_page.html` → template for the page where Alec settles each mark.
-- `test_draft_refs.py` → regression tests for the draft alignment.
-- `test_build_testset.py` → tests that the split holds and clips route by source.
+- `score.py` → each model's share of real words wrong.
 - `sort_corrections.py` → sorts user edits into categories, writes training rows.
-- `test_sort_corrections.py` → one made-up dictation per category and rule.
+- `test_*.py` → tests for the script of the same name.
