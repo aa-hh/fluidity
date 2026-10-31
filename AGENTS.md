@@ -63,7 +63,8 @@ symbol you cannot find in source, believe the source and fix the doc.
   Conventions: `docs/agents/issue-tracker.md`.
 - **Build and test only through `scripts/build.sh` and `scripts/test.sh`.**
   They are the one place that knows how this repo builds; a Claude hook denies
-  the bare commands.
+  the bare commands. `scripts/release.sh` makes the notarized Release build
+  and installs it in /Applications.
 - **"Does this code exist anywhere?" needs more than `git grep`.** Unreachable
   commits and other worktrees' uncommitted work are invisible to it. Also
   check `git stash list`, the reflog, `git fsck --unreachable` and the other
