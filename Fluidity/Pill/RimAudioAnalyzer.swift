@@ -38,6 +38,7 @@ nonisolated final class RimAudioAnalyzer: @unchecked Sendable {
         // A SIMD value, not an array, so writing it from `ingest` never allocates.
         var bands = SIMD8<Float>()
         var isActive = false
+        var heardSound = false
     }
 
     // Unlocked state. Only `ingest` touches it, and callers must call `ingest`
@@ -49,6 +50,7 @@ nonisolated final class RimAudioAnalyzer: @unchecked Sendable {
     private var noiseFloor = [Float](repeating: 0, count: RimFeatures.bandCount)
     private var signals = [Float](repeating: 0, count: RimFeatures.bandCount)
     private var reading = [Float](repeating: 0, count: RimFeatures.bandCount)
+    private var loudHops = 0
     private let published = OSAllocatedUnfairLock(initialState: Published())
 
     /// Band loudness that counts as fully lit is never below this, so room
@@ -56,6 +58,10 @@ nonisolated final class RimAudioAnalyzer: @unchecked Sendable {
     static let referenceFloor: Float = 0.006
     /// The loud reference falls back over about four seconds after a loud word.
     private static let referenceDecayPerHop: Float = exp(-0.01 / 4)
+    /// Sound counts as caught once some band rises this far above its noise floor for `soundHops` readings (50 ms).
+    /// razor: a fixed level, untuned against real rooms; raise it if fans or typing trip it.
+    static let soundLevel: Float = 0.006
+    static let soundHops = 5
 
     init() {
         self.filters = Self.centres.map { Biquad(sampleRate: Self.sampleRate, centre: $0, q: 1.2) }
@@ -64,10 +70,14 @@ nonisolated final class RimAudioAnalyzer: @unchecked Sendable {
     /// The render loop turns analysis on only while the pill reacts to the voice.
     func setActive(_ active: Bool) {
         self.published.withLock { state in
+            if active, !state.isActive { state.heardSound = false }
             state.isActive = active
             if !active { state.bands = SIMD8<Float>() }
         }
     }
+
+    /// Whether the microphone caught sound since analysis last turned on.
+    var heardSound: Bool { self.published.withLock { $0.heardSound } }
 
     /// Latest band energies, 0...1, low first.
     func latestBands() -> [Float] {
@@ -97,8 +107,10 @@ nonisolated final class RimAudioAnalyzer: @unchecked Sendable {
             latest[band] = self.reading[band]
         }
         let snapshot = latest
+        let heard = self.loudHops >= Self.soundHops
         self.published.withLock { state in
             if state.isActive { state.bands = snapshot }
+            if heard { state.heardSound = true }
         }
     }
 
@@ -117,6 +129,7 @@ nonisolated final class RimAudioAnalyzer: @unchecked Sendable {
         }
         // A band is never measured against less than a tenth (-20 dB) of the
         // loudest band's reference, so leakage from a loud band stays dim.
+        self.loudHops = (self.signals.max() ?? 0) > Self.soundLevel ? self.loudHops + 1 : 0
         let minimumReference = max(Self.referenceFloor, 0.1 * (self.reference.max() ?? 0))
         for band in 0..<RimFeatures.bandCount {
             self.reading[band] = rimClamp(self.signals[band] / max(minimumReference, self.reference[band]), 0, 1.3).squareRoot()

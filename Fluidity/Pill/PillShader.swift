@@ -343,6 +343,10 @@ nonisolated enum PillShader {
             } else if (doneT >= 0.0) {
                 lineOn = u[U_LINE_FADE];
             }
+            // While the speech model loads, the track spans the listening waveform's width, easing back to the
+            // line's own length over the last 5% of the fill.
+            bool loading = doneT < 0.0 && thinkT >= 0.0 && u[U_LINE_FILL] < 1.0;
+            if (loading) halfNow = mix(halfNow, max(halfNow, w * 0.5 - h * 0.42), rimSmooth((1.0 - u[U_LINE_FILL]) / 0.05));
             float lu = p.x / max(1.0, halfNow);  // position along the line, -1...1
             float taper = rimSmooth((1.0 - abs(lu)) / 0.32);  // feathered ends: a line of light, not a capsule
             float taperGlow = rimSmooth((1.15 - abs(lu)) / 0.5);
@@ -358,12 +362,25 @@ nonisolated enum PillShader {
                     lineBloom += u[k + 1] * exp(-dx * dx / (2.0 * max(1e-4, u[k + 2]))) * u[k + 3];
                 }
             }
-            float lw = u[U_LINE_WIDTH] * (1.0 + 0.55 * min(1.0, lineBloom) + 0.15 * br);
+            float lw = u[U_LINE_WIDTH] * (1.0 + 0.55 * min(1.0, lineBloom) + 0.15 * br) * (loading ? 1.3 : 1.0);
             float lineB = exp(-dl * dl / (2.0 * lw * lw)) * taper;
             float glowB = exp(-dl * dl / (2.0 * 3.2 * 3.2)) * taperGlow * u[U_INNER_GLOW] * (1.0 + 1.6 * lineBloom + 0.6 * br);
             // Even along its length: no tonal bands, so the working line reads as one flat stroke.
             float lineAmp = (lineB * (0.745 + 0.5 * lineBloom) + glowB * 0.8) * pulse * lineOn;
             if (doneT >= 0.0) lineAmp *= 1.35;
+            // The loading fill glows past the line, and its two growing ends bristle: a halo up to 4 pt tall
+            // that flickers along each end on two unrelated beats.
+            float bristle = 0.0;
+            if (loading && u[U_LINE_FILL] > 0.0) {
+                float fill = u[U_LINE_FILL], px = p.x;
+                float edge = (abs(lu) - fill) * halfNow;  // points from the fill's end, outward positive
+                float flick = 0.55 + 0.45 * sin(thinkT * 23.0 + px * 1.7) * sin(thinkT * 31.0 - px * 2.3 + 1.3);
+                float reach = 1.5 + 2.5 * flick;
+                bristle = exp(-edge * edge / 4.5) * exp(-dl * dl / (2.0 * reach * reach)) * (0.5 + 0.5 * flick);
+                float inside = 1.0 - smoothstep(-1.0, 1.0, edge);
+                bristle += inside * exp(-dl * dl / (2.0 * 2.6 * 2.6)) * 0.35;
+                lineAmp += bristle * lineOn;
+            }
             float amp = front * 0.9 + lineAmp;
             if (amp > 0.02) {
                 // Done: a clear green, as bright as the working line, never white. Otherwise one solid ivory-white
@@ -373,15 +390,15 @@ nonisolated enum PillShader {
                     : float3(1.0, 0.965, 0.918);
                 innerA = pow(min(1.3, amp), 1.2) * 0.9 * u[U_CORE_ON] * (0.6 + 0.4 * strength);
                 if (doneT < 0.0 && u[U_LINE_FILL] < 1.0) {
-                    // The speech model is still loading, so the line is a dim grey track (35% light, 85% of its colour
+                    // The speech model is still loading, so the line is a grey track (55% light, 85% of its colour
                     // removed) filled outward from the middle to the load's fraction. The fill's ends feather inward over
                     // up to 4 pt, never past its middle: fully grey at 0, then a bright dot at the middle that grows.
                     float fill = u[U_LINE_FILL];
                     float feather = min(fill, 4.0 * (u[U_PILL_H] / 28.0) / max(1.0, halfNow));
                     float warm = fill > 0.0 ? 1.0 - smoothstep(fill - feather, fill, abs(lu)) : 0.0;
                     float3 track = mix(innerC, float3(dot(innerC, float3(0.299, 0.587, 0.114))), 0.85);
-                    innerC = mix(track, innerC, warm);
-                    innerA *= mix(0.35, 1.0, warm);
+                    innerC = mix(track, innerC, max(warm, min(1.0, bristle)));
+                    innerA *= mix(0.55, 1.0, max(warm, min(1.0, bristle)));
                 }
             }
         }
