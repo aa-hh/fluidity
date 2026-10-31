@@ -4,6 +4,9 @@
 set -eu
 cd "$(dirname "$0")/.."
 
+# Best effort: removes worktrees flagged .prunable; never fails the build.
+sh scripts/housekeeping.sh || true
+
 # GitHub's runners (CI=true) have no remote-run; there the command runs bare.
 run="$HOME/.claude/scripts/remote-run"
 [ "${CI:-}" = true ] && run=

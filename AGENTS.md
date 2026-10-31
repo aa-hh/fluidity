@@ -75,7 +75,8 @@ symbol you cannot find in source, believe the source and fix the doc.
 - **Flag finished worktrees; never hand-delete them.** A worktree can hold
   another session's only copy of unpushed work. When a branch is merged (or
   abandoned with everything pushed), `touch .claude/worktrees/<slug>/.prunable`
-  and leave removal to a cleanup step that refuses a dirty or unpushed tree.
+  and leave removal to `scripts/housekeeping.sh`, which runs with every build
+  and test run and refuses a dirty or unpushed tree.
 - **Dev tooling that outlives its session is labelled, parked and purgeable.**
   Anything that keeps running after the session that made it (a launchd/cron
   job, login item, file watcher, watchdog) must (a) carry a name starting
