@@ -49,8 +49,19 @@ final class PillPresenter {
     /// The speech model is still loading; while it loads the pill looks as it always does, and a release
     /// before it is ready draws the processing line as a track that fills with the load.
     var isModelLoading = false {
-        didSet { self.wake() }
+        didSet {
+            if !self.isModelLoading, self.showsLoadingNotice { self.words.dropAll() }
+            self.wake()
+        }
     }
+    /// Released while the model loads, after the microphone caught sound: the words bubble above the pill
+    /// says so, with the thinking band sweeping across it, until the model is ready.
+    private var showsLoadingNotice = false {
+        didSet { if self.showsLoadingNotice != oldValue { self.fitPanel() } }
+    }
+    private static let loadingNotice = "Loading dictation model"
+    /// The words sit in the bubble above: by the Live words setting, or for the loading notice.
+    private var wordsAbove: Bool { self.liveWords == .above || self.showsLoadingNotice }
     /// The loading line's fill, from the launch load's reports.
     private var line: LoadingLine?
     /// When the first report came; the line's clock counts from it.
@@ -166,7 +177,7 @@ final class PillPresenter {
 
     /// The pasted text: in the pill, the words settle into it; above the pill they stay a preview.
     func showPastedText(_ text: String) {
-        guard self.liveWords == .inPill, self.words.hasWords, self.state == .think || self.state == .done else { return }
+        guard self.liveWords == .inPill, !self.showsLoadingNotice, self.words.hasWords, self.state == .think || self.state == .done else { return }
         self.words.cleanUp(text, reduced: self.reduceMotion)
         self.wake()
     }
@@ -182,7 +193,7 @@ final class PillPresenter {
             self.didFailToPrepare = true
             return false
         }
-        let window = PillWindow(device: device, size: Self.panelSize(wordsAbove: self.liveWords == .above))
+        let window = PillWindow(device: device, size: Self.panelSize(wordsAbove: self.wordsAbove))
         renderer.frame = { [weak self] in self?.nextFrame() ?? [Float](repeating: 0, count: RimUniform.count) }
         window.rimView.delegate = renderer
         self.window = window
@@ -211,6 +222,7 @@ final class PillPresenter {
         self.reduceMotion = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
         // The words of a transcript still waiting in the bubble leave as the new dictation starts.
         if self.words.hasWords, self.state == .flux { self.words.dropAll() } else { self.words.clear() }
+        self.showsLoadingNotice = false
         self.extractor.reset()
         self.audio.setActive(true)
         self.enter(.listen)
@@ -229,6 +241,12 @@ final class PillPresenter {
     private func beginProcessing() {
         guard self.state == .listen else { return }
         self.audio.setActive(false)
+        if self.isModelLoading, self.audio.heardSound {
+            self.showsLoadingNotice = true
+            self.words.clear()
+            self.words.setAbove(true)
+            self.words.hear(Self.loadingNotice, reduced: self.reduceMotion)
+        }
         self.words.release()
         self.enter(.think)
     }
@@ -382,10 +400,10 @@ final class PillPresenter {
             ? self.extractor.step(dt: dt, raw: self.audio.latestBands())
             : RimFeatures()
         self.words.setPill(height: RimParameters.pillSize.height)
-        self.words.setAbove(self.liveWords == .above)
+        self.words.setAbove(self.wordsAbove)
         self.words.step(dt: dt, reduced: self.reduceMotion)
         self.simulation.liveWordsInPill = self.liveWords == .inPill
-        self.simulation.wordsShown = self.liveWords == .inPill && self.words.hasWords
+        self.simulation.wordsShown = !self.wordsAbove && self.liveWords == .inPill && self.words.hasWords
         self.simulation.wordsAbove = self.wordsAboveTarget
         self.simulation.wordsGap = RimWordsBubble.gap * Float(self.words.scale)
         let fill = Float(LoadingLine.step(
@@ -416,7 +434,7 @@ final class PillPresenter {
     /// The size the words need above the pill. The bubble is for while you talk, while the AI
     /// works and while it flashes before a paste; it does not come back for a failed paste.
     private var wordsAboveTarget: CGSize? {
-        let keeps = self.liveWords == .above && self.words.hasWords
+        let keeps = self.wordsAbove && self.words.hasWords
             && (self.state == .listen || self.state == .think || self.state == .done)
         return keeps ? self.words.aboveSize : nil
     }
@@ -458,7 +476,7 @@ final class PillPresenter {
 
     private func fitPanel() {
         guard let window = self.window else { return }
-        let size = Self.panelSize(wordsAbove: self.liveWords == .above)
+        let size = Self.panelSize(wordsAbove: self.wordsAbove)
         if window.frame.size != size {
             window.setContentSize(size)
             self.position(on: nil)
