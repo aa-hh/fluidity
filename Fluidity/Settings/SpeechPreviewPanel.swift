@@ -41,7 +41,7 @@ struct SpeechPreviewPanel: View {
     @State private var isVisible = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    private var cleanupOn: Bool { model.isCleanupEnabled && model.cleanupKey != .noKey }
+    private var cleanupOn: Bool { model.isCleanupActive }
 
     var body: some View {
         let inner = RoundedRectangle(cornerRadius: GlassTheme.innerRadius, style: .continuous)
@@ -68,6 +68,8 @@ struct SpeechPreviewPanel: View {
                         .accessibilityValue(landed ? SpeechPreview.pastedText(cleanupOn: cleanupOn) : "")
                     PillSample(liveWords: model.liveWords, cleanupOn: cleanupOn, isVisible: isVisible,
                                playCount: playCount, onPasted: { landed = true })
+                        // Spans the inset's full width so a 360 pt pill and its glow fit.
+                        .padding(.horizontal, -12)
                         .frame(maxWidth: .infinity)
                         .frame(height: 140)
                 }

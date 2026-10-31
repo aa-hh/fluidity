@@ -137,7 +137,7 @@ private struct CleanupTile: View {
                     Text("Cleanup").font(GlassTheme.label).foregroundStyle(GlassTheme.textPrimary)
                     Spacer()
                     Toggle("Cleanup", isOn: Binding(
-                        get: { model.isCleanupEnabled && model.cleanupKey != .noKey },
+                        get: { model.isCleanupActive },
                         set: { model.changeCleanupEnabled($0) }))
                         .toggleStyle(GlassToggleStyle())
                         .labelsHidden()

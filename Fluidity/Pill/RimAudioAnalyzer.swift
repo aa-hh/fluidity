@@ -2,7 +2,7 @@ import Foundation
 import os
 
 /// Splits captured audio into the rim's eight voice bands, on whichever task
-/// `PillPresenter.feed` is called from, one at a time. Runs eight band-pass filters (`CENTRES` in the prototype's audio.js) and a
+/// its owner feeds it from, one at a time. Runs eight band-pass filters (`CENTRES` in the prototype's audio.js) and a
 /// 10 ms loudness reading per band, then publishes the latest reading under a
 /// lock for the render loop. Read-only tap: it never alters the samples.
 nonisolated final class RimAudioAnalyzer: @unchecked Sendable {

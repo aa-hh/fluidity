@@ -25,6 +25,8 @@ final class PillSampleView: NSView {
     private var startedAt: CFTimeInterval = 0
     private var lastFrameAt: CFTimeInterval?
     private var lastPhase: SpeechPreview.Phase?
+    /// Seconds of made-up voice fed so far, so the voice keeps real time whatever the frame rate.
+    private var voiceFed: CFTimeInterval = 0
     private var reduceMotion = false
 
     private static let rawWords = SpeechPreview.rawSentence.split(separator: " ")
@@ -84,6 +86,7 @@ final class PillSampleView: NSView {
         self.extractor.reset()
         self.analyzer.setActive(true)
         self.lastPhase = nil
+        self.voiceFed = 0
         self.startedAt = CACurrentMediaTime()
         self.enter(.listen)
     }
@@ -110,7 +113,10 @@ final class PillSampleView: NSView {
         defer { self.lastPhase = phase }
         switch phase {
         case let .listening(heard):
-            self.analyzer.ingest(PillPreview.voice(loud: 1))
+            while self.voiceFed < now - self.startedAt {
+                self.analyzer.ingest(PillPreview.voice(loud: 1))
+                self.voiceFed += PillPreview.tick
+            }
             var before = 0
             if case let .listening(count) = self.lastPhase { before = count }
             if heard > before, self.liveWords != .off {
