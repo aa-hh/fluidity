@@ -292,16 +292,16 @@ nonisolated struct RimSimulation {
         let leavesForPaste = state == .done && self.collapsesWhenDone
         if leavesForPaste { self.coreOn = 0 }
 
-        // Completion: the line turns green and holds; then one front expands back out
-        // to the rim (always shown) or the whole pill collapses and vanishes.
+        // Completion. Before a paste the rim flashes mint and the pill fades where it stands.
+        // A retried paste holds green and collapses; the always-shown pill's line turns green,
+        // holds, then expands back out to the rim.
         self.doneClock = state == .done || state == .pasted ? self.doneClock + dt : 0
         let hold = p.greenHold
         let dimTarget: Float
         switch state {
         case .think:
             dimTarget = self.wordsShown ? Self.wordsRimDim : 0.38
-        case .done where self.wordsShown || self.collapsesWhenDone:
-            // Before a paste the whole rim flashes mint, with no centre line.
+        case .done where self.wordsShown:
             dimTarget = 1
         case .done:
             dimTarget = self.doneClock > hold + 0.75 * p.snapTime ? 1 : 0.38
@@ -313,8 +313,8 @@ nonisolated struct RimSimulation {
         let dimTime: Float = state == .think ? 0.3 : (dimTarget > self.dimRim ? 0.05 : 0.07)
         self.dimRim += (dimTarget - self.dimRim) * rimEase(dt, dimTime)
         // Before a paste the whole rim flashes mint at once, then everything fades where it stands.
-        if leavesForPaste { self.dimRim = 1 }
         if leavesForPaste {
+            self.dimRim = 1
             self.leaveFade = 1 - rimSmooth(self.doneClock / max(0.01, p.pasteFlash))
         } else if state != .idle {
             self.leaveFade = 1

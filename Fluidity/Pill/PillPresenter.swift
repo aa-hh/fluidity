@@ -83,6 +83,8 @@ final class PillPresenter {
     private var lockedPermission: DictationController.Permission?
     /// A failed paste's transcript waits in the bubble beside the pill.
     private var isHoldingFailedPaste = false
+    /// The pill has left before a paste; its words stay until the paste lands or fails, so a failed one can show them.
+    private var awaitsPasteOutcome = false
     /// The text that failed to paste, which a click on the bubble retries.
     private var heldText = ""
 
@@ -113,6 +115,7 @@ final class PillPresenter {
     func show(_ pill: PillState) {
         switch pill {
         case .hidden:
+            self.awaitsPasteOutcome = false
             switch self.state {
             case .listen, .think:
                 self.finish(pasted: false)
@@ -140,12 +143,16 @@ final class PillPresenter {
             }
         case .pasting:
             // The rim flashes mint and the pill leaves before the text lands.
+            self.awaitsPasteOutcome = true
             self.finish(pasted: true)
         case .pasted, .pastedRawTranscript:
             // The paste landed, so the finish sound plays; a fallback paste sounds the same.
+            self.awaitsPasteOutcome = false
             self.play(self.finishSound)
             self.finish(pasted: true)
+            self.wake()
         case let .nowhereToPaste(text):
+            self.awaitsPasteOutcome = false
             self.heldText = text
             self.holdFailedPaste()
         case .cancelled:
@@ -193,6 +200,7 @@ final class PillPresenter {
     private func beginListening() {
         guard self.prepare() else { return }
         self.play(self.startSound)
+        self.awaitsPasteOutcome = false
         // A new dictation supersedes anything waiting: the bubble merges back into the pill.
         self.isHoldingFailedPaste = false
         self.isRetrying = false
@@ -378,7 +386,7 @@ final class PillPresenter {
         self.simulation.update(
             dt: dt, state: self.state, features: features, reduced: self.reduceMotion, pill: self.words.pillSize(base: RimParameters.pillSize)
         )
-        if self.simulation.isGone, !self.words.isEmpty { self.words.clear() }
+        if self.simulation.isGone, !self.words.isEmpty, !self.awaitsPasteOutcome { self.words.clear() }
         let uniforms = self.simulation.uniforms(
             state: self.state,
             stateTime: elapsed,
@@ -397,7 +405,7 @@ final class PillPresenter {
     }
 
     /// The size the words need above the pill. The bubble is for while you talk, while the AI
-    /// works and while it flashes before a paste; a retried or failed paste takes it back in.
+    /// works and while it flashes before a paste; it does not come back for a failed paste.
     private var wordsAboveTarget: CGSize? {
         let keeps = self.liveWords == .above && self.words.hasWords
             && (self.state == .listen || self.state == .think || self.state == .done)
