@@ -31,10 +31,24 @@ struct GeneralPane: View {
                 }
                 GlassRule()
                 GlassRow(title: "Live words", detail: "Shows what you say as you speak, before cleanup.") {
-                    GlassSegmentedControl(
-                        name: "Live words",
-                        options: [(.off, "Off"), (.inPill, "In the pill"), (.above, "Bubble above")],
-                        selection: Binding(get: { model.liveWords }, set: { model.changeLiveWords($0) }))
+                    Menu {
+                        Picker("Live words", selection: Binding(get: { model.liveWords }, set: { model.changeLiveWords($0) })) {
+                            ForEach(LiveWords.allCases, id: \.self) { Text(Self.label(for: $0)).tag($0) }
+                        }
+                        .pickerStyle(.inline)
+                        .labelsHidden()
+                    } label: {
+                        HStack(spacing: 8) {
+                            Text(Self.label(for: model.liveWords))
+                            Image(systemName: "chevron.up.chevron.down").font(.system(size: 10, weight: .semibold))
+                        }
+                    }
+                    .menuIndicator(.hidden)
+                    .menuStyle(.button)
+                    .buttonStyle(.glassSecondary)
+                    .fixedSize()
+                    .accessibilityLabel("Live words")
+                    .accessibilityValue(Self.label(for: model.liveWords))
                 }
                 GlassRule()
                 GlassRow(title: "Launch at login", detail: "Opens Fluidity in the menu bar when you log in.") {
@@ -48,6 +62,14 @@ struct GeneralPane: View {
 
     /// The two help lines that explain tap versus hold.
     static let tapAndHold = "Tap: keeps listening until you tap again.\nHold: talk, let go to paste. Escape cancels."
+
+    private static func label(for words: LiveWords) -> String {
+        switch words {
+        case .off: "Off"
+        case .inPill: "In the pill"
+        case .above: "Bubble above"
+        }
+    }
 
     private func problem(for slot: ShortcutSlot) -> String? {
         model.shortcutProblem?.slot == slot ? model.shortcutProblem?.message : nil
