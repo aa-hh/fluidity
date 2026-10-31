@@ -455,7 +455,7 @@ Each control is drawn by the app in Glass colours and reports to VoiceOver as th
 
 #### Motion
 - 130 ms ease-in-out for hover, press, the toggle and the pane cross-fade (`GlassTheme.snap`); 260 ms hold for the copy checkmark (`GlassTheme.hold`).
-- Sidebar items and the Settings and Quit rows change fill with no animation; the popover closes with none. No other durations or springs exist in the app surfaces, and the only app surface that reads Reduce Motion is the General pane's preview, which then shows its last frame instead of playing.
+- Sidebar items and the Settings and Quit rows change fill with no animation; the popover closes with none. Apart from the General pane preview's script (a word every 220 ms, a 0.4 s hold, 1 s of processing), no other durations or springs exist in the app surfaces, and the only app surface that reads Reduce Motion is the General pane's preview, which then shows its last frame instead of playing.
 
 ### Designed in Figma, not yet in code
 These are in the published Figma library and were not built for version 1:

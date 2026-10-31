@@ -65,6 +65,7 @@ struct SpeechPreviewPanel: View {
                         .background(GlassTheme.raised, in: inner)
                         .overlay { inner.strokeBorder(GlassTheme.lineRule, lineWidth: 1) }
                         .accessibilityLabel("Pasted text")
+                        .accessibilityValue(landed ? SpeechPreview.pastedText(cleanupOn: cleanupOn) : "")
                     PillSample(liveWords: model.liveWords, cleanupOn: cleanupOn, isVisible: isVisible,
                                playCount: playCount, onPasted: { landed = true })
                         .frame(maxWidth: .infinity)

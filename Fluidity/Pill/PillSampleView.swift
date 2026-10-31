@@ -156,7 +156,6 @@ final class PillSampleView: NSView {
         let keepsAbove = self.liveWords == .above && self.words.hasWords && (self.state == .listen || self.state == .think)
         self.simulation.wordsAbove = keepsAbove ? self.words.aboveSize : nil
         self.simulation.wordsGap = RimWordsBubble.gap * Float(self.words.scale)
-        self.simulation.loadingFill = 0
         self.simulation.update(
             dt: dt, state: self.state, features: features, reduced: self.reduceMotion, pill: self.words.pillSize(base: RimParameters.pillSize)
         )
