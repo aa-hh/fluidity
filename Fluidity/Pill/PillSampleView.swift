@@ -109,7 +109,7 @@ final class PillSampleView: NSView {
 
     /// Moves the rim and the words to where the script stands now.
     private func followScript(at now: CFTimeInterval) {
-        let phase = SpeechPreview.phase(at: .seconds(now - self.startedAt), reduceMotion: false)
+        let phase = SpeechPreview.phase(at: .seconds(now - self.startedAt), cleanupOn: self.cleanupOn, reduceMotion: false)
         defer { self.lastPhase = phase }
         switch phase {
         case let .listening(heard):
@@ -129,6 +129,11 @@ final class PillSampleView: NSView {
             self.enter(.think)
         case .pasted:
             guard self.lastPhase != .pasted else { return }
+            // With cleanup off the script skips processing and pastes straight from listening.
+            if self.lastPhase != .processing {
+                self.analyzer.setActive(false)
+                self.words.release()
+            }
             self.enter(.done)
             if self.liveWords == .inPill, self.words.hasWords {
                 self.words.cleanUp(SpeechPreview.pastedText(cleanupOn: self.cleanupOn), reduced: self.reduceMotion)
