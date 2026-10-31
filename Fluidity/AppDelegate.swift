@@ -89,7 +89,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
         controller = DictationController(
             audio: audio,
-            transcriber: TranscriberAdapter(transcriber: models.transcriber, wordList: { settings.wordList }),
+            // The word list feeds cleanup only: the speech recheck swapped common words for listed names
+            // ("sounds" became "Sonos") and no FluidAudio threshold stopped it.
+            transcriber: TranscriberAdapter(transcriber: models.transcriber, wordList: { [] }),
             cleanup: cleanup,
             field: field,
             finisher: FinisherAdapter(wordList: { settings.wordList }),
