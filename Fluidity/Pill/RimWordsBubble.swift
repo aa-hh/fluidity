@@ -13,6 +13,8 @@ nonisolated struct RimWordsBubble {
     static let gap: Float = 6
     /// Its ring is the pill's light, a little quieter.
     static let light: Float = 0.6
+    /// While the AI works, and as it turns mint before a paste, its ring glows at the pill's full, undimmed light (Alec, 2026-10-31).
+    static let processingLight: Float = 1
     static let cornerCap: Float = 14
     /// The size it splits off at and drains to, in medium-pill points.
     private static let seed: Float = 18

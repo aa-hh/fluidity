@@ -603,7 +603,10 @@ nonisolated struct RimSimulation {
             u[RimUniform.bubble + 3] = words.fade(reduced: reduced)
             u[RimUniform.bubbleY] = words.y
             u[RimUniform.bubbleRadius] = words.cornerRadius
-            u[RimUniform.bubbleLight] = RimWordsBubble.light
+            // While the AI works the pill's rim dims for the centre line; the words' ring glows at full light instead,
+            // so the outline the paste erases is already lit.
+            let glows = state == .think || (state == .done && self.collapsesWhenDone)
+            u[RimUniform.bubbleLight] = glows ? RimWordsBubble.processingLight / max(0.05, self.dimRim) : RimWordsBubble.light
             u[RimUniform.sigma] = words.sigma
             u[RimUniform.hover] = 0
             u[RimUniform.icon] = 0
