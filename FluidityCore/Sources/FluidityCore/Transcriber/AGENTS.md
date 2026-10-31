@@ -18,9 +18,9 @@ owns every preview and switching rule.
 - **Streaming engines get no voice check;** their partials drive the preview.
 - **A switch waits for the launch load, the open recording and its final
   pass.** It leaves the old engine loaded for `ModelCoordinator`.
-- **Keep `spotterRescueEnabled: false` and `shortTermCbwTaperPivot: 5`.**
-  FluidAudio's defaults let short listed names replace words heard right
-  ("sounds" became "Sonos").
+- **Keep `spotterRescueEnabled: false`.** On, the candidate check accepts
+  every word list of 10 terms or fewer, so the recheck never skips and false
+  replacements rise.
 - **A nil `wordListRecheckTime` means the recheck was skipped,** so records
   show how often the candidate check avoids it.
 - Word timings keep the model's words when a recheck merges or splits
