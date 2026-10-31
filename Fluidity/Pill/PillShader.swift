@@ -52,7 +52,9 @@ nonisolated enum PillShader {
     #define U_INNER_GLOW 66
     #define U_BREATH 67
     #define U_PULSE_DEPTH 68
-    // 69-71 are unused.
+    #define U_ERASE 69
+    #define U_BODY_FADE 70
+    // 71 is unused.
     #define U_LINE_BLOOMS 72
     #define U_SNAP_T 88
     #define U_LINE_LENGTH 89
@@ -253,7 +255,7 @@ nonisolated enum PillShader {
         // A waiting bubble (failed paste or lost mic) beside the pill, or the live words' bubble above it, merged
         // with the pill through the island's blob, so its ring and the pill's rim are one light; its own bands run
         // around it and it glows softly on hover.
-        float D = d, wB = 0.0, toneB = 0.0, hueB = 0.0;
+        float D = d, wB = 0.0, toneB = 0.0, hueB = 0.0, sB = 0.0;
         float2 pb = float2(0.0);
         float hoverGlow = u[U_HOVER] * u[U_HOVER_GLOW];
         // The collapse's last 100 ms: what is left of the line softens into its own glow and fades.
@@ -270,7 +272,7 @@ nonisolated enum PillShader {
             float merged = clamp(a1 + a2 - a1 * a2, 1e-7, 1.0 - 1e-7);
             D = -sigma / 1.702 * log(merged / (1.0 - merged));
             wB = a2 / max(1e-6, a1 + a2);
-            float sB = atan2(-pb.y, -pb.x) / TAU + 0.5;  // around the bubble; the seam sits on its outer side
+            sB = atan2(-pb.y, -pb.x) / TAU + 0.5;  // around the bubble; the seam sits on its outer side
             float phiB = bandsPhi(u, sB);
             toneB = 0.5 + 0.5 * u[U_CONTRAST] * phiB + 0.12 * hoverGlow;
             if (doneT >= 0.0) toneB = min(toneB, 0.82);
@@ -299,7 +301,15 @@ nonisolated enum PillShader {
         }
         float3 haloC = tint(u, hue, tone);
         if (wB > 0.002) haloC = mix(haloC, tint(u, hueB, toneB), wB);
-        float bodyA = 1.0 - smoothstep(-aa, aa, D);
+        // Before a paste the line erases itself around each outline, from its end back to its start.
+        float erase = u[U_ERASE];
+        if (erase > 0.0) {
+            float keep = 1.0 - erase;
+            float m = mix(1.0 - smoothstep(keep - 0.02, keep, s), 1.0 - smoothstep(keep - 0.02, keep, sB), wB);
+            coreA *= m;
+            halo *= m;
+        }
+        float bodyA = (1.0 - smoothstep(-aa, aa, D)) * u[U_BODY_FADE];
         float3 body = float3(14.0, 15.0, 19.0) / 255.0;
 
         // Processing: on release the rim's light travels inward once and, where it converges,
@@ -364,10 +374,11 @@ nonisolated enum PillShader {
                 innerA = pow(min(1.3, amp), 1.2) * 0.9 * u[U_CORE_ON] * (0.6 + 0.4 * strength);
                 if (doneT < 0.0 && u[U_LINE_FILL] < 1.0) {
                     // The speech model is still loading, so the line is a dim grey track (35% light, 85% of its colour
-                    // removed) filled outward from the middle to the load's fraction, both ends of the fill feathered over 4 pt.
+                    // removed) filled outward from the middle to the load's fraction. The fill's ends feather inward over
+                    // up to 4 pt, never past its middle: fully grey at 0, then a bright dot at the middle that grows.
                     float fill = u[U_LINE_FILL];
-                    float feather = 4.0 * (u[U_PILL_H] / 28.0) / max(1.0, halfNow);
-                    float warm = 1.0 - smoothstep(fill, fill + feather, abs(lu));
+                    float feather = min(fill, 4.0 * (u[U_PILL_H] / 28.0) / max(1.0, halfNow));
+                    float warm = fill > 0.0 ? 1.0 - smoothstep(fill - feather, fill, abs(lu)) : 0.0;
                     float3 track = mix(innerC, float3(dot(innerC, float3(0.299, 0.587, 0.114))), 0.85);
                     innerC = mix(track, innerC, warm);
                     innerA *= mix(0.35, 1.0, warm);

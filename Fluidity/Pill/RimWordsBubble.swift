@@ -13,6 +13,8 @@ nonisolated struct RimWordsBubble {
     static let gap: Float = 6
     /// Its ring is the pill's light, a little quieter.
     static let light: Float = 0.6
+    /// While the AI works, and as it turns mint before a paste, its ring glows at the pill's full, undimmed light (Alec, 2026-10-31).
+    static let processingLight: Float = 1
     static let cornerCap: Float = 14
     /// The size it splits off at and drains to, in medium-pill points.
     private static let seed: Float = 18
@@ -76,6 +78,12 @@ nonisolated struct RimWordsBubble {
         let distance = rimLerp(edge - 2, settled, rimClamp(self.position.x, -0.2, 1.2))
         self.y = below ? distance : -distance
         if self.isMerging, self.position.x < 0.03 || reduced { self.isActive = false }
+    }
+
+    /// Gone at once, without draining back into the pill.
+    mutating func vanish() {
+        self.isActive = false
+        self.isMerging = false
     }
 
     private mutating func split(seed: Float) {

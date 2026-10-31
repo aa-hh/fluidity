@@ -126,6 +126,15 @@ func decoderTurnsEventsIntoDecisions(_ testCase: DecoderCase) {
     #expect([down(49, .option), up(49, .option)].map { decoder.decode($0) } == [.pasteAgain, .ignore])
 }
 
+// Turns red if the decoder stops passing through Fluidity's own events: a paste-again V held while the paste sends ⌘V swallows that ⌘V.
+@Test func ownPastePassesThroughWhilePasteAgainIsHeld() {
+    var decoder = HotkeyDecoder(key: rightOption, pasteAgainKey: KeyChoice(keyCode: 9, modifiers: [.command, .shift]))
+    #expect(decoder.decode(down(9, [.command, .shift])) == .pasteAgain)
+    let own = [RawKeyEvent(kind: .keyDown, keyCode: 9, flags: .command, isOwn: true), RawKeyEvent(kind: .keyUp, keyCode: 9, flags: .command, isOwn: true)]
+    #expect(own.map { decoder.decode($0) } == [.passThrough, .passThrough])
+    #expect(decoder.decode(up(9, [.command, .shift])) == .ignore)
+}
+
 // Turns red if a modifier change is ever swallowed, or a pass-through key event is swallowed.
 @Test func onlyReportedKeyEventsAreSwallowed() {
     #expect(HotkeyDecision.keyDown.swallows(down(49)))

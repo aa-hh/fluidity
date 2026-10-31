@@ -6,12 +6,15 @@ public struct RawKeyEvent: Equatable, Sendable {
     public var keyCode: UInt16
     public var flags: KeyModifiers
     public var isRepeat: Bool
+    /// Posted by Fluidity itself, such as the ⌘V a paste sends.
+    public var isOwn: Bool
 
-    public init(kind: Kind, keyCode: UInt16, flags: KeyModifiers = [], isRepeat: Bool = false) {
+    public init(kind: Kind, keyCode: UInt16, flags: KeyModifiers = [], isRepeat: Bool = false, isOwn: Bool = false) {
         self.kind = kind
         self.keyCode = keyCode
         self.flags = flags
         self.isRepeat = isRepeat
+        self.isOwn = isOwn
     }
 }
 
@@ -65,6 +68,8 @@ public struct HotkeyDecoder: Sendable {
     }
 
     public mutating func decode(_ event: RawKeyEvent) -> HotkeyDecision {
+        // The ⌘V a paste sends would otherwise read as a held paste-again V and be swallowed.
+        if event.isOwn { return .passThrough }
         if let decision = Self.step(Self.edge(of: key, in: event, held: keyHeld), held: &keyHeld, onDown: .keyDown, onUp: .keyUp) {
             return decision
         }

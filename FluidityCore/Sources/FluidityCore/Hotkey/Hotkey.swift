@@ -90,7 +90,8 @@ private func hotkeyTapCallback(
             kind: $0,
             keyCode: UInt16(truncatingIfNeeded: event.getIntegerValueField(.keyboardEventKeycode)),
             flags: KeyModifiers(rawValue: event.flags.rawValue),
-            isRepeat: event.getIntegerValueField(.keyboardEventAutorepeat) != 0
+            isRepeat: event.getIntegerValueField(.keyboardEventAutorepeat) != 0,
+            isOwn: event.getIntegerValueField(.eventSourceUnixProcessID) == Int64(getpid())
         )
     }
     // The tap's run loop source is on the main run loop, so the callback runs on the main thread.
