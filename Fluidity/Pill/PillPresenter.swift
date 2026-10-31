@@ -150,7 +150,6 @@ final class PillPresenter {
             self.awaitsPasteOutcome = false
             self.play(self.finishSound)
             self.finish(pasted: true)
-            self.wake()
         case let .nowhereToPaste(text):
             self.awaitsPasteOutcome = false
             self.heldText = text

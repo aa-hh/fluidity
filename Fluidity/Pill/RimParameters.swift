@@ -37,6 +37,8 @@ nonisolated struct RimParameters: Equatable {
     var pasteFlash: Float = 0.1
     /// The last part of `pasteFlash`, over which everything fades out where it stands; the mint holds before it.
     var pasteFade: Float = 0.04
+    /// The rims' light width and glow are multiplied by this while they flash mint, so the success shows (Alec, 2026-10-31).
+    var pasteRimScale: Float = 2.5
     var snapTime: Float = 0.13
     var collapseTime: Float = 0.34
     var lineWidth: Float = 1

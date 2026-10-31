@@ -541,9 +541,11 @@ nonisolated struct RimSimulation {
         for band in 0..<RimFeatures.bandCount { u[RimUniform.bands + band] = self.bandEnvelope[band] }
         u[RimUniform.bloomCount] = Float(self.blooms.count)
         for index in 0..<self.bloomUniforms.count { u[RimUniform.blooms + index] = self.bloomUniforms[index] }
-        u[RimUniform.width] = p.width
+        // Before a paste the mint rims draw wider and brighter, so the flash reads in its 100 ms.
+        let flash: Float = state == .done && self.collapsesWhenDone ? p.pasteRimScale : 1
+        u[RimUniform.width] = p.width * flash
         u[RimUniform.widthGain] = p.widthGain
-        u[RimUniform.glow] = p.glow
+        u[RimUniform.glow] = p.glow * flash
         u[RimUniform.reach] = p.reach
         u[RimUniform.dimRim] = self.dimRim
         u[RimUniform.strength] = 1
