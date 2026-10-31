@@ -125,10 +125,11 @@ public actor FluidAudioEngine: SpeechEngine, VoiceDetecting, WordListRechecking 
         guard let ctc else { return nil }
         let vocabulary = CustomVocabularyContext(terms: wordList.map { CustomVocabularyTerm(text: $0) })
         // With spotter rescue on, the candidate check says yes to every list of 10 terms or fewer, and false replacements rise.
+        // Terms under 5 tokens get a smaller boost, so a short name ("Sonos") can't replace a word heard right ("sounds").
         guard let session = try? await VocabularyBoostingSession(
             vocabulary: vocabulary,
             ctcModels: ctc,
-            config: VocabularyRescorer.Config(spotterRescueEnabled: false)
+            config: VocabularyRescorer.Config(shortTermCbwTaperPivot: 5, spotterRescueEnabled: false)
         ) else { return nil }
         boosting = (wordList, session)
         return session
