@@ -12,10 +12,14 @@ struct FinisherCase: Sendable, CustomTestStringConvertible {
     var testDescription: String { name }
 }
 
-// Changing any spacing or capital rule in Finisher.finish turns the matching row red.
+// Changing any plain-character, spacing or capital rule in Finisher.finish turns the matching row red.
 let finisherCases: [FinisherCase] = [
     .init(name: "unreadable field pastes unchanged", before: nil, after: "x", selected: nil, text: "Hello there.", words: [], expected: "Hello there."),
     .init(name: "empty text", before: "abc", after: "", selected: nil, text: "", words: [], expected: ""),
+    // Rule 0
+    .init(name: "0: unreadable field still gets plain characters", before: nil, after: nil, selected: nil, text: "It\u{2019}s a \u{201C}re\u{2011}run\u{201D}\u{00A0}today \u{2013} fine.", words: [], expected: "It's a \"re-run\" today - fine."),
+    .init(name: "0: long dash becomes a spaced hyphen", before: "", after: "", selected: nil, text: "One\u{2014}two \u{2014} three.", words: [], expected: "One - two - three."),
+    .init(name: "0: curly I'm keeps its capital", before: "and", after: "", selected: nil, text: "I\u{2019}m sure.", words: [], expected: " I'm sure."),
     // Rule 1
     .init(name: "1: start of field, no space", before: "", after: "", selected: nil, text: "Hello there.", words: [], expected: "Hello there."),
     .init(name: "1: after a word, space added", before: "Done.", after: "", selected: nil, text: "Next one.", words: [], expected: " Next one."),
