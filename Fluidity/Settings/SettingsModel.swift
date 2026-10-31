@@ -80,6 +80,8 @@ final class SettingsModel {
 
     var isCleanupEnabled = true
     var cleanupKey: CleanupKeyState = .noKey
+    /// Cleanup runs only with its switch on and a key saved.
+    var isCleanupActive: Bool { isCleanupEnabled && cleanupKey != .noKey }
     /// The saved key, shown masked in the field.
     var apiKey = ""
     var cleanupRules = Settings.defaultCleanupRules

@@ -22,7 +22,7 @@ enum PillPreview {
     }
 
     private static let sentence = "so this is how the words look while you are still talking to the pill".split(separator: " ")
-    private static let tick = 0.02
+    static let tick = 0.02
     private static var script = Script()
     private static var startedAt = Date()
     private static var nextStep = 0
@@ -123,9 +123,9 @@ enum PillPreview {
         }
     }
 
-    /// One tick of a made-up voice at 16 kHz: a gliding pitch with falling harmonics,
+    /// One `tick` of a made-up voice at 16 kHz, so callers feed it once per tick: a gliding pitch with falling harmonics,
     /// in syllables about six times a second, with a hiss now and then.
-    private static func voice(loud: Float) -> [Float] {
+    static func voice(loud: Float) -> [Float] {
         let rate: Float = 16_000
         let count = Int(Double(rate) * Self.tick)
         var chunk = [Float](repeating: 0, count: count)
