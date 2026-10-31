@@ -4,8 +4,8 @@ Usage: python3 -I eval/build_testset.py [--teardown DIR] [--out DIR]
 
 Test set: a fixed random half of the Wispr Flow clips that have a Wispr
 transcript, so every test clip can be compared head to head. Everything else
-(the other half, Wispr clips without a transcript, all FluidVoice clips) goes
-to training. The split is written once to split.json and never redrawn: on
+(the other half, Wispr clips without a transcript, all FluidVoice clips, and
+Fluidity's own saved clips in the --out folder) goes to training. The split is written once to split.json and never redrawn: on
 later runs, clips not yet in split.json go to training only.
 """
 import argparse
@@ -19,6 +19,7 @@ from pathlib import Path
 
 SEED = "fluidity-aa-284"
 LIVE_FLUIDVOICE = Path.home() / "Library/Application Support/FluidVoice/DictationAudioHistory"
+LIVE_WISPR = Path.home() / "Library/Application Support/Wispr Flow/flow.sqlite"
 
 
 def clip_id(wav):
@@ -28,7 +29,10 @@ def clip_id(wav):
 
 def wispr_transcripts(teardown):
     out = {}
-    for db_path in glob.glob(f"{teardown}/**/flow.sqlite", recursive=True):
+    dbs = glob.glob(f"{teardown}/**/flow.sqlite", recursive=True)
+    if LIVE_WISPR.exists():
+        dbs.append(str(LIVE_WISPR))
+    for db_path in dbs:
         db = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
         for entity, asr, duration in db.execute(
                 "SELECT transcriptEntityId, asrText, duration FROM History"):
@@ -46,6 +50,23 @@ def fluidvoice_transcripts(teardown):
         if row.get("audio_file"):
             out[clip_id(row["audio_file"])] = row.get("raw_text")
     return out
+
+
+def fluidity_transcripts(out_dir):
+    # Fluidity logs each day's dictations to <out>/<date>.jsonl beside the .flac clips
+    out = {}
+    for path in glob.glob(f"{out_dir}/*.jsonl"):
+        for line in open(path):
+            row = json.loads(line)
+            out[row["id"][:8].upper()] = row.get("rawTranscript")
+    return out
+
+
+def source_of(wav):
+    # Match the clip's own folder: the teardown folder's name also starts with "wispr-"
+    if Path(wav).parent.name.startswith("wispr-"):
+        return "wispr"
+    return "fluidity" if wav.endswith(".flac") else "fluidvoice"
 
 
 def place(wav, dest_dir):
@@ -72,6 +93,8 @@ def main():
     wispr_wavs = sorted(glob.glob(f"{args.teardown}/audio/wispr-*/*.wav"))
     fluid_wavs = sorted(glob.glob(f"{args.teardown}/audio/fluidvoice-*/*.wav"))
     fluid_wavs += sorted(str(p) for p in LIVE_FLUIDVOICE.glob("*.wav"))
+    fluidity = fluidity_transcripts(out)
+    fluidity_clips = sorted(glob.glob(f"{out}/*.flac"))
 
     split_path = out / "split.json"
     if split_path.exists():
@@ -84,19 +107,20 @@ def main():
     test_ids = set(split["test"])
 
     test_rows, train_rows, seen = [], [], set()
-    for wav in wispr_wavs + fluid_wavs:
+    for wav in wispr_wavs + fluid_wavs + fluidity_clips:
         cid = clip_id(wav)
         if cid in seen:
             continue
         seen.add(cid)
-        source = "wispr" if "/wispr-" in wav else "fluidvoice"
+        source = source_of(wav)
         if cid in test_ids:
             dest = place(wav, out / "test")
             test_rows.append({"id": cid, "wav": dest.name, "wispr_asr": wispr[cid]["asr"],
                               "duration_s": wispr[cid]["duration_s"]})
         else:
             dest = place(wav, out / "train")
-            known = wispr.get(cid, {}).get("asr") if source == "wispr" else fluid.get(cid)
+            known = {"wispr": wispr.get(cid, {}).get("asr"), "fluidvoice": fluid.get(cid),
+                     "fluidity": fluidity.get(cid)}[source]
             train_rows.append({"id": cid, "wav": dest.name, "source": source,
                                "model_transcript": known})
 
