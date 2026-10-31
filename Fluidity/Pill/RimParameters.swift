@@ -33,8 +33,10 @@ nonisolated struct RimParameters: Equatable {
     var downloadTime: Float = 0.15
     var lineLength: Float = 0.5
     var greenHold: Float = 0.26
-    /// Before a paste the rims turn mint at once and everything fades out where it stands over this long (Alec, 2026-10-30, AA-369).
+    /// Before a paste the rims turn mint at once and the pill is gone this long after (Alec, 2026-10-30, AA-369).
     var pasteFlash: Float = 0.1
+    /// The last part of `pasteFlash`, over which everything fades out where it stands; the mint holds before it.
+    var pasteFade: Float = 0.04
     var snapTime: Float = 0.13
     var collapseTime: Float = 0.34
     var lineWidth: Float = 1

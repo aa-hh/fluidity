@@ -256,7 +256,10 @@ public final class DictationController {
         let finishingStart = timeline.now()
         let finished = finisher.finish(text, in: context)
         record.timings.finishing = seconds(since: finishingStart)
-        _ = await sleep(until: pillGoneAt)
+        guard await sleep(until: pillGoneAt) else {
+            await store.dictationCancelled(recording)
+            return
+        }
         let pasteStart = timeline.now()
         let outcome = await paster.paste(finished)
         record.timings.paste = seconds(since: pasteStart)

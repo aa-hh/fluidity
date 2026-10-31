@@ -312,10 +312,10 @@ nonisolated struct RimSimulation {
         }
         let dimTime: Float = state == .think ? 0.3 : (dimTarget > self.dimRim ? 0.05 : 0.07)
         self.dimRim += (dimTarget - self.dimRim) * rimEase(dt, dimTime)
-        // Before a paste the whole rim flashes mint at once, then everything fades where it stands.
+        // Before a paste the whole rim turns mint at once and holds, then everything fades where it stands.
         if leavesForPaste {
             self.dimRim = 1
-            self.leaveFade = 1 - rimSmooth(self.doneClock / max(0.01, p.pasteFlash))
+            self.leaveFade = 1 - rimSmooth((self.doneClock - (p.pasteFlash - p.pasteFade)) / max(0.01, p.pasteFade))
         } else if state != .idle {
             self.leaveFade = 1
         }
