@@ -2,7 +2,7 @@ import Foundation
 
 /// Matches the cleaned text's spacing and capitals to the text around the cursor before the paste.
 public struct Finisher: Sendable {
-    /// Returns `text` finished for the cursor position. `before == nil` means the field could not be read, so `text` comes back unchanged.
+    /// Returns `text` finished for the cursor position. `before == nil` means the field could not be read, so `text` comes back with only rule 0 applied.
     public static func finish(
         _ text: String,
         before: String?,
@@ -10,6 +10,8 @@ public struct Finisher: Sendable {
         selectedText: String?,
         wordList: Set<String>
     ) -> String {
+        // Rule 0: plain keyboard characters, which cleanup models skip even when asked.
+        let text = plainCharacters(text)
         guard let before, !text.isEmpty else { return text }
         let after = after ?? ""
         let words = Set(wordList.map { $0.lowercased() })
@@ -51,6 +53,18 @@ public struct Finisher: Sendable {
     }
 
     private static let iForms: Set<String> = ["i", "i'm", "i'll", "i've", "i'd"]
+
+    private static let plainSwaps: [String: String] = [
+        "\u{2018}": "'", "\u{2019}": "'", "\u{201C}": "\"", "\u{201D}": "\"",
+        "\u{2011}": "-", "\u{2013}": "-", "\u{00A0}": " ",
+    ]
+
+    /// A long dash can stand for a comma or a full stop, so it becomes a spaced hyphen rather than either.
+    private static func plainCharacters(_ s: String) -> String {
+        var s = s
+        for (from, to) in plainSwaps { s = s.replacingOccurrences(of: from, with: to) }
+        return s.replacingOccurrences(of: "[ \t]*\u{2014}[ \t]*", with: " - ", options: .regularExpression)
+    }
 
     private static func keepsCapital(_ word: Substring, _ words: Set<String>) -> Bool {
         let bare = word.trimmingCharacters(in: .punctuationCharacters.subtracting(["'"])).lowercased()
