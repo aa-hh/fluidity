@@ -55,7 +55,7 @@ enum PillPreview {
         case "pasted": return Script(then: processing + [(1, .pasted(text: pasted)), (1.6, .hidden)], repeatsEvery: 5)
         case "pastedRawTranscript":
             return Script(then: processing + [(1, .pastedRawTranscript(text: pasted)), (1.6, .hidden)], repeatsEvery: 5)
-        case "nowhereToPaste": return Script(then: processing + [(1, .nowhereToPaste(text: pasted))])
+        case "nowhereToPaste": return Script(then: processing + [(1, .pasting), (1.1, .nowhereToPaste(text: pasted))])
         case "cancelled": return Script(then: [(0, .cancelled), (0.12, .hidden)], repeatsEvery: 4)
         case "microphoneMissing": return Script(listensFor: nil, then: [(0, .permissionMissing(.microphone))])
         case "accessibilityMissing": return Script(then: [(0, .finishing), (0.5, .permissionMissing(.accessibility))])

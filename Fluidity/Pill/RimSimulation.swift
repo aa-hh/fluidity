@@ -27,7 +27,7 @@ nonisolated enum RimUniform {
     static let bands = 19, bloomCount = 27, blooms = 28
     static let width = 52, widthGain = 53, glow = 54, reach = 55, dimRim = 56, strength = 57, restEase = 58
     static let coreOn = 59, doneT = 60, thinkT = 61, reduced = 62, downloadTime = 63, snapTime = 64
-    static let lineWidth = 65, innerGlow = 66, breath = 67, pulseDepth = 68
+    static let lineWidth = 65, innerGlow = 66, breath = 67, pulseDepth = 68, erase = 69, bodyFade = 70
     static let lineBlooms = 72
     static let snapT = 88, lineLength = 89, lineFade = 90
     static let pillX = 91, sigma = 92, hover = 93, icon = 94, hoverGlow = 95, iconKind = 96, melt = 97, meltSigma = 98
@@ -94,6 +94,8 @@ nonisolated struct RimSimulation {
     private(set) var doneClock: Float = 0
     /// 1 is the full pill, 0.4 a thin line, 0 a point and gone.
     var visibility: Float { rimClamp(self.visibilitySpring.x, 0, 1) }
+    /// Before a paste the dark body of the pill and of the words' bubble, and the words, fade from 1 to 0.
+    private(set) var leaveFade: Float = 1
     private var visibilitySpring: RimSpring
     private var isCollapsing = false
     private var meltAmount: Float = 0
@@ -285,11 +287,14 @@ nonisolated struct RimSimulation {
         // A paste that fails straight out of processing first sends the line back out to the rim, in ivory.
         let lineReturns = state == .flux && self.bubble.startsFromLine
         // Words in the pill take the line's place, so the line stays out and eases in from nothing once they go.
-        let lineShows = !self.wordsShown && (state == .think || state == .done || (lineReturns && self.bubbleClock < p.snapTime))
+        let lineShows = !self.wordsShown && (state == .think || (state == .done && !self.collapsesWhenDone) || (lineReturns && self.bubbleClock < p.snapTime))
         self.coreOn += ((lineShows ? 1 : 0) - self.coreOn) * rimEase(dt, 0.14)
+        let leavesForPaste = state == .done && self.collapsesWhenDone
+        if leavesForPaste { self.coreOn = 0 }
 
-        // Completion: the line turns green and holds; then one front expands back out
-        // to the rim (always shown) or the whole pill collapses and vanishes.
+        // Completion. Before a paste the rim flashes mint and the pill fades where it stands.
+        // A retried paste holds green and collapses; the always-shown pill's line turns green,
+        // holds, then expands back out to the rim.
         self.doneClock = state == .done || state == .pasted ? self.doneClock + dt : 0
         let hold = p.greenHold
         let dimTarget: Float
@@ -299,8 +304,7 @@ nonisolated struct RimSimulation {
         case .done where self.wordsShown:
             dimTarget = 1
         case .done:
-            let restoresAt = self.collapsesWhenDone ? hold : hold + 0.75 * p.snapTime
-            dimTarget = self.doneClock > restoresAt ? 1 : 0.38
+            dimTarget = self.doneClock > hold + 0.75 * p.snapTime ? 1 : 0.38
         case .flux:
             dimTarget = lineReturns && self.bubbleClock < 0.75 * p.snapTime ? 0.38 : 1
         case .idle, .listen, .problem, .pasted, .fixed:
@@ -308,6 +312,13 @@ nonisolated struct RimSimulation {
         }
         let dimTime: Float = state == .think ? 0.3 : (dimTarget > self.dimRim ? 0.05 : 0.07)
         self.dimRim += (dimTarget - self.dimRim) * rimEase(dt, dimTime)
+        // Before a paste the whole rim turns mint at once; the body and words fade and the line erases itself.
+        if leavesForPaste {
+            self.dimRim = 1
+            self.leaveFade = 1 - rimSmooth(self.doneClock / max(0.01, p.pasteFade))
+        } else if state != .idle {
+            self.leaveFade = 1
+        }
 
         self.updateVisibility(dt: dt, state: state, previous: previous, reduced: reduced)
 
@@ -354,7 +365,7 @@ nonisolated struct RimSimulation {
     }
 
     /// The pill shown only while dictating grows from a point, collapses after a
-    /// paste and hides otherwise. Each runs on a spring timed to its approved
+    /// retried paste and hides otherwise. Each runs on a spring timed to its approved
     /// duration, so a key press mid-collapse grows back from where the pill is.
     private mutating func updateVisibility(dt: Float, state: RimState, previous: RimState, reduced: Bool) {
         let p = self.params
@@ -365,8 +376,10 @@ nonisolated struct RimSimulation {
             self.fluid = RimFluidCollapse()
             return
         }
-        let collapseNow = (state == .done || state == .pasted) && self.doneClock >= p.greenHold
-        let shows = state != .idle && !collapseNow
+        // A retried paste holds green and collapses; before a paste the pill fades where it stands and is gone after the flash.
+        let collapseNow = state == .pasted && self.doneClock >= p.greenHold
+        let leftForPaste = state == .done && self.doneClock >= p.pasteFlash
+        let shows = state != .idle && !collapseNow && !leftForPaste
         if shows {
             self.isCollapsing = false
         } else if collapseNow || previous == .fixed {
@@ -376,7 +389,12 @@ nonisolated struct RimSimulation {
         let duration = shows ? RimParameters.appearTime : self.isCollapsing ? p.collapseTime : RimParameters.hideTime
         self.visibilitySpring.time(to: duration, damping: p.transitionDamping)
         self.visibilitySpring.target = shows ? 1 : 0
-        self.visibilitySpring.step(dt)
+        if leftForPaste {
+            self.visibilitySpring.reset(to: 0)
+            self.wordsBubble.vanish()
+        } else {
+            self.visibilitySpring.step(dt)
+        }
         self.fluid.update(dt: dt, collapsing: p.fluidCollapse && self.isCollapsing && !reduced, shows: shows, params: p)
         // The collapse's last point melts through the island's blob, the way the bubble dissolves.
         // In the fluid collapse the softening grows through the whole collapse, following the width.
@@ -503,6 +521,12 @@ nonisolated struct RimSimulation {
         u[RimUniform.pillH] = shape.height * stretch.y
         u[RimUniform.fullW] = w
         u[RimUniform.fade] = shape.fade
+        u[RimUniform.bodyFade] = self.leaveFade
+        // Before a paste the mint line erases itself around each outline; under Reduce Motion it fades in place instead.
+        if state == .done && self.collapsesWhenDone {
+            let erase = rimSmooth((self.doneClock - p.pasteEraseFrom) / max(0.01, p.pasteFlash - p.pasteEraseFrom))
+            if reduced { u[RimUniform.fade] *= 1 - erase } else { u[RimUniform.erase] = erase }
+        }
         u[RimUniform.scale] = displayScale
         for index in 0..<3 {
             u[RimUniform.phase + index] = self.phases[index]
@@ -523,9 +547,11 @@ nonisolated struct RimSimulation {
         for band in 0..<RimFeatures.bandCount { u[RimUniform.bands + band] = self.bandEnvelope[band] }
         u[RimUniform.bloomCount] = Float(self.blooms.count)
         for index in 0..<self.bloomUniforms.count { u[RimUniform.blooms + index] = self.bloomUniforms[index] }
-        u[RimUniform.width] = p.width
+        // Before a paste the mint rims draw wider and brighter, so the flash reads in its 100 ms.
+        let flash: Float = state == .done && self.collapsesWhenDone ? p.pasteRimScale : 1
+        u[RimUniform.width] = p.width * flash
         u[RimUniform.widthGain] = p.widthGain
-        u[RimUniform.glow] = p.glow
+        u[RimUniform.glow] = p.glow * flash
         u[RimUniform.reach] = p.reach
         u[RimUniform.dimRim] = self.dimRim
         u[RimUniform.strength] = 1
@@ -577,7 +603,10 @@ nonisolated struct RimSimulation {
             u[RimUniform.bubble + 3] = words.fade(reduced: reduced)
             u[RimUniform.bubbleY] = words.y
             u[RimUniform.bubbleRadius] = words.cornerRadius
-            u[RimUniform.bubbleLight] = RimWordsBubble.light
+            // While the AI works the pill's rim dims for the centre line; the words' ring glows at full light instead,
+            // so the outline the paste erases is already lit.
+            let glows = state == .think || (state == .done && self.collapsesWhenDone)
+            u[RimUniform.bubbleLight] = glows ? RimWordsBubble.processingLight / max(0.05, self.dimRim) : RimWordsBubble.light
             u[RimUniform.sigma] = words.sigma
             u[RimUniform.hover] = 0
             u[RimUniform.icon] = 0

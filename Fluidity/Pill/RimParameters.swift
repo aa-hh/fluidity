@@ -33,6 +33,14 @@ nonisolated struct RimParameters: Equatable {
     var downloadTime: Float = 0.15
     var lineLength: Float = 0.5
     var greenHold: Float = 0.26
+    /// Before a paste the rims turn mint at once and the pill is gone this long after (Alec, 2026-10-30, AA-369).
+    var pasteFlash: Float = 0.1
+    /// Over the first part of `pasteFlash` the dark body and the words fade, leaving the mint line.
+    var pasteFade: Float = 0.04
+    /// From this far into `pasteFlash` the mint line erases itself around each outline, gone at its end (Alec, 2026-10-31).
+    var pasteEraseFrom: Float = 0
+    /// The rims' light width and glow are multiplied by this while they flash mint, so the success shows (Alec, 2026-10-31).
+    var pasteRimScale: Float = 2.5
     var snapTime: Float = 0.13
     var collapseTime: Float = 0.34
     var lineWidth: Float = 1

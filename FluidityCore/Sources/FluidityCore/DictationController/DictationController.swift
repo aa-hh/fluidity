@@ -24,6 +24,8 @@ public final class DictationController {
     private static let recordingLimit: Duration = .seconds(20 * 60)
     private static let cancelledShownFor: Duration = .milliseconds(120)
     private static let pastedShownFor: Duration = .milliseconds(600)
+    /// The pill's green flash and fade before a paste: `pasteFlash` in `RimParameters`.
+    private static let pillLeavesIn: Duration = .milliseconds(100)
 
     private let audio: any AudioCapturing
     private let transcriber: any Transcribing
@@ -247,10 +249,17 @@ public final class DictationController {
         }
 
         phase = .pasting
+        // The pill leaves while the field is read, so the text never lands under it.
+        show(.pasting)
+        let pillGoneAt = timeline.now() + Self.pillLeavesIn
         let context = await field.read()
         let finishingStart = timeline.now()
         let finished = finisher.finish(text, in: context)
         record.timings.finishing = seconds(since: finishingStart)
+        guard await sleep(until: pillGoneAt) else {
+            await store.dictationCancelled(recording)
+            return
+        }
         let pasteStart = timeline.now()
         let outcome = await paster.paste(finished)
         record.timings.paste = seconds(since: pasteStart)
