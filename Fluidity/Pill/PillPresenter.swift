@@ -343,6 +343,14 @@ final class PillPresenter {
         self.wake()
     }
 
+    /// The paste-again shortcut while a failed paste waits: retries it as a click on the bubble would, so a
+    /// landed paste dismisses the pill. Returns false when no transcript waits.
+    func retryHeldPaste() -> Bool {
+        guard self.isHoldingFailedPaste, self.state == .flux else { return false }
+        self.bubbleClicked()
+        return true
+    }
+
     private func takeBubbleAction() {
         guard self.state == self.pressedState else { return }
         if self.state == .problem {
