@@ -466,6 +466,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func pasteLastDictation() {
+        if PillPresenter.shared.retryHeldPaste() { return }
         Task {
             guard let last = await self.store.recent(limit: 1).first else { return }
             await self.paste.pasteAgain(last.textToPasteAgain)
