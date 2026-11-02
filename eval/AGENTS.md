@@ -21,7 +21,7 @@ scoring. The scripts live here; the data never does.
   American/British spelling from both sides; cleanup handles those.
 - **Clips leave this Mac only with Alec's yes** (AssemblyAI uploads, copies
   to the mule, which cannot see the `Space` drive). The Cloudflare copy has
-  it (AA-461).
+  it.
 - **Correction thresholds live in `correction_thresholds.json`, never in
   code**, so changing one re-sorts every past dictation.
 
