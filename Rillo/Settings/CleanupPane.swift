@@ -177,10 +177,6 @@ struct CleanupPane: View {
             .focused($keyFieldFocused)
             .onSubmit { submitKey() }
             .accessibilityLabel("Cerebras API key")
-            if model.cleanupKey == .accepted {
-                Image(systemName: "checkmark").foregroundStyle(GlassTheme.stateDone)
-                    .accessibilityHidden(true)
-            }
             if !draftKey.isEmpty {
                 Button { showsKey.toggle() } label: {
                     Image(systemName: showsKey ? "eye.slash" : "eye")
@@ -203,7 +199,7 @@ struct CleanupPane: View {
         case .noKey: EmptyView()
         case .checking: FieldMessage(kind: .info, text: "Checking the key…")
         case .accepted:
-            FieldMessage(kind: .done, text: model.isCleanupEnabled ? "Key accepted · cleanup on" : "Key accepted")
+            FieldMessage(kind: .done, text: "Connected")
         case .refused:
             FieldMessage(kind: .error, text: "Cerebras didn't accept this key. Copy it again from cloud.cerebras.ai.")
         case .offline: FieldMessage(kind: .info, text: "Offline · the key is checked when you're back online.")
