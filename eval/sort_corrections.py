@@ -3,7 +3,7 @@
 Usage: python3 -I eval/sort_corrections.py [DATA] --out DIR [--thresholds FILE]
 
 Reads the app's daily YYYY-MM-DD.jsonl files in DATA (default
-/Volumes/Space/fluidity-data). For each dictation it compares the raw
+/Volumes/Space/rillo-data). For each dictation it compares the raw
 transcript (R), cleaned text (C), pasted text (P) and final text (F) word by
 word, sorts every changed span into a category, and writes
 speech_to_text.jsonl, cleanup.jsonl and corrections.jsonl to DIR. Prints only
@@ -20,7 +20,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))  # python3 -I leaves this folder off the path
 from draft_refs import boundary_map  # noqa: E402
 
-DEFAULT_DATA = "/Volumes/Space/fluidity-data"
+DEFAULT_DATA = "/Volumes/Space/rillo-data"
 DEFAULT_THRESHOLDS = Path(__file__).with_name("correction_thresholds.json")
 TOKEN = re.compile(r"(?P<w>[^\W_]+(?:['-][^\W_]+)*)|[^\w\s]|_")
 # Category 1 in version 1: the known app rewrites, normalised away before comparing.

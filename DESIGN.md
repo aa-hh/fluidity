@@ -1,5 +1,5 @@
 ---
-name: Fluidity
+name: Rillo
 description: A near-black pill edged with ivory light that moves with your voice, then pastes what you said.
 colors:
   pill-body: "#0E0F13"
@@ -214,21 +214,21 @@ components:
     width: "540px"
 ---
 
-# Design System: Fluidity
+# Design System: Rillo
 
 All sizes are macOS points; `px` in the frontmatter means points. Sources: the approved "Live words" pill page (claude.ai/artifact/T99ohW8MS4hmonR6swB4C2, its `rim.js` defaults dated 2026-10-21) and the Dynamic Island notes read from the iOS 26.4.1 simulator (`~/Documents/# Dynamic Island look and motion (iOS 26.4 simulator build).md`).
 
-The shipped Swift code is now the authority. App-surface tokens live in `Fluidity/Glass/GlassTheme.swift`; pill values live in `Fluidity/Pill/RimParameters.swift`, `RimSpring.swift`, `RimWords.swift` and `RimWordsBubble.swift`. On 26 Oct 2026 this file was checked against the code and corrected wherever the two disagreed. The settings window, the menu bar popover and the first-run window follow the Glass direction, chosen on 23 Oct 2026, and are documented in the "App surfaces" part of each section. Design source: two Figma files since 26 Oct 2026. The published library "Fluidity -- Design Library" (key 5JcAX6bwl48LqQhqcUuGOJ) holds Tokens, Atoms, Style Guide, the approved pill page and the discovery atoms and components; the screens file "Fluidity -- Screens" (key jQqsc13MjOVaVST36jaxd8) holds every screen as instances of the library and never defines an atom, token or style of its own. Figma names such as `surface/window` and `Glass/Label` are kept so you can find them there. First-run setup now ships, built from the Glass parts, and is documented below.
+The shipped Swift code is now the authority. App-surface tokens live in `Rillo/Glass/GlassTheme.swift`; pill values live in `Rillo/Pill/RimParameters.swift`, `RimSpring.swift`, `RimWords.swift` and `RimWordsBubble.swift`. On 26 Oct 2026 this file was checked against the code and corrected wherever the two disagreed. The settings window, the menu bar popover and the first-run window follow the Glass direction, chosen on 23 Oct 2026, and are documented in the "App surfaces" part of each section. Design source: two Figma files since 26 Oct 2026. The published library "Rillo -- Design Library" (key 5JcAX6bwl48LqQhqcUuGOJ) holds Tokens, Atoms, Style Guide, the approved pill page and the discovery atoms and components; the screens file "Rillo -- Screens" (key jQqsc13MjOVaVST36jaxd8) holds every screen as instances of the library and never defines an atom, token or style of its own. Figma names such as `surface/window` and `Glass/Label` are kept so you can find them there. First-run setup now ships, built from the Glass parts, and is documented below.
 
 ## Overview
 
 **Creative North Star: "Bright future"**
 
-Fluidity shows one thing on screen: a small near-black pill, docked 12 pt above the bottom of the visible screen area, so above the Dock when the Dock is shown, that appears only while you dictate. Its edge is a thin ring of ivory light that brightens, drifts and blooms with your voice. Your words appear inside the pill, or in a bubble that splits off above it. When you let go, the light travels inward and becomes one line through the centre while the text is cleaned up. When the text is ready, the rim flashes mint green and the pill fades out within 100 ms, before the text is pasted.
+Rillo shows one thing on screen: a small near-black pill, docked 12 pt above the bottom of the visible screen area, so above the Dock when the Dock is shown, that appears only while you dictate. Its edge is a thin ring of ivory light that brightens, drifts and blooms with your voice. Your words appear inside the pill, or in a bubble that splits off above it. When you let go, the light travels inward and becomes one line through the centre while the text is cleaned up. When the text is ready, the rim flashes mint green and the pill fades out within 100 ms, before the text is pasted.
 
 The shape and motion come from the iPhone's Dynamic Island. The pill's sizes and springs, and the way the bubble splits off and merges back, all use values read from SpringBoard, so it moves like a system part of the Mac rather than an app's window. The body stays the same near-black on any background, and the light is the only colour.
 
-The app around the pill, its settings window, menu bar popover and first-run window, follows the direction the Figma file names "Glass". Its shell is macOS's own translucent material, so it floats over other apps the way the pill does, and its only colour is light caught on edges: a 1 pt lit top edge on every floating panel that brightens to the pill's ivory rim while the mic is live. Type, palette, density, controls and the lit top edge are Fluidity's own; each control still reports to VoiceOver as the macOS control for its job.
+The app around the pill, its settings window, menu bar popover and first-run window, follows the direction the Figma file names "Glass". Its shell is macOS's own translucent material, so it floats over other apps the way the pill does, and its only colour is light caught on edges: a 1 pt lit top edge on every floating panel that brightens to the pill's ivory rim while the mic is live. Type, palette, density, controls and the lit top edge are Rillo's own; each control still reports to VoiceOver as the macOS control for its job.
 
 **Key Characteristics:**
 - One near-black capsule; colour comes only from the light around its edge.
@@ -354,7 +354,7 @@ Depth comes from one translucent shell and the lit top edge.
 - **Words:** each word appears on a spring (damping 0.816, response 0.28 s) with a 2.2 pt rise; leaving words shrink to 0.82 on a 0.45 s spring. Words that would move more than 48 pt on cleanup fade out and back in instead of sliding. In the bubble above, a word the live preview pushes onto another line does the same. Edge fades: 14 pt at the left once the line scrolls (2 pt before), 4 pt at the right, 4 pt at the top of the bubble above. Every word size and distance scales with the pill's height ÷ 28.
 
 ### Sound
-- **Start** (`fluidity-start.caf`) plays as the pill appears; **finish** (`fluidity-finish.caf`) plays as a paste lands, a retried one included. Nothing plays for a cancel, a failed paste or a missing permission.
+- **Start** (`rillo-start.caf`) plays as the pill appears; **finish** (`rillo-finish.caf`) plays as a paste lands, a retried one included. Nothing plays for a cancel, a failed paste or a missing permission.
 - Both are the same short "tok", 35 ms before its echo: the start pitched down 6 semitones with its low end cut below 780 Hz, the finish 4 semitones above it with its low end kept, 4.4 dB louder. Both are softened above about 2.7 kHz. Start 287 ms and finish 388 ms with the echo; 48 kHz mono, finish peak −6 dBFS. Alec tuned them; change them only on his word.
 
 ### Bubble above
@@ -432,12 +432,12 @@ Each control is drawn by the app in Glass colours and reports to VoiceOver as th
 - Status row: 8 pt dot, status in `app-label`, hint in `app-small` secondary text at the right ("Let go to paste" while holding, "Tap <key> to stop" hands-free, "Tap or hold <key>" when ready), then the optional detail line and fix button.
 - History row (`history-row`): the transcript in `app-transcript`, at most 2 lines; a meta line "<App> · <time>" in `app-detail` secondary text, kept to one line (cut in the middle when too long) so the row never changes height; a "Click to paste" tooltip on the row; an optional note in `app-small` ("Not pasted", "Raw transcript · …"). A 24 pt copy button is always visible and shows an `app-state-done` checkmark for 260 ms after a copy. Fill: `app-hover` on hover (`history-row-hover`), animated over 130 ms, `app-selected` when focused. Arrows move, Return pastes, Command-C copies.
 - Microphone row, above Settings…: a 16 pt `mic` symbol, "Microphone: " and the saved choice ("Automatic" or the microphone's name, never what Automatic picked) in `app-label`, the `chevron.up.chevron.down` chevron in secondary text at the right, 8 pt gaps; hover as Settings…. It opens the same menu as the Settings row. VoiceOver: "Microphone", value the saved choice.
-- Settings… (⌘,) and Quit Fluidity (⌘Q) rows: 28 pt capsules, shortcut in `app-small` secondary text, `app-selected` on hover with no animation.
+- Settings… (⌘,) and Quit Rillo (⌘Q) rows: 28 pt capsules, shortcut in `app-small` secondary text, `app-selected` on hover with no animation.
 - The panel closes at once, with no animation.
 
 #### Menu bar icon
 - An 18 × 18 pt template image: a 16 × 9 pt pill outline at 1.5 pt with round caps. Ready: the outline alone. Recording: the pill filled. Cleanup off: a 6.5 pt dot at the lower right with 1.25 pt of clear space around it. Permission missing: a diagonal slash with 1.25 pt of clear space on each side.
-- Each state has its own VoiceOver description, such as "Fluidity, listening".
+- Each state has its own VoiceOver description, such as "Rillo, listening".
 
 #### Settings window
 - `settings-window`: shell material, system shadow, resting lit top edge; the edge goes live while the mic is live. The title bar is transparent, the title hidden, and the window drags by its background.
@@ -476,40 +476,40 @@ Figma Code Connect can't hold these links: it needs an Organization or Enterpris
 
 | Figma component | Node | Swift | File |
 |---|---|---|---|
-| Button | 2021:1941 | `GlassButtonStyle` | `Fluidity/Glass/GlassComponents.swift` |
-| Toggle | 2021:2254 | `GlassToggleStyle` | `Fluidity/Glass/GlassComponents.swift` |
-| Text field | 2021:2280 | `GlassFieldChrome` | `Fluidity/Glass/GlassComponents.swift` |
-| Segmented control | 2021:2607 | `GlassSegmentedControl` | `Fluidity/Glass/GlassComponents.swift` |
-| Section header | 2021:3267 | `SectionHeader` | `Fluidity/Glass/GlassComponents.swift` |
-| Focus ring | 2021:3597 | `GlassFocusRing` | `Fluidity/Glass/GlassComponents.swift` |
-| Status row (its Retry state isn't built) | 2021:3550 | `GlassRow` | `Fluidity/Glass/GlassComponents.swift` |
-| Status row (version 1) | 2048:3178 | `GlassRow` | `Fluidity/Glass/GlassComponents.swift` |
-| Settings row | 2048:1602 | `GlassRow` | `Fluidity/Glass/GlassComponents.swift` |
-| Status dot | 2048:655 | `StatusDot` | `Fluidity/Glass/GlassComponents.swift` |
-| Status icon | 2048:1483 | `StatusIcon` | `Fluidity/Glass/GlassComponents.swift` |
-| Keycap | 2048:1185 | `KeyCap` | `Fluidity/Glass/GlassComponents.swift` |
-| Inline note | 2048:1372 | `FieldMessage` | `Fluidity/Glass/GlassComponents.swift` |
-| Menu bar popover | 2021:5417 | `PopoverView` | `Fluidity/Popover/PopoverView.swift` |
-| Popover status row | 2049:1900 | `PopoverView.statusRow` | `Fluidity/Popover/PopoverView.swift` |
-| Popover empty history | 2048:3199 | `PopoverView.emptyHistory` | `Fluidity/Popover/PopoverView.swift` |
-| History row/Row click | 2050:2012 | `HistoryRow` | `Fluidity/Popover/PopoverView.swift` |
-| Popover footer row | 2051:2508 | `MenuRow` | `Fluidity/Popover/PopoverView.swift` |
-| Icon/Copy | 2044:249 | `CopyGlyph` | `Fluidity/Popover/PopoverView.swift` |
-| Menu bar icon/Pill outline | 2045:344 | `MenuBarIcon` | `Fluidity/Popover/MenuBarIcon.swift` |
-| Sidebar item | 2021:3242 | `SidebarItem` | `Fluidity/Settings/SettingsWindow.swift` |
-| Sidebar status line | 2053:2455 | `SidebarStatusLine` | `Fluidity/Settings/SettingsWindow.swift` |
-| Shortcut recorder | 2021:3295 | `ShortcutRecorderField` | `Fluidity/Settings/ShortcutRecorderField.swift` |
-| Shortcut recorder (version 1) | 2048:3134 | `ShortcutRecorderField` | `Fluidity/Settings/ShortcutRecorderField.swift` |
-| Shortcut row | 2054:2569 | `GeneralPane` | `Fluidity/Settings/GeneralPane.swift` |
-| Permission row | 2048:2540 | `PermissionRow` | `Fluidity/Settings/PermissionsPane.swift` |
-| Cleanup key row | 2056:2880 | `CleanupPane` | `Fluidity/Settings/CleanupPane.swift` |
-| Secure field | 2048:1983 | `CleanupPane` | `Fluidity/Settings/CleanupPane.swift` |
-| Cleanup rules | 2056:2918 | `CleanupPane` | `Fluidity/Settings/CleanupPane.swift` |
-| Text area | 2048:2090 | `CleanupPane` | `Fluidity/Settings/CleanupPane.swift` |
-| Word row | 2057:3181 | `WordRow` | `Fluidity/Settings/WordsPane.swift` |
-| Word add row | 2057:3193 | `WordsPane` | `Fluidity/Settings/WordsPane.swift` |
-| Speech model row | 2059:4210 | `FirstRunView.speechModelRow` | `Fluidity/FirstRun/FirstRunWindow.swift` |
-| Pill rim | 27:82 | `PillPresenter` | `Fluidity/Pill/PillPresenter.swift` |
+| Button | 2021:1941 | `GlassButtonStyle` | `Rillo/Glass/GlassComponents.swift` |
+| Toggle | 2021:2254 | `GlassToggleStyle` | `Rillo/Glass/GlassComponents.swift` |
+| Text field | 2021:2280 | `GlassFieldChrome` | `Rillo/Glass/GlassComponents.swift` |
+| Segmented control | 2021:2607 | `GlassSegmentedControl` | `Rillo/Glass/GlassComponents.swift` |
+| Section header | 2021:3267 | `SectionHeader` | `Rillo/Glass/GlassComponents.swift` |
+| Focus ring | 2021:3597 | `GlassFocusRing` | `Rillo/Glass/GlassComponents.swift` |
+| Status row (its Retry state isn't built) | 2021:3550 | `GlassRow` | `Rillo/Glass/GlassComponents.swift` |
+| Status row (version 1) | 2048:3178 | `GlassRow` | `Rillo/Glass/GlassComponents.swift` |
+| Settings row | 2048:1602 | `GlassRow` | `Rillo/Glass/GlassComponents.swift` |
+| Status dot | 2048:655 | `StatusDot` | `Rillo/Glass/GlassComponents.swift` |
+| Status icon | 2048:1483 | `StatusIcon` | `Rillo/Glass/GlassComponents.swift` |
+| Keycap | 2048:1185 | `KeyCap` | `Rillo/Glass/GlassComponents.swift` |
+| Inline note | 2048:1372 | `FieldMessage` | `Rillo/Glass/GlassComponents.swift` |
+| Menu bar popover | 2021:5417 | `PopoverView` | `Rillo/Popover/PopoverView.swift` |
+| Popover status row | 2049:1900 | `PopoverView.statusRow` | `Rillo/Popover/PopoverView.swift` |
+| Popover empty history | 2048:3199 | `PopoverView.emptyHistory` | `Rillo/Popover/PopoverView.swift` |
+| History row/Row click | 2050:2012 | `HistoryRow` | `Rillo/Popover/PopoverView.swift` |
+| Popover footer row | 2051:2508 | `MenuRow` | `Rillo/Popover/PopoverView.swift` |
+| Icon/Copy | 2044:249 | `CopyGlyph` | `Rillo/Popover/PopoverView.swift` |
+| Menu bar icon/Pill outline | 2045:344 | `MenuBarIcon` | `Rillo/Popover/MenuBarIcon.swift` |
+| Sidebar item | 2021:3242 | `SidebarItem` | `Rillo/Settings/SettingsWindow.swift` |
+| Sidebar status line | 2053:2455 | `SidebarStatusLine` | `Rillo/Settings/SettingsWindow.swift` |
+| Shortcut recorder | 2021:3295 | `ShortcutRecorderField` | `Rillo/Settings/ShortcutRecorderField.swift` |
+| Shortcut recorder (version 1) | 2048:3134 | `ShortcutRecorderField` | `Rillo/Settings/ShortcutRecorderField.swift` |
+| Shortcut row | 2054:2569 | `GeneralPane` | `Rillo/Settings/GeneralPane.swift` |
+| Permission row | 2048:2540 | `PermissionRow` | `Rillo/Settings/PermissionsPane.swift` |
+| Cleanup key row | 2056:2880 | `CleanupPane` | `Rillo/Settings/CleanupPane.swift` |
+| Secure field | 2048:1983 | `CleanupPane` | `Rillo/Settings/CleanupPane.swift` |
+| Cleanup rules | 2056:2918 | `CleanupPane` | `Rillo/Settings/CleanupPane.swift` |
+| Text area | 2048:2090 | `CleanupPane` | `Rillo/Settings/CleanupPane.swift` |
+| Word row | 2057:3181 | `WordRow` | `Rillo/Settings/WordsPane.swift` |
+| Word add row | 2057:3193 | `WordsPane` | `Rillo/Settings/WordsPane.swift` |
+| Speech model row | 2059:4210 | `FirstRunView.speechModelRow` | `Rillo/FirstRun/FirstRunWindow.swift` |
+| Pill rim | 27:82 | `PillPresenter` | `Rillo/Pill/PillPresenter.swift` |
 
 Not in the table: the `Icon/*` components the code draws with SF Symbols; the progress bar, which is Apple's own `ProgressView`; the pop-up button, listed above as not yet in code; Icon button and Word list bar, which no single Swift view builds; the Microphone and Dot and pill menu bar icons, History row/Hover buttons and the tap-and-hold picture, which were not chosen; and every `v2/` component, which waits for version 2.
 

@@ -61,13 +61,13 @@ SCORE_MODEL=haiku
 # Any touched path here makes the review full, whatever its size.
 is_risk_path() {
   case "$1" in
-    FluidityCore/Sources/FluidityCore/DictationStore/* \
-    | FluidityCore/Sources/FluidityCore/Records/* \
-    | FluidityCore/Sources/FluidityCore/Paster/* \
-    | FluidityCore/Sources/FluidityCore/FocusedField/* \
-    | FluidityCore/Sources/FluidityCore/CleanupClient/* \
-    | FluidityCore/Sources/FluidityCore/Settings/Keychain.swift \
-    | Fluidity/Fluidity.entitlements \
+    RilloCore/Sources/RilloCore/DictationStore/* \
+    | RilloCore/Sources/RilloCore/Records/* \
+    | RilloCore/Sources/RilloCore/Paster/* \
+    | RilloCore/Sources/RilloCore/FocusedField/* \
+    | RilloCore/Sources/RilloCore/CleanupClient/* \
+    | RilloCore/Sources/RilloCore/Settings/Keychain.swift \
+    | Rillo/Rillo.entitlements \
     | .githooks/* \
     | .github/workflows/*) return 0 ;;
   esac

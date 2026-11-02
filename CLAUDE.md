@@ -1,4 +1,4 @@
-# Fluidity — Claude Code orientation
+# Rillo — Claude Code orientation
 
 A native Mac dictation app that pastes what you say into whatever app you are typing in, with speech-to-text running on the Mac.
 
@@ -53,7 +53,7 @@ through `~/.claude/scripts/remote-run`.
 
 ## Agent skills
 
-- **Issue tracker:** Linear, project Fluidity. Record ideas, work, status and
+- **Issue tracker:** Linear, project Rillo. Record ideas, work, status and
   milestones there first — see `docs/agents/issue-tracker.md`.
 - **Triage labels:** `docs/agents/triage-labels.md`.
 - **Domain docs:** `CONTEXT.md` plus `docs/adr/` — see `docs/agents/domain.md`.

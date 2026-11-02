@@ -66,7 +66,7 @@ def errors(ref, hyp):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--out", default="/Volumes/Space/fluidity-data")
+    ap.add_argument("--out", default="/Volumes/Space/rillo-data")
     ap.add_argument("--ref", default="aai")
     ap.add_argument("models", nargs="*",
                     default=["wispr", "v2", "v3", "ultra", "nemotron-en", "nemotron-ml", "whisper-turbo"])

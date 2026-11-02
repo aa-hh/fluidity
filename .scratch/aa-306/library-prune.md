@@ -1,6 +1,6 @@
 # Library prune log (AA-306)
 
-Figma file 5JcAX6bwl48LqQhqcUuGOJ ("Fluidity -- Design Library"). Date: 2026-10-26. The screens file jQqsc13MjOVaVST36jaxd8 was not opened.
+Figma file 5JcAX6bwl48LqQhqcUuGOJ ("Rillo -- Design Library"). Date: 2026-10-26. The screens file jQqsc13MjOVaVST36jaxd8 was not opened.
 
 ## Before
 
@@ -17,13 +17,13 @@ Pill page 27:2: get_metadata read (30 pill components in "Pill rim" 27:82, "Rim 
 
 - Copied the Style Guide drawing 2093:9911 into the Atoms icon row 2021:1681 at position 5 (after Icon/Permissions) and made it a component: Icon/Microphone 2098:9830, 16 × 16, layers Glyph 2098:9827 and two vectors 2098:9828, 2098:9829 (1.4 pt strokes, still bound to text/primary).
 - Instance in the Dark row 2021:5645 at the same position: 2098:9831.
-- Style Guide: replaced the drawing 2093:9911 with instance 2098:9835 "Microphone" in "Fluidity menu bar item" 2021:5553, same index and position (x 6, y 2, 16 × 16). 2093:9911 is deleted.
+- Style Guide: replaced the drawing 2093:9911 with instance 2098:9835 "Microphone" in "Rillo menu bar item" 2021:5553, same index and position (x 6, y 2, 16 × 16). 2093:9911 is deleted.
 - Discovery Permission row (set 2048:2540) left on the Status row's state circle, as asked.
 
 ## 3. Stale copy
 
 Tokens page (2008:402):
-- Glass/Body sample 2021:1592: "Hold ⌥ Space, talk, and let go. Fluidity pastes the text into whatever app has focus." to "Tap or hold Right ⌥ and talk. Fluidity pastes the text into whatever app has focus." ("let go" dropped, since a tap keeps listening until the next tap.)
+- Glass/Body sample 2021:1592: "Hold ⌥ Space, talk, and let go. Rillo pastes the text into whatever app has focus." to "Tap or hold Right ⌥ and talk. Rillo pastes the text into whatever app has focus." ("let go" dropped, since a tap keeps listening until the next tap.)
 - Glass/Small sample 2021:1607: "Whisper Large v3 Turbo · 1.6 GB" to "Parakeet TDT v2 · on this Mac".
 - Colour table (Swatch grid 2021:1365): added two rows, copied from the line/strong row in each column, chips bound to the variable, value text bound to text/primary as before.
   - line/lit-edge (VariableID:2094:184), after line/strong: Role 2098:9839, Light 2098:9841 (#FFF6EA), Dark 2098:9844 (#FFF6EA).

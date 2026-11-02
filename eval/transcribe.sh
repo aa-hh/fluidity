@@ -2,7 +2,7 @@
 # Run each speech model over the test clips with FluidAudio's CLI.
 #
 # Usage: sh eval/transcribe.sh [data dir] [models...]
-#   defaults: /Volumes/Space/fluidity-data, v2 v3
+#   defaults: /Volumes/Space/rillo-data, v2 v3
 #   models: any fluidaudiocli --model-version (v2, v3, ultra, ...), nemotron-en,
 #   nemotron-ml (language detected), whisper-turbo (needs whisperkit-cli;
 #   WHISPERKIT_MODELS sets where its model is downloaded).
@@ -11,7 +11,7 @@
 # Clips already transcribed are skipped, so a stopped run can resume.
 set -eu
 
-data=${1:-/Volumes/Space/fluidity-data}
+data=${1:-/Volumes/Space/rillo-data}
 [ "$#" -gt 0 ] && shift
 models=${*:-v2 v3}
 cli=${FLUIDAUDIO_CLI:-$HOME/Projects/FluidAudio/.build/release/fluidaudiocli}

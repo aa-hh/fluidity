@@ -26,7 +26,7 @@ on recordings up to 15 s, measured on generated speech; its pre-check
 preview pass on the whole recording so far about once a second, only after
 FluidAudio's voice detection has heard speech. On release (plus the 200 ms tail)
 it runs the final pass. The word-list recheck runs after the final pass only when
-`hasCTCRescoringCandidates` finds a possible term. `FluidityCore` pins FluidAudio to the revision the
+`hasCTCRescoringCandidates` finds a possible term. `RilloCore` pins FluidAudio to the revision the
 spike measured, `1b0ed50d686873128a4129b3510ce3914c849bab`.
 
 ## Consequences

@@ -1,7 +1,7 @@
 # AA-306 atoms: tokens and atoms audit, and the atoms version 1 still needs
 
 Owner: `atoms`. Date: 2026-10-25. Figma file 5JcAX6bwl48LqQhqcUuGOJ.
-Sources checked: Fluidity DESIGN.md, .impeccable/design.json, .impeccable/surfaces/app.md, PRODUCT.md, CONTEXT.md; FluidWispr RimParameters.swift, RimSimulation.swift, RimSpring.swift, RecordingPillController.swift, MenuBarGlyph.swift; Figma pages Tokens (2008:402), Atoms (2007:400), Style Guide (2008:403), "Recording pill: Rim (approved)" (27:2), read through get_metadata, get_screenshot and the Plugin API (read only).
+Sources checked: Rillo DESIGN.md, .impeccable/design.json, .impeccable/surfaces/app.md, PRODUCT.md, CONTEXT.md; FluidWispr RimParameters.swift, RimSimulation.swift, RimSpring.swift, RecordingPillController.swift, MenuBarGlyph.swift; Figma pages Tokens (2008:402), Atoms (2007:400), Style Guide (2008:403), "Recording pill: Rim (approved)" (27:2), read through get_metadata, get_screenshot and the Plugin API (read only).
 
 ## Tokens that exist
 

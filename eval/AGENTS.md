@@ -10,7 +10,7 @@ scoring. The scripts live here; the data never does.
 
 - **Recordings and transcripts never enter git.** They hold Alec's emails and
   messages and this repo is on GitHub. Data lives under
-  `/Volumes/Space/fluidity-data/`; scripts take the folder as an argument.
+  `/Volumes/Space/rillo-data/`; scripts take the folder as an argument.
 - **The test split is drawn once and never redrawn.** `split.json` on the data
   drive is the record; redrawing lets trained models see test clips.
 - **Test clips never become training data**, even once corrected.

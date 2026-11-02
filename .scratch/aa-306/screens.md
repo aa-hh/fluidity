@@ -1,7 +1,7 @@
 # AA-306 screens: every version 1 screen and state
 
 Owner: `screens`. Date: 2026-10-25. Figma file 5JcAX6bwl48LqQhqcUuGOJ, page "Discovery · version 1" (2044:237), section "Screens" plus one section per screen.
-Sources read: brief.md, product.md (state numbers P1 to P20, M1 to M6, O1 to O19, S, G, C, W, R, F come from its "State inventory"), atoms.md, AA-306, Fluidity DESIGN.md, .impeccable/surfaces/app.md, CONTEXT.md, the Dynamic Island motion notes, FluidWispr RimParameters.swift, RimSimulation.swift, RimBubble.swift, RecordingPillController.swift, MenuBarGlyph.swift, notes visual-direction.md and live-words-pill.md; Figma pages Tokens, Atoms, Style Guide and the approved pill page (27:2) read with get_metadata, get_screenshot and read-only scripts.
+Sources read: brief.md, product.md (state numbers P1 to P20, M1 to M6, O1 to O19, S, G, C, W, R, F come from its "State inventory"), atoms.md, AA-306, Rillo DESIGN.md, .impeccable/surfaces/app.md, CONTEXT.md, the Dynamic Island motion notes, FluidWispr RimParameters.swift, RimSimulation.swift, RimBubble.swift, RecordingPillController.swift, MenuBarGlyph.swift, notes visual-direction.md and live-words-pill.md; Figma pages Tokens, Atoms, Style Guide and the approved pill page (27:2) read with get_metadata, get_screenshot and read-only scripts.
 
 Impeccable ran as a subagent without access to Alec, so its interview step is replaced by AA-306 and product.md's defaults; every default is labelled as one.
 
@@ -44,13 +44,13 @@ Reduce Motion per state goes in each note. Speech model not ready (P20) is not i
 
 ### B. Menu bar icon
 
-Layout: a macOS menu bar strip 480 × 24 pt (Light: white at 40% over the Light gradient, Dark: the Dark gradient with near-black at 40%), right side: two neutral placeholder status items, the Fluidity item (18 × 18 pt icon in a 28 × 20 pt hit area), the clock "Sun 25 Oct 09:41" in 13 pt. The same strip again at 2x (scaled copy, 960 × 48) to check the 1.5 pt strokes on Retina. Light and dark, 1x and 2x, per state.
+Layout: a macOS menu bar strip 480 × 24 pt (Light: white at 40% over the Light gradient, Dark: the Dark gradient with near-black at 40%), right side: two neutral placeholder status items, the Rillo item (18 × 18 pt icon in a 28 × 20 pt hit area), the clock "Sun 25 Oct 09:41" in 13 pt. The same strip again at 2x (scaled copy, 960 × 48) to check the 1.5 pt strokes on Retina. Light and dark, 1x and 2x, per state.
 States, one frame each: ready (M1), recording (M2), mic warm (M3, with macOS's own orange privacy dot drawn to the right as macOS places it, labelled "drawn by macOS"), cleanup off or no key (M4), permission missing (M5).
 Icons: instances of the atoms agent's "Menu bar icon/Pill outline" set (2045:344: Ready 2045:319, Recording 2045:323, Mic warm 2045:325, Cleanup off 2045:330, Permission missing 2045:337), plus any second option `atoms` adds. Recommendation per state follows its options.
 
 ### C. Popover (280 pt wide)
 
-Layout at real size, top to bottom: shell (surface/window over 40 pt blur, line/rule outline, Elevation/Float, 16 pt corners, resting lit top edge; live while listening); status row 38 pt (8 pt status dot, status in Glass/Label, hint in Glass/Small secondary, 16 pt side padding); rule; history list: rows inset 6 pt, each 8 pt top and bottom and 10 pt side padding, transcript up to 2 lines in Glass/Transcript (13/17), then "Claude · 2 min ago" in Glass/Small secondary, row height about 66 pt; five rows visible at 480 pt total height, the rest scrolls; rule; Settings… (⌘,) and Quit Fluidity (⌘Q) as 28 pt capsules inset 6 pt. Placed under a menu bar strip so it drops from the icon.
+Layout at real size, top to bottom: shell (surface/window over 40 pt blur, line/rule outline, Elevation/Float, 16 pt corners, resting lit top edge; live while listening); status row 38 pt (8 pt status dot, status in Glass/Label, hint in Glass/Small secondary, 16 pt side padding); rule; history list: rows inset 6 pt, each 8 pt top and bottom and 10 pt side padding, transcript up to 2 lines in Glass/Transcript (13/17), then "Claude · 2 min ago" in Glass/Small secondary, row height about 66 pt; five rows visible at 480 pt total height, the rest scrolls; rule; Settings… (⌘,) and Quit Rillo (⌘Q) as 28 pt capsules inset 6 pt. Placed under a menu bar strip so it drops from the icon.
 
 States, one frame each, Light and Dark: ready with history (O1, O11), listening hold (O2), listening hands-free (O3), waiting for cleanup (O4), mic warm (O5), cleanup off or no key (O7), key invalid (O8), offline (O9), permission missing (O6), transcript waiting in the pill bubble (O10, newest row marked "Not pasted"), empty history (O17), hover and keyboard focus on a row (O12), a row just copied (O13), a fallback row and a not-pasted row (O15, O16, inside the ready frame), Settings and Quit rows hovered (O18).
 
@@ -87,7 +87,7 @@ Window-level frames: mic live (lit top edge live, status line ivory "Listening")
 
 ### E. First-run check
 
-Layout default (product open question 18): a window on the Glass shell, 480 pt wide, height to fit (about 400 pt), centred on the desktop. Title "Set up Fluidity", one line of detail, then a raised panel with the Microphone row, the Accessibility row and, if the speech model download default stays (product open question 9), a "Speech model" row with progress. Then the shortcut part: the Shortcut recorder with the tap versus hold rows from D-G-b, and "Done" (Button Primary) bottom right.
+Layout default (product open question 18): a window on the Glass shell, 480 pt wide, height to fit (about 400 pt), centred on the desktop. Title "Set up Rillo", one line of detail, then a raised panel with the Microphone row, the Accessibility row and, if the speech model download default stays (product open question 9), a "Speech model" row with progress. Then the shortcut part: the Shortcut recorder with the tap versus hold rows from D-G-b, and "Done" (Button Primary) bottom right.
 States, one frame each: nothing granted (F1), one granted (F2), waiting while he is in System Settings (F3), both granted live (F4), shortcut step idle (F5), shortcut recording, shortcut set (F6), done (F8).
 Question (how "then the shortcut" is laid out):
 - E-a: one window, both parts visible; the shortcut part is dimmed and unavailable until both permissions are granted. Recommended: nothing to navigate, he sees the whole job up front, and the live granted state visibly unlocks the next part.
@@ -282,7 +282,7 @@ Not verified: no prototype or VoiceOver run; behaviour is specified in notes and
 7. Pill look for a key press before the speech model is ready (product open question 9); not drawn, not in AA-306's pill list. Lean: the approved processing line until the model has loaded (seconds), plus a VoiceOver "Speech model loading"; it says "working" without a new look.
 8. Tap versus hold: help lines (recommended) or the picture, and should the picture appear once in the first-run key step? Lean: no picture in first run either; one wording everywhere, and the picture adds a group's height for two sentences.
 9. First-run layout: one window (A, recommended) or two steps (B). Window width 540 pt instead of product's 480 pt default.
-10. After first run, should the popover open once to show where Fluidity lives? Drawn: nothing (no tour).
+10. After first run, should the popover open once to show where Rillo lives? Drawn: nothing (no tour).
 11. How long the word list's Undo line stays. Drawn: until he leaves the pane.
 12. Mic warm: is the hollow ring enough, given the Light ivory Listening dot reads close to it on white? Lean: keep the ring; the words carry the state, and the fix belongs on the Light Listening dot (atoms), not on mic warm.
 13. The Motion collection has no value for the lit top edge going from resting to live; drawn as an instant switch. Lean: use the existing 130 ms snap (duration/snap), the same as the pill's state switches; no new timing.

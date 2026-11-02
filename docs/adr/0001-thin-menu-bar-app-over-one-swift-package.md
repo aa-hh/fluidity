@@ -13,10 +13,10 @@ the real speech model never runs in tests (AA-302).
 
 ## Decision
 
-An Xcode app target, `Fluidity`, holds only what needs the app: the menu bar item
+An Xcode app target, `Rillo`, holds only what needs the app: the menu bar item
 (no Dock icon), popover, settings window, the pill window (`NSPanel`), permission
 checks and launch at login (`SMAppService`). All logic lives in one local Swift
-package, `FluidityCore`, split into `DictationController`, `Hotkey`,
+package, `RilloCore`, split into `DictationController`, `Hotkey`,
 `AudioCapture`, `Transcriber`, `CleanupClient`, `Finisher`, `Paster`,
 `EditWatcher`, `DictationStore` and `Settings`. The speech engine, cleanup
 service, clipboard, focused text field and clock sit behind small protocols so

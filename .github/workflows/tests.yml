@@ -1,7 +1,7 @@
 name: Tests
 
 # The full suite on a GitHub-hosted Mac, once per PR and once per push to
-# main: the FluidityCore tests, then a build of the app target. No path filter
+# main: the RilloCore tests, then a build of the app target. No path filter
 # on purpose: a required check that does not run leaves the PR stuck at
 # "expected". Free on this public repo.
 #
@@ -42,11 +42,11 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: |
-            FluidityCore/.build
+            RilloCore/.build
             .build/DerivedData
-          key: ${{ runner.os }}-${{ runner.arch }}-xcode26.6-${{ hashFiles('FluidityCore/Package.resolved', 'Fluidity.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}-${{ github.sha }}
+          key: ${{ runner.os }}-${{ runner.arch }}-xcode26.6-${{ hashFiles('RilloCore/Package.resolved', 'Rillo.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}-${{ github.sha }}
           restore-keys: |
-            ${{ runner.os }}-${{ runner.arch }}-xcode26.6-${{ hashFiles('FluidityCore/Package.resolved', 'Fluidity.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}-
+            ${{ runner.os }}-${{ runner.arch }}-xcode26.6-${{ hashFiles('RilloCore/Package.resolved', 'Rillo.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}-
             ${{ runner.os }}-${{ runner.arch }}-xcode26.6-
 
       - name: Check the compiler knows file hashing
@@ -58,7 +58,7 @@ jobs:
       # A fresh checkout gives every file a new modified time, so the restored
       # .build is reused only if the compiler compares file contents instead
       # (file hashing). No index store: nothing on a runner reads it.
-      - name: FluidityCore suite
+      - name: RilloCore suite
         run: sh scripts/test.sh --disable-index-store -Xswiftc -enable-incremental-file-hashing -Xswiftc -driver-show-incremental
 
       # The runner has no signing certificate, so this proves the app target
@@ -85,6 +85,6 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: |
-            FluidityCore/.build
+            RilloCore/.build
             .build/DerivedData
-          key: ${{ runner.os }}-${{ runner.arch }}-xcode26.6-${{ hashFiles('FluidityCore/Package.resolved', 'Fluidity.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}-${{ github.sha }}
+          key: ${{ runner.os }}-${{ runner.arch }}-xcode26.6-${{ hashFiles('RilloCore/Package.resolved', 'Rillo.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}-${{ github.sha }}

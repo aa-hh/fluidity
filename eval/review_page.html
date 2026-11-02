@@ -41,6 +41,7 @@
 <script type="application/json" id="data">/*DATA*/[]</script>
 <script>
 const rows = JSON.parse(document.getElementById("data").textContent);
+// Keeps the pre-rename key so marks already saved in the browser still load.
 const KEY = "fluidity-test-review-v1";
 let state = {};
 try { state = JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) {}

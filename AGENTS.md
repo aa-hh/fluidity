@@ -1,4 +1,4 @@
-# Fluidity
+# Rillo
 
 ## Purpose
 
@@ -45,8 +45,8 @@ symbol you cannot find in source, believe the source and fix the doc.
 
 <!-- One line per top-level folder: path → what it is. Each folder with
      rules of its own gets an AGENTS.md. -->
-- `Fluidity/` → the app target: only what needs the running app.
-- `FluidityCore/` → all logic, behind protocols, tested with fakes.
+- `Rillo/` → the app target: only what needs the running app.
+- `RilloCore/` → all logic, behind protocols, tested with fakes.
 - `scripts/` → the only sanctioned way to build, test, review and land.
 - `.githooks/` → commit and push guards; settings in `project.conf`.
 - `docs/review/` → instructions for each branch-review pass.
@@ -57,7 +57,7 @@ symbol you cannot find in source, believe the source and fix the doc.
 ## Rules (all targets)
 
 - **Linear first (HARD RULE).** Every idea, piece of work, status change and
-  milestone goes into Linear (team Aa-hh, project Fluidity) before the work
+  milestone goes into Linear (team Aa-hh, project Rillo) before the work
   starts, and Linear stays the only record of status. Repo files may hold
   supporting detail linked from an issue, never tickets or status.
   Conventions: `docs/agents/issue-tracker.md`.
@@ -80,7 +80,7 @@ symbol you cannot find in source, believe the source and fix the doc.
 - **Dev tooling that outlives its session is labelled, parked and purgeable.**
   Anything that keeps running after the session that made it (a launchd/cron
   job, login item, file watcher, watchdog) must (a) carry a name starting
-  `fluidity.dev.`, (b) live in the repo's `dev/`, never inside the
+  `rillo.dev.`, (b) live in the repo's `dev/`, never inside the
   app's own data directory, and (c) be removable by a purge script updated in
   the same change. Unlabelled tooling dropped onto a machine runs unnoticed
   for days.
