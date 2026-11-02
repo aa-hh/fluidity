@@ -31,6 +31,13 @@ public final class Settings: @unchecked Sendable {
         - Format spoken lists as numbered lists.
         - Spell words from the word list exactly as written there.
         - If nothing is left after cleanup, return an empty string.
+        - Keep every emoji exactly as written and where it was, including skin tones, flags and \
+        joined emojis. Never add an emoji the speaker did not ask for.
+        - When the speaker says an emoji's name followed by the word "emoji" ("thumbs up emoji", \
+        "two heart emojis", "emoji de corazón"), replace just those words with the emoji, repeated \
+        when a number is said ("three fire emojis" becomes 🔥🔥🔥), and leave every other word as a \
+        word. Keep the words when the speaker talks about an emoji ("what is the emoji for sushi", \
+        "people misread the skull emoji") or says a name without "emoji" ("give it a thumbs up").
         """
 
     private enum Key {
