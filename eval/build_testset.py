@@ -17,7 +17,8 @@ import shutil
 import sqlite3
 from pathlib import Path
 
-SEED = "rillo-aa-284"
+# Keeps the pre-rename string: it is the draw key sealed in split.json.
+SEED = "fluidity-aa-284"
 LIVE_FLUIDVOICE = Path.home() / "Library/Application Support/FluidVoice/DictationAudioHistory"
 
 
