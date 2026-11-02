@@ -137,11 +137,11 @@ private struct CleanupTile: View {
                     Text("Cleanup").font(GlassTheme.label).foregroundStyle(GlassTheme.textPrimary)
                     Spacer()
                     Toggle("Cleanup", isOn: Binding(
-                        get: { model.isCleanupActive },
+                        get: { model.isCleanupSwitchOn },
                         set: { model.changeCleanupEnabled($0) }))
                         .toggleStyle(GlassToggleStyle())
                         .labelsHidden()
-                        .disabled(model.cleanupKey == .noKey)
+                        .disabled(model.isCleanupSwitchLocked)
                 }
                 Text("Removes filler words and resolves self-corrections.")
                     .font(GlassTheme.detail)
