@@ -295,6 +295,59 @@ private struct GlassToggleTrack: View {
     }
 }
 
+/// Two choices in a pill track, the chosen one raised: the Glass look in place of the system segmented picker,
+/// which draws in the accent colour. Left and right arrows switch; VoiceOver hears a segmented picker.
+struct GlassSegmented<Value: Hashable>: View {
+    let label: String
+    let options: [(value: Value, title: String)]
+    @Binding var selection: Value
+    @Namespace private var thumb
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        HStack(spacing: 2) {
+            ForEach(options, id: \.value) { option in
+                let isOn = option.value == selection
+                Text(option.title)
+                    .font(GlassTheme.label)
+                    .foregroundStyle(isOn ? GlassTheme.textPrimary : GlassTheme.textSecondary)
+                    .padding(.horizontal, 14)
+                    .frame(height: GlassTheme.controlHeight - 4)
+                    .background {
+                        if isOn {
+                            Capsule().fill(GlassTheme.controlKnob)
+                                .shadow(color: .black.opacity(0.12), radius: 1, y: 1)
+                                .matchedGeometryEffect(id: "thumb", in: thumb)
+                        }
+                    }
+                    .contentShape(Capsule())
+                    .onTapGesture { selection = option.value }
+            }
+        }
+        .padding(2)
+        .background(GlassTheme.selected, in: Capsule())
+        .overlay { Capsule().strokeBorder(GlassTheme.lineRule, lineWidth: 1) }
+        .glassFocusRing(Capsule())
+        .animation(reduceMotion ? nil : GlassTheme.snap, value: selection)
+        .focusable()
+        .onKeyPress(.leftArrow) { step(by: -1) }
+        .onKeyPress(.rightArrow) { step(by: 1) }
+        .accessibilityRepresentation {
+            Picker(label, selection: $selection) {
+                ForEach(options, id: \.value) { Text($0.title).tag($0.value) }
+            }
+            .pickerStyle(.segmented)
+        }
+    }
+
+    private func step(by offset: Int) -> KeyPress.Result {
+        guard let index = options.firstIndex(where: { $0.value == selection }),
+              options.indices.contains(index + offset) else { return .ignored }
+        selection = options[index + offset].value
+        return .handled
+    }
+}
+
 // MARK: - Focus
 
 /// Keyboard focus: a 2 pt `app-focus-ring` ring 1 pt outside `shape`, in place of the system ring,

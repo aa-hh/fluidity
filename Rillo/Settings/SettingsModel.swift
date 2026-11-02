@@ -54,7 +54,8 @@ final class SettingsModel {
     var menuBarState: MenuBarState = .ready
     /// How the current dictation was started, while one is recording.
     var recordingMode: DictationController.RecordingMode?
-    var status: AppStatus { .current(menuBar: menuBarState, cleanupKey: cleanupKey) }
+    /// Local needs no key, so the key's state says nothing there.
+    var status: AppStatus { .current(menuBar: menuBarState, cleanupKey: cleanupPlace == .cloud ? cleanupKey : .accepted) }
     var isMicLive: Bool { menuBarState == .recording }
 
     var pane: SettingsPane = .general
@@ -79,9 +80,13 @@ final class SettingsModel {
     // MARK: Cleanup
 
     var isCleanupEnabled = true
+    var cleanupPlace: CleanupPlace = .cloud
     var cleanupKey: CleanupKeyState = .noKey
-    /// Cleanup runs only with its switch on and a key saved.
-    var isCleanupActive: Bool { isCleanupEnabled && cleanupKey != .noKey }
+    /// Cleanup runs only with its switch on, Cloud chosen and a key saved; Local can't run yet.
+    var isCleanupActive: Bool { isCleanupEnabled && cleanupPlace == .cloud && cleanupKey != .noKey }
+    /// The switch shows the user's choice on Local, which needs no key.
+    var isCleanupSwitchOn: Bool { cleanupPlace == .local ? isCleanupEnabled : isCleanupActive }
+    var isCleanupSwitchLocked: Bool { cleanupPlace == .cloud && cleanupKey == .noKey }
     /// The saved key, shown masked in the field.
     var apiKey = ""
     var cleanupRules = Settings.defaultCleanupRules
@@ -119,6 +124,7 @@ final class SettingsModel {
     var onLiveWordsChange: (LiveWords) -> Void = { _ in }
     var onMicrophoneChange: (String?) -> Void = { _ in }
     var onCleanupEnabledChange: (Bool) -> Void = { _ in }
+    var onCleanupPlaceChange: (CleanupPlace) -> Void = { _ in }
     /// The user entered a key; the shell saves it and marks any saved key `.accepted` without checking it.
     var onAPIKeySubmit: (String) -> Void = { _ in }
     var onCleanupRulesChange: (String) -> Void = { _ in }
@@ -177,6 +183,11 @@ final class SettingsModel {
     func changeCleanupEnabled(_ on: Bool) {
         isCleanupEnabled = on
         onCleanupEnabledChange(on)
+    }
+
+    func changeCleanupPlace(_ place: CleanupPlace) {
+        cleanupPlace = place
+        onCleanupPlaceChange(place)
     }
 
     func changeCleanupRules(_ rules: String) {

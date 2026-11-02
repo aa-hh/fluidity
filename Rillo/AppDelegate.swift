@@ -226,6 +226,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             settings.isCleanupEnabled = on
             controller.refreshMenuBar()
         }
+        model.onCleanupPlaceChange = { place in
+            settings.cleanupPlace = place
+            controller.refreshMenuBar()
+        }
         model.onAPIKeySubmit = { [unowned self] key in
             do {
                 try settings.setAPIKey(key)
@@ -297,6 +301,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         model.launchAtLogin = SMAppService.mainApp.status == .enabled
         model.liveWords = settings.liveWords
         model.isCleanupEnabled = settings.isCleanupEnabled
+        model.cleanupPlace = settings.cleanupPlace
         model.cleanupRules = settings.cleanupRules
         model.wordList = settings.wordList
         model.speechModel = settings.speechModel

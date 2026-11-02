@@ -64,7 +64,12 @@ struct SettingsView: View {
                     case .permissions: PermissionsPane(model: model)
                     }
                 }
-                .padding(20)
+                .padding(.leading, 20)
+                .padding(.trailing, 4)
+                .padding(.vertical, 20)
+                // A fixed width, 16 pt short of the scroll view and pinned left, so a scroll bar appearing or
+                // disappearing (Cloud's rows overflow, Local's don't) never shifts the pane sideways.
+                .frame(width: 848 - GlassTheme.sidebarWidth - 16, alignment: .leading)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
             .scrollBounceBehavior(.basedOnSize)

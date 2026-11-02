@@ -9,7 +9,13 @@ public enum LiveWords: String, CaseIterable, Codable, Sendable {
     case above
 }
 
-/// The user's settings: the shortcut, cleanup on or off, the cleanup rules, the word list and the
+/// Where cleanup runs. Each place keeps its own setup, so switching loses nothing.
+public enum CleanupPlace: String, CaseIterable, Codable, Sendable {
+    case cloud
+    case local
+}
+
+/// The user's settings: the shortcut, cleanup on or off and where it runs, the cleanup rules, the word list and the
 /// live words choice in `UserDefaults`, and the cleanup API key in the Keychain.
 public final class Settings: @unchecked Sendable {
     public static let defaultCleanupRules = """
@@ -35,6 +41,7 @@ public final class Settings: @unchecked Sendable {
         static let liveWords = "liveWords"
         static let speechModel = "speechModel"
         static let microphone = "microphone"
+        static let cleanupPlace = "cleanupPlace"
     }
 
     private let defaults: UserDefaults
@@ -64,8 +71,15 @@ public final class Settings: @unchecked Sendable {
         set { defaults.set(newValue, forKey: Key.cleanupEnabled) }
     }
 
-    /// Cleanup runs only when it is enabled and an API key is saved.
-    public var isCleanupOn: Bool { isCleanupEnabled && hasAPIKey }
+    /// Cleanup runs only when it is enabled and the chosen place can run it. It never falls back from Local to Cloud.
+    // razor: Local never runs until local cleanup models land (AA-457); then Local needs its chosen model loaded.
+    public var isCleanupOn: Bool { isCleanupEnabled && cleanupPlace == .cloud && hasAPIKey }
+
+    /// Unknown saved values (from another build) read as Cloud.
+    public var cleanupPlace: CleanupPlace {
+        get { defaults.string(forKey: Key.cleanupPlace).flatMap(CleanupPlace.init(rawValue:)) ?? .cloud }
+        set { defaults.set(newValue.rawValue, forKey: Key.cleanupPlace) }
+    }
 
     /// Saved only once edited, so users who never edit the rules get a newer default.
     public var cleanupRules: String {
