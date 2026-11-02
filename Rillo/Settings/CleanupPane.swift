@@ -31,7 +31,7 @@ struct CleanupPane: View {
                 }
                 GlassRule()
                 GlassRow(title: "Where cleanup runs", detail: "Each keeps its own setup, so switching loses nothing.") {
-                    Picker("Where cleanup runs", selection: Binding(get: { model.cleanupPlace }, set: choose)) {
+                    Picker("Where cleanup runs", selection: Binding(get: { model.cleanupPlace }, set: { choose($0) })) {
                         Text("Cloud").tag(CleanupPlace.cloud)
                         Text("Local").tag(CleanupPlace.local)
                     }
