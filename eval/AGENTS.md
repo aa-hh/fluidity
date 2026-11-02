@@ -20,7 +20,8 @@ scoring. The scripts live here; the data never does.
 - **Only misheard real words count.** `score.py` strips fillers, repeats and
   American/British spelling from both sides; cleanup handles those.
 - **Clips leave this Mac only with Alec's yes** (AssemblyAI uploads, copies
-  to the mule, which cannot see the `Space` drive).
+  to the mule, which cannot see the `Space` drive). The Cloudflare copy has
+  it.
 - **Correction thresholds live in `correction_thresholds.json`, never in
   code**, so changing one re-sorts every past dictation.
 
@@ -32,4 +33,5 @@ scoring. The scripts live here; the data never does.
 - `review_page.html` → template for the page where Alec settles each mark.
 - `score.py` → each model's share of real words wrong.
 - `sort_corrections.py` → sorts user edits into categories, writes training rows.
+- `cloud_sync.py` → copies day-file records to D1 and recordings to R2.
 - `test_*.py` → tests for the script of the same name.
