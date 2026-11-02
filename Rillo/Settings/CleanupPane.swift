@@ -31,13 +31,10 @@ struct CleanupPane: View {
                 }
                 GlassRule()
                 GlassRow(title: "Where cleanup runs", detail: "Each keeps its own setup, so switching loses nothing.") {
-                    Picker("Where cleanup runs", selection: Binding(get: { model.cleanupPlace }, set: { choose($0) })) {
-                        Text("Cloud").tag(CleanupPlace.cloud)
-                        Text("Local").tag(CleanupPlace.local)
-                    }
-                    .pickerStyle(.segmented)
-                    .labelsHidden()
-                    .fixedSize()
+                    GlassSegmented(
+                        label: "Where cleanup runs",
+                        options: [(.cloud, "Cloud"), (.local, "Local")],
+                        selection: Binding(get: { model.cleanupPlace }, set: { choose($0) }))
                 }
                 if shownPlace == .cloud {
                     Group {
@@ -154,12 +151,10 @@ struct CleanupPane: View {
             .accessibilityElement(children: .combine)
             HStack(spacing: 8) {
                 keyField
-                if !(model.cleanupKey == .accepted && trimmedDraft == model.apiKey) {
-                    Button("Save", action: submitKey)
-                        .buttonStyle(.glassPrimary)
-                        .disabled(trimmedDraft == model.apiKey || model.cleanupKey == .checking)
-                        .accessibilityLabel("Save key")
-                }
+                Button("Save", action: submitKey)
+                    .buttonStyle(.glassPrimary)
+                    .disabled(trimmedDraft == model.apiKey || model.cleanupKey == .checking)
+                    .accessibilityLabel("Save key")
             }
             keyMessage
         }
