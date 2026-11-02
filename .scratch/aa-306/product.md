@@ -83,11 +83,11 @@ Not in version 1, so left out: the `send` bubble for a failed spoken rewrite (vo
 
 | # | State | Trigger | Understand at a glance | Can do | Ends when | Covered | L+D | Accessibility |
 |---|---|---|---|---|---|---|---|---|
-| M1 | Ready | Permissions granted, nothing recording | Fluidity is running and ready | Click: popover | Any other state | Candidate only: `MenuBarGlyph.ready` (pill outline) in FluidWispr. No Glass atom | Yes (template image follows the menu bar) | Label "Fluidity" |
-| M2 | Recording | Key down until the paste or cancel | The mic is live because of Fluidity | Click: popover | Paste, cancel | Candidate: `MenuBarGlyph.dictating` (filled pill). No Glass atom | Yes | Label "Fluidity, listening" |
-| M3 | Mic warm | The 3 minutes after a dictation; macOS shows its orange dot | The orange dot is Fluidity keeping the mic ready, not recording | Click: popover (status row says so) | 3 minutes pass, or a new dictation (M2) | No candidate, no atom | Yes | Label "Fluidity, microphone kept ready" |
-| M4 | Cleanup off or no key | No Cerebras key; or the switch is off. Default: also key invalid and offline | Text will be pasted as the raw transcript | Click: popover, then Settings, Cleanup | Key entered and accepted, switch on, back online | No | Yes | Label "Fluidity, cleanup off" |
-| M5 | Permission missing | Microphone or Accessibility not granted | Dictation can't work fully; something needs fixing | Click: popover, status row has the fix button | Granted | Candidate: `MenuBarGlyph.microphoneProblem` (crossed-out outline), mic only. No atom | Yes | Label "Fluidity, Accessibility access is off" |
+| M1 | Ready | Permissions granted, nothing recording | Rillo is running and ready | Click: popover | Any other state | Candidate only: `MenuBarGlyph.ready` (pill outline) in FluidWispr. No Glass atom | Yes (template image follows the menu bar) | Label "Rillo" |
+| M2 | Recording | Key down until the paste or cancel | The mic is live because of Rillo | Click: popover | Paste, cancel | Candidate: `MenuBarGlyph.dictating` (filled pill). No Glass atom | Yes | Label "Rillo, listening" |
+| M3 | Mic warm | The 3 minutes after a dictation; macOS shows its orange dot | The orange dot is Rillo keeping the mic ready, not recording | Click: popover (status row says so) | 3 minutes pass, or a new dictation (M2) | No candidate, no atom | Yes | Label "Rillo, microphone kept ready" |
+| M4 | Cleanup off or no key | No Cerebras key; or the switch is off. Default: also key invalid and offline | Text will be pasted as the raw transcript | Click: popover, then Settings, Cleanup | Key entered and accepted, switch on, back online | No | Yes | Label "Rillo, cleanup off" |
+| M5 | Permission missing | Microphone or Accessibility not granted | Dictation can't work fully; something needs fixing | Click: popover, status row has the fix button | Granted | Candidate: `MenuBarGlyph.microphoneProblem` (crossed-out outline), mic only. No atom | Yes | Label "Rillo, Accessibility access is off" |
 | M6 | Transcript waiting | A pill bubble is waiting (P10, P11, P14) | Not in AA-306's list. Default: not a separate icon state; open question 7 | | | No | Yes | |
 
 Default order when several apply: M5 over M2 over M4 over M3 over M1. (M2 over M4 because recording still works with cleanup off.)
@@ -250,7 +250,7 @@ Interruptions at any step:
 1. First launch: the first-run window opens with F1. The menu bar icon is M5.
 2. He clicks "Allow microphone": macOS's own prompt. Allow: row snaps to granted (F2). Don't Allow: the row becomes R2 with "Open Microphone settings".
 3. He clicks "Open Accessibility settings": System Settings opens on Privacy & Security, Accessibility. The window shows F3 while he is away.
-4. He turns Fluidity on there and comes back: the row snaps to granted without a click (F4).
+4. He turns Rillo on there and comes back: the row snaps to granted without a click (F4).
 5. Continue: F5, the shortcut step, with the tap versus hold explanation.
 6. He presses a key: F6 (or F7 if it can't be used).
 7. Done: F8. The window closes, menu bar icon M1. The first dictation follows the flow above.
@@ -291,7 +291,7 @@ Recommended on-screen wording, one line per state (the key name comes from the s
 | Privacy line | Text goes to Cerebras's US servers, which keep nothing. |
 | Restore default | Restore default |
 | Empty history | Nothing dictated yet. Hold Right ⌥ and speak. |
-| Empty word list | Add names and terms Fluidity should get right. |
+| Empty word list | Add names and terms Rillo should get right. |
 | Duplicate word | Already in the list |
 | History row meta | Claude · 2 min ago |
 | Copied | Copied |

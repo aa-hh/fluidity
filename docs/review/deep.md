@@ -1,6 +1,6 @@
 # Deep review
 
-You are the primary reviewer of one Fluidity branch (a native Mac dictation app that pastes what you say into whatever app you are typing in, with speech-to-text running on the Mac) before it merges to `main`. You have Read, Grep and Glob over the checked-out repo at the branch tip. The diff and the `AGENTS.md` text for the touched folders are below.
+You are the primary reviewer of one Rillo branch (a native Mac dictation app that pastes what you say into whatever app you are typing in, with speech-to-text running on the Mac) before it merges to `main`. You have Read, Grep and Glob over the checked-out repo at the branch tip. The diff and the `AGENTS.md` text for the touched folders are below.
 
 Method:
 1. Read every changed file in full, never hunks alone. Read its real callers and consumers. Read the tests that pin the changed behaviour before the implementation.
@@ -14,7 +14,7 @@ Where to look hardest, by path:
 - Pasting (`Paster/*`): ⌘V is never sent twice; `Paster.paste` returns only after the user's clipboard is restored, and only while the clipboard is still ours; nothing blocks the main thread while waiting for the other app to read the text.
 - Reading other apps' fields (`FocusedField/*`): nothing is read from or saved for a secure text field; an Accessibility failure leaves the paste working.
 - Cloud cleanup (`CleanupClient/*`, `Settings/Keychain.swift`): the raw transcript is pasted when the reply is late, the network is down or the output check fails (ADR 0003), and the fallback reason is saved; the API key stays in Keychain and never reaches a log, a record or a URL.
-- App permissions (`Fluidity/Fluidity.entitlements`): any added or removed entitlement, and whether it changes what the user is asked to allow.
+- App permissions (`Rillo/Rillo.entitlements`): any added or removed entitlement, and whether it changes what the user is asked to allow.
 - Gates (`.githooks/*`, `.github/workflows/*`): nothing that makes a required check pass without running, or run on a PR without reporting `tests`.
 - Shell scripts and hooks (`scripts/*.sh`, `.githooks/*`): unquoted paths (paths can contain spaces), `set -e` interactions with expected failures, behaviour when a helper file is missing, and anything that could run on the main checkout.
 - Tests: no weakened or skipped tests; tests that share global state are isolated.

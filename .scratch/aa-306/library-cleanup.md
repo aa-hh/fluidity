@@ -1,11 +1,11 @@
 # Library clean-up log (AA-306)
 
-Figma file 5JcAX6bwl48LqQhqcUuGOJ ("Fluidity -- Design Library"). Date: 2026-10-26.
+Figma file 5JcAX6bwl48LqQhqcUuGOJ ("Rillo -- Design Library"). Date: 2026-10-26.
 
 ## Before
 
 Saved before any change:
-- get_metadata of the approved pill page 27:2: `/private/tmp/claude-501/-Users-alechenderson-Projects-Fluidity--claude-worktrees-design-discovery-v1-screens-842bfb/eea079bf-f190-4547-9b1f-a8c565dc1090/scratchpad/cleanup/pill-27-2-before.xml` (36,895 bytes).
+- get_metadata of the approved pill page 27:2: `/private/tmp/claude-501/-Users-alechenderson-Projects-Rillo--claude-worktrees-design-discovery-v1-screens-842bfb/eea079bf-f190-4547-9b1f-a8c565dc1090/scratchpad/cleanup/pill-27-2-before.xml` (36,895 bytes).
 - A fingerprint of every node on 27:2 (type, name, position, size, fills, strokes, effects, style IDs, bound variables, text segments, main component of each instance): 689 nodes, hashes adb53e1c and 2e20a01d over 799,572 characters.
 - What 27:2 uses outside the Rim collection: Type size/small and Dimension radius/container. It uses no variable from "Color (superseded by Glass)", no text style, no paint style.
 
@@ -110,10 +110,10 @@ Not bound, and why:
 
 ## 6. Verification
 
-Screenshots, looked at one by one (saved in `/private/tmp/claude-501/-Users-alechenderson-Projects-Fluidity--claude-worktrees-design-discovery-v1-screens-842bfb/eea079bf-f190-4547-9b1f-a8c565dc1090/scratchpad/cleanup/shots/`): Tokens, Atoms, Style Guide pages; discovery frames 2070:5485 (Settings General), 2064:3662 (popover with history), 2080:9163 (first-run check), 2045:312 (menu bar icon A), 2050:1911 (history row). Every colour, font and icon still renders. The Style Guide shows four panes, "Right ⌥" in the status lines and recorders, popovers without the model line, and the menu bar microphone. The Atoms icon row now has eight icons.
+Screenshots, looked at one by one (saved in `/private/tmp/claude-501/-Users-alechenderson-Projects-Rillo--claude-worktrees-design-discovery-v1-screens-842bfb/eea079bf-f190-4547-9b1f-a8c565dc1090/scratchpad/cleanup/shots/`): Tokens, Atoms, Style Guide pages; discovery frames 2070:5485 (Settings General), 2064:3662 (popover with history), 2080:9163 (first-run check), 2045:312 (menu bar icon A), 2050:1911 (history row). Every colour, font and icon still renders. The Style Guide shows four panes, "Right ⌥" in the status lines and recorders, popovers without the model line, and the menu bar microphone. The Atoms icon row now has eight icons.
 
 Pill page 27:2:
-- get_metadata after the changes is byte-for-byte identical to the copy saved before (both 36,895 bytes, SHA-1 5600f9ba690d7e7b3bee4b692a6b5cedd83e71ff). After copy: `/private/tmp/claude-501/-Users-alechenderson-Projects-Fluidity--claude-worktrees-design-discovery-v1-screens-842bfb/eea079bf-f190-4547-9b1f-a8c565dc1090/scratchpad/cleanup/pill-27-2-after.xml`.
+- get_metadata after the changes is byte-for-byte identical to the copy saved before (both 36,895 bytes, SHA-1 5600f9ba690d7e7b3bee4b692a6b5cedd83e71ff). After copy: `/private/tmp/claude-501/-Users-alechenderson-Projects-Rillo--claude-worktrees-design-discovery-v1-screens-842bfb/eea079bf-f190-4547-9b1f-a8c565dc1090/scratchpad/cleanup/pill-27-2-after.xml`.
 - The deeper fingerprint (fills, strokes, effects, bound variables, styles, text runs, main components) is unchanged: 689 nodes, hashes adb53e1c and 2e20a01d, same as before.
 
 ## After

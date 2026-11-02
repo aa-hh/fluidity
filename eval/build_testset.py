@@ -17,7 +17,7 @@ import shutil
 import sqlite3
 from pathlib import Path
 
-SEED = "fluidity-aa-284"
+SEED = "rillo-aa-284"
 LIVE_FLUIDVOICE = Path.home() / "Library/Application Support/FluidVoice/DictationAudioHistory"
 
 
@@ -92,7 +92,7 @@ def route(wispr_wavs, fluid_wavs, wispr, fluid, test_ids):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--teardown", default="/Volumes/Space/wispr-flow-teardown")
-    ap.add_argument("--out", default="/Volumes/Space/fluidity-data")
+    ap.add_argument("--out", default="/Volumes/Space/rillo-data")
     args = ap.parse_args()
     out = Path(args.out)
     (out / "test").mkdir(parents=True, exist_ok=True)

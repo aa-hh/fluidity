@@ -118,7 +118,7 @@ def review_html(rows):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--out", default="/Volumes/Space/fluidity-data")
+    ap.add_argument("--out", default="/Volumes/Space/rillo-data")
     test = Path(ap.parse_args().out) / "test"
     rows = []
     for line in (test / "clips.jsonl").open():

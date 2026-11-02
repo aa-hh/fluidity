@@ -1,10 +1,10 @@
 # Screens file relink log (AA-306)
 
-Screens file jQqsc13MjOVaVST36jaxd8. Library 5JcAX6bwl48LqQhqcUuGOJ ("Fluidity  - Design Library", library key lk-ae55a994…). Date 2026-10-26.
+Screens file jQqsc13MjOVaVST36jaxd8. Library 5JcAX6bwl48LqQhqcUuGOJ ("Rillo  - Design Library", library key lk-ae55a994…). Date 2026-10-26.
 
 ## Progress
 
-- [x] 1. Library reachable. search_design_system finds Button, Pill rim, text/primary, Glass/Body in "Fluidity  - Design Library". getAvailableLibraryVariableCollectionsAsync() in the screens file returns an empty list (library not enabled under Assets, Libraries for this file), but importComponentSetByKeyAsync, importVariableByKeyAsync and importStyleByKeyAsync all work by key (tested with Button, text/primary, Glass/Body).
+- [x] 1. Library reachable. search_design_system finds Button, Pill rim, text/primary, Glass/Body in "Rillo  - Design Library". getAvailableLibraryVariableCollectionsAsync() in the screens file returns an empty list (library not enabled under Assets, Libraries for this file), but importComponentSetByKeyAsync, importVariableByKeyAsync and importStyleByKeyAsync all work by key (tested with Button, text/primary, Glass/Body).
 - [x] 2. Key map built (below).
 - [x] 3. Before screenshots
 - [x] 4. Instance swaps
@@ -463,7 +463,7 @@ Type: S = component set, V = variant inside a set, C = component outside a set.
 
 ## 3. Before screenshots
 
-Saved in /private/tmp/claude-501/-Users-alechenderson-Projects-Fluidity--claude-worktrees-design-discovery-v1-screens-842bfb/eea079bf-f190-4547-9b1f-a8c565dc1090/scratchpad/relink/before/:
+Saved in /private/tmp/claude-501/-Users-alechenderson-Projects-Rillo--claude-worktrees-design-discovery-v1-screens-842bfb/eea079bf-f190-4547-9b1f-a8c565dc1090/scratchpad/relink/before/:
 1. 2070:5485 Settings · General · key set to Right ⌥, tap and hold in two help lines (A)
 2. 2064:3662 Popover · Ready with history
 3. 2080:9163 First-run check · A: one window · nothing granted (the brief said "nothing allowed"; the frame says "nothing granted")
@@ -548,7 +548,7 @@ Nothing needed keeping, so no "Local, to relink" section was made.
 
 ## 8. Rename and note
 
-- File rename: NOT done. figma.root.name refused with "Setting the document name is currently not supported". Alec renames it to "Fluidity -- Screens" by hand.
+- File rename: NOT done. figma.root.name refused with "Setting the document name is currently not supported". Alec renames it to "Rillo -- Screens" by hand.
 - Page 2044:237 renamed "Screens · version 1 discovery". It is the only page.
 - Note text 4021:10300 "Note · screens file", Inter Regular 16/24, 720 wide, at x 4400, y -120 (above the Screens section's left edge; the page has nothing further left).
 - Screens section 2048:1603 at x 4400, y 0, with sub-sections Recording pill 2048:1604, Menu bar icon 2048:3221, Popover 2064:3661, Settings 2070:5484, First-run check 2080:9162.

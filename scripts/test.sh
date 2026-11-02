@@ -24,7 +24,7 @@ run="$HOME/.claude/scripts/remote-run"
 [ "${CI:-}" = true ] && run=
 
 # remote-run changes to the repo root itself, so the package path is explicit.
-$run swift test --package-path FluidityCore "$@"
+$run swift test --package-path RilloCore "$@"
 
 if [ "$full" = 1 ]; then
     # Also proves the app target still compiles.

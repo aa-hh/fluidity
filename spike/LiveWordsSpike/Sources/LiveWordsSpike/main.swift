@@ -207,7 +207,7 @@ if mode == "stress" {
 if mode == "boost" {
     let before = footprintMB()
     let (ctc, ctcLoad) = try await timed { try await CtcModels.downloadAndLoad() }
-    let terms = ["Fluidity", "Parakeet", "Kubernetes", "Zendesk", "Okonkwo", "Siobhan", "Nguyen", "Figma",
+    let terms = ["Rillo", "Parakeet", "Kubernetes", "Zendesk", "Okonkwo", "Siobhan", "Nguyen", "Figma",
                  "Supabase", "PostHog", "Cloudflare", "Tailscale", "Obsidian", "Raycast", "Anthropic",
                  "SwiftUI", "Grafana", "Terraform", "Dvořák", "Mailchimp"]
     let (session, sessionInit) = try await timed {

@@ -13,5 +13,5 @@ run="$HOME/.claude/scripts/remote-run"
 
 # Runs on this Mac, not the mule: the signed .app must end up here, and
 # remote-run copies nothing back from the mule.
-AUDIOUT_REMOTE_LOCAL=1 $run xcodebuild -project Fluidity.xcodeproj -scheme Fluidity -configuration Debug -derivedDataPath .build/DerivedData -quiet build "$@"
-echo "Built .build/DerivedData/Build/Products/Debug/Fluidity.app"
+AUDIOUT_REMOTE_LOCAL=1 $run xcodebuild -project Rillo.xcodeproj -scheme Rillo -configuration Debug -derivedDataPath .build/DerivedData -quiet build "$@"
+echo "Built .build/DerivedData/Build/Products/Debug/Rillo.app"

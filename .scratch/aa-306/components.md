@@ -1,7 +1,7 @@
 # AA-306 components: composed controls for version 1
 
 Owner: `components`. Date: 2026-10-25. Figma file 5JcAX6bwl48LqQhqcUuGOJ, page "Discovery · version 1" (2044:237), section "Components" (2048:1465, at x 1600, y 0, 2408 × 16002).
-Sources: brief.md, product.md (state numbers P, M, O, S, G, C, W, R, F are product's), atoms.md and atoms' messages, Fluidity DESIGN.md "App surfaces", .impeccable/surfaces/app.md, CONTEXT.md, FluidWispr RimParameters.swift (greenHold 0.26, snapTime 0.13, failFlash 0.6, appearTime 0.18, hideTime 0.12, shortcutFlash 0.32), Figma Atoms (2007:400) and Style Guide (2008:403).
+Sources: brief.md, product.md (state numbers P, M, O, S, G, C, W, R, F are product's), atoms.md and atoms' messages, Rillo DESIGN.md "App surfaces", .impeccable/surfaces/app.md, CONTEXT.md, FluidWispr RimParameters.swift (greenHold 0.26, snapTime 0.13, failFlash 0.6, appearTime 0.18, hideTime 0.12, shortcutFlash 0.32), Figma Atoms (2007:400) and Style Guide (2008:403).
 
 Every frame below was checked with get_screenshot after its last change.
 
@@ -60,7 +60,7 @@ Paste again closes the popover so the app regains focus, so its live result is t
 Both frames include the row in a popover-width context with the status row and footer.
 
 ### Popover footer row
-Frame 2051:2493. Set 2051:2508: Default 2051:2499, Hover 2051:2502, Focused 2051:2505. Properties Label#2051:6, Shortcut#2051:7 ("Quit Fluidity", "⌘ Q").
+Frame 2051:2493. Set 2051:2508: Default 2051:2499, Hover 2051:2502, Focused 2051:2505. Properties Label#2051:6, Shortcut#2051:7 ("Quit Rillo", "⌘ Q").
 The atom's Settings and Quit rows lifted out unchanged (266 × 28 capsule). Asked for by screens.
 
 ### Sidebar status line

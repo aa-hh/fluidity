@@ -25,10 +25,10 @@
 #   --current  the checkout to protect (default: the one this runs from)
 #   --dry-run  report what would happen, touch nothing
 #
-# Env: FLUIDITY_NO_HOUSEKEEPING=1  do nothing
+# Env: RILLO_NO_HOUSEKEEPING=1  do nothing
 set -u
 
-[ "${FLUIDITY_NO_HOUSEKEEPING:-0}" = "1" ] && exit 0
+[ "${RILLO_NO_HOUSEKEEPING:-0}" = "1" ] && exit 0
 
 dry_run=0
 current=""
@@ -50,7 +50,7 @@ worktrees_dir="$primary/.claude/worktrees"
 
 # One run at a time: two builds starting together must not race to prune the
 # same worktree. shlock reclaims the lock if the recorded PID is dead.
-lock=/tmp/fluidity-housekeeping.lock
+lock=/tmp/rillo-housekeeping.lock
 if [ "$dry_run" -eq 0 ]; then
     /usr/bin/shlock -f "$lock" -p $$ || exit 0
     trap 'rm -f "$lock"' EXIT HUP INT TERM

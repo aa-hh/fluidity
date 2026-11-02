@@ -8,13 +8,13 @@ Version 1 exists partly to collect training data for retraining the speech model
 (AA-272). Google found that training on every user edit "quickly and dramatically
 degraded" its speech model; only edits filtered to likely misheard words were
 safe (AA-304, arXiv 2310.00141). The retraining code (AA-284) reads audio and
-JSONL from `/Volumes/Space/fluidity-data`, an encrypted external drive that can
+JSONL from `/Volumes/Space/rillo-data`, an encrypted external drive that can
 be unmounted or locked. Edit thresholds are untested and will change.
 
 ## Decision
 
 `DictationStore` writes one 16 kHz mono FLAC file and one JSONL line per
-dictation to `/Volumes/Space/fluidity-data`. The line holds the raw transcript,
+dictation to `/Volumes/Space/rillo-data`. The line holds the raw transcript,
 cleaned text, pasted text and final text, Parakeet word timings, the 500
 characters before and after the cursor and the selected text at paste time, the
 app, why watching stopped, timings per stage (transcription, word-list recheck,

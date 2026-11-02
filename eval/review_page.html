@@ -41,7 +41,7 @@
 <script type="application/json" id="data">/*DATA*/[]</script>
 <script>
 const rows = JSON.parse(document.getElementById("data").textContent);
-const KEY = "fluidity-test-review-v1";
+const KEY = "rillo-test-review-v1";
 let state = {};
 try { state = JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) {}
 function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
