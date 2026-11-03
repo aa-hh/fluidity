@@ -34,4 +34,5 @@ scoring. The scripts live here; the data never does.
 - `score.py` → each model's share of real words wrong.
 - `sort_corrections.py` → sorts user edits into categories, writes training rows.
 - `cloud_sync.py` → copies day-file records to D1 and recordings to R2.
+- `time_cleanup.py` → times the cleanup request on each cloud provider.
 - `test_*.py` → tests for the script of the same name.

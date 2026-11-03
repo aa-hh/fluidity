@@ -34,7 +34,7 @@ Glass windows. It holds no logic.
   feeds the pill, the menu bar item and the first-run check.
 - `Pill/` → the recording pill; see its `AGENTS.md`.
 - `Glass/` → the Glass look shared by the windows; see its `AGENTS.md`.
-- `Settings/`, `Compare/`, `Popover/`, `FirstRun/`, `Preview/` → the settings
+- `Settings/`, `History/`, `Compare/`, `Popover/`, `FirstRun/`, `Preview/` → the app
   window, the compare window, the menu bar item and popover, the first-run
   check, the sample-data preview.
 - `Rillo.entitlements` → hardened-runtime entitlements (microphone input only).

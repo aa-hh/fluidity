@@ -50,6 +50,11 @@ public final class Settings: @unchecked Sendable {
         static let microphone = "microphone"
         static let cleanupPlace = "cleanupPlace"
         static let localCleanupModel = "localCleanupModel"
+        static let saveRecordings = "saveRecordings"
+        static let keepHistory = "keepHistory"
+        static let keepRecordings = "keepRecordings"
+        static let historyExemptBefore = "historyExemptBefore"
+        static let recordingsExemptBefore = "recordingsExemptBefore"
     }
 
     private let defaults: UserDefaults
@@ -135,6 +140,29 @@ public final class Settings: @unchecked Sendable {
         get { defaults.string(forKey: Key.microphone) }
         set {
             if let newValue { defaults.set(newValue, forKey: Key.microphone) } else { defaults.removeObject(forKey: Key.microphone) }
+        }
+    }
+
+    /// Whether the History page keeps each new dictation's audio. Off by default.
+    public var saveRecordings: Bool {
+        get { defaults.bool(forKey: Key.saveRecordings) }
+        set { defaults.set(newValue, forKey: Key.saveRecordings) }
+    }
+
+    /// Unknown saved periods (from another build) read as the defaults: history Forever, recordings 30 days.
+    public var retention: RetentionRules {
+        get {
+            RetentionRules(
+                keepHistory: defaults.string(forKey: Key.keepHistory).flatMap(Retention.init(rawValue:)) ?? .forever,
+                keepRecordings: defaults.string(forKey: Key.keepRecordings).flatMap(Retention.init(rawValue:)) ?? .thirtyDays,
+                historyExemptBefore: defaults.object(forKey: Key.historyExemptBefore) as? Date,
+                recordingsExemptBefore: defaults.object(forKey: Key.recordingsExemptBefore) as? Date)
+        }
+        set {
+            defaults.set(newValue.keepHistory.rawValue, forKey: Key.keepHistory)
+            defaults.set(newValue.keepRecordings.rawValue, forKey: Key.keepRecordings)
+            defaults.set(newValue.historyExemptBefore, forKey: Key.historyExemptBefore)
+            defaults.set(newValue.recordingsExemptBefore, forKey: Key.recordingsExemptBefore)
         }
     }
 

@@ -96,7 +96,7 @@ struct PopoverView: View {
     private var emptyHistory: some View {
         VStack(alignment: .leading, spacing: 2) {
             Text("Nothing dictated yet.").font(GlassTheme.label).foregroundStyle(GlassTheme.textPrimary)
-            Text("Hold \(settings.dictationKey.description) and speak. Your last \(DictationStore.historyLimit) dictations show here.")
+            Text("Hold \(settings.dictationKey.description) and speak. Your last \(PopoverModel.shownCount) dictations show here.")
                 .font(GlassTheme.detail).foregroundStyle(GlassTheme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -128,7 +128,7 @@ struct PopoverView: View {
             }
         }
         // Five two-line rows show; the rest scroll.
-        .frame(maxHeight: 376)
+        .frame(maxHeight: 416)
         .fixedSize(horizontal: false, vertical: true)
     }
 
@@ -146,8 +146,8 @@ struct PopoverView: View {
     }
 }
 
-/// One past dictation. The whole row pastes it again; Copy is always visible, so no
-/// action needs a hover.
+/// One past dictation. A click anywhere on the row copies it, so a click never sends text into
+/// another app; Return pastes it again. The copy icon is always visible, so no action needs a hover.
 private struct HistoryRow: View {
     let record: DictationRecord
     let now: Date
@@ -160,8 +160,8 @@ private struct HistoryRow: View {
     private var text: String { record.pastedText ?? record.rawTranscript }
 
     var body: some View {
-        HStack(alignment: .center, spacing: 8) {
-            Button(action: paste) {
+        Button(action: copy) {
+            HStack(alignment: .center, spacing: 8) {
                 VStack(alignment: .leading, spacing: 2) {
                     // 13 pt on a 17 pt line: the font's own line is 16 pt.
                     Text(text)
@@ -186,20 +186,12 @@ private struct HistoryRow: View {
                         }
                     }
                     .frame(height: 16)
-                    if let note, !isCopied {
+                    if let note = record.pasteNote, !isCopied {
                         Text(note).font(GlassTheme.small).foregroundStyle(GlassTheme.textSecondary)
                             .frame(height: 14)
                     }
                 }
-                .contentShape(Rectangle())
-                .glassFocusRing(RoundedRectangle(cornerRadius: GlassTheme.innerRadius, style: .continuous))
-            }
-            .buttonStyle(.plain)
-            .help("Click to paste")
-            .accessibilityLabel("Paste again: \(text), \(meta)")
-            .accessibilityAction(named: "Copy", copy)
 
-            Button(action: copy) {
                 Group {
                     if isCopied {
                         StatusIcon(kind: .done)
@@ -210,19 +202,21 @@ private struct HistoryRow: View {
                     }
                 }
                 .frame(width: 28, height: 28)
-                .contentShape(Circle())
-                .glassFocusRing(Circle())
             }
-            .buttonStyle(.plain)
-            .accessibilityLabel(isCopied ? "Copied" : "Copy")
+            .padding(.leading, 10)
+            .padding(.trailing, 6)
+            .padding(.vertical, 12)
+            .background {
+                RoundedRectangle(cornerRadius: GlassTheme.innerRadius, style: .continuous)
+                    .fill(isFocused || isCopied ? GlassTheme.selected : isHovering ? GlassTheme.hover : .clear)
+            }
+            .contentShape(RoundedRectangle(cornerRadius: GlassTheme.innerRadius, style: .continuous))
+            .glassFocusRing(RoundedRectangle(cornerRadius: GlassTheme.innerRadius, style: .continuous))
         }
-        .padding(.leading, 10)
-        .padding(.trailing, 6)
-        .padding(.vertical, 8)
-        .background {
-            RoundedRectangle(cornerRadius: GlassTheme.innerRadius, style: .continuous)
-                .fill(isFocused || isCopied ? GlassTheme.selected : isHovering ? GlassTheme.hover : .clear)
-        }
+        .buttonStyle(.plain)
+        .help("Click to copy")
+        .accessibilityLabel(isCopied ? "Copied: \(text)" : "Copy: \(text), \(meta)")
+        .accessibilityAction(named: "Paste again", paste)
         .onHover { isHovering = $0 }
         .animation(GlassTheme.snap, value: isHovering)
     }
@@ -231,18 +225,7 @@ private struct HistoryRow: View {
     private var meta: String {
         let elapsed = now.timeIntervalSince(record.startedAt)
         let when = elapsed < 60 ? "just now" : Self.relative.localizedString(for: record.startedAt, relativeTo: now)
-        return [Self.appName(record.app), when].compactMap { $0 }.joined(separator: " · ")
-    }
-
-    private var note: String? {
-        if !record.pasteLanded { return "Not pasted" }
-        guard let reason = record.fallbackReason else { return nil }
-        let why = switch reason {
-        case .slow: "cleanup too slow"
-        case .offline: "offline"
-        case .unparseable, .cutOff, .wordsNotInTranscript, .lengthOutOfRange, .answeredInstead: "cleanup didn't pass its check"
-        }
-        return "Raw transcript · \(why)"
+        return [record.appName, when].compactMap { $0 }.joined(separator: " · ")
     }
 
     private static let relative: RelativeDateTimeFormatter = {
@@ -250,14 +233,6 @@ private struct HistoryRow: View {
         formatter.unitsStyle = .short
         return formatter
     }()
-
-    private static func appName(_ bundleID: String?) -> String? {
-        guard let bundleID, let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) else {
-            return nil
-        }
-        let name = FileManager.default.displayName(atPath: url.path(percentEncoded: false))
-        return name.hasSuffix(".app") ? String(name.dropLast(4)) : name
-    }
 }
 
 /// The design library's `Icon/Copy`: two overlapping rounded squares, drawn in a 16 pt box.

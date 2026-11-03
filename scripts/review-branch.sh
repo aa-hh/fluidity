@@ -62,6 +62,7 @@ SCORE_MODEL=haiku
 is_risk_path() {
   case "$1" in
     RilloCore/Sources/RilloCore/DictationStore/* \
+    | RilloCore/Sources/RilloCore/History/* \
     | RilloCore/Sources/RilloCore/Records/* \
     | RilloCore/Sources/RilloCore/Paster/* \
     | RilloCore/Sources/RilloCore/FocusedField/* \

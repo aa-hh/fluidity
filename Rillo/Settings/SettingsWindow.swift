@@ -1,14 +1,19 @@
 import AppKit
 import SwiftUI
 
-/// The 848 × 600 settings window. The app shell keeps one and calls `show(pane:)`.
+/// The app window: History and the settings panes. It opens at 1200 × 680 and resizes down to 1040 × 640.
+/// The app shell keeps one and calls `show(pane:)`.
 @MainActor
 final class SettingsWindow {
+    static let minimumSize = NSSize(width: 1040, height: 640)
+
     let model: SettingsModel
+    let history: HistoryModel
     private var window: NSWindow?
 
-    init(model: SettingsModel) {
+    init(model: SettingsModel, history: HistoryModel) {
         self.model = model
+        self.history = history
     }
 
     func show(pane: SettingsPane? = nil) {
@@ -28,17 +33,18 @@ final class SettingsWindow {
 
     private func makeWindow() -> NSWindow {
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 848, height: 600),
-            styleMask: [.titled, .closable, .miniaturizable, .fullSizeContentView],
+            contentRect: NSRect(x: 0, y: 0, width: 1200, height: 680),
+            styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
             backing: .buffered, defer: false)
-        window.title = "Rillo Settings"
+        window.title = "Rillo"
+        window.contentMinSize = Self.minimumSize
         window.titleVisibility = .hidden
         window.titlebarAppearsTransparent = true
         window.isOpaque = false
         window.backgroundColor = .clear
         window.isMovableByWindowBackground = true
         window.isReleasedWhenClosed = false
-        window.contentView = NSHostingView(rootView: SettingsView(model: model))
+        window.contentView = NSHostingView(rootView: SettingsView(model: model, history: history))
         window.center()
         return window
     }
@@ -46,38 +52,25 @@ final class SettingsWindow {
 
 struct SettingsView: View {
     let model: SettingsModel
+    let history: HistoryModel
 
     var body: some View {
         HStack(spacing: 0) {
             SettingsSidebar(model: model)
-            ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    Text(model.pane.title)
-                        .font(GlassTheme.title)
-                        .foregroundStyle(GlassTheme.textPrimary)
-                        .accessibilityAddTraits(.isHeader)
-                    switch model.pane {
-                    case .general: GeneralPane(model: model)
-                    case .speechModel: SpeechModelPane(model: model)
-                    case .cleanup: CleanupPane(model: model)
-                    case .words: WordsPane(model: model)
-                    case .permissions: PermissionsPane(model: model)
-                    }
+            Group {
+                if model.pane == .history {
+                    HistoryPane(model: history, settings: model)
+                } else {
+                    settingsPane
                 }
-                .padding(.leading, 20)
-                .padding(.trailing, 4)
-                .padding(.vertical, 20)
-                // A fixed width, 16 pt short of the scroll view and pinned left, so a scroll bar appearing or
-                // disappearing (Cloud's rows overflow, Local's don't) never shifts the pane sideways.
-                .frame(width: 848 - GlassTheme.sidebarWidth - 16, alignment: .leading)
-                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .scrollBounceBehavior(.basedOnSize)
             .id(model.pane)
             .transition(.opacity)
         }
         .animation(GlassTheme.snap, value: model.pane)
-        .frame(width: 848, height: 600)
+        .frame(
+            minWidth: SettingsWindow.minimumSize.width, maxWidth: .infinity,
+            minHeight: SettingsWindow.minimumSize.height, maxHeight: .infinity)
         .glassShell(isLive: model.isMicLive)
         .focusEffectDisabled()
         .ignoresSafeArea()
@@ -86,9 +79,47 @@ struct SettingsView: View {
             if old == .speechModel { model.onClearReadyModel() }
         }
     }
+
+    private var settingsPane: some View {
+        GeometryReader { geometry in
+            ScrollViewReader { scroller in
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 16) {
+                        Text(model.pane.title)
+                            .font(GlassTheme.title)
+                            .foregroundStyle(GlassTheme.textPrimary)
+                            .accessibilityAddTraits(.isHeader)
+                        switch model.pane {
+                        case .history: EmptyView()
+                        case .general: GeneralPane(model: model)
+                        case .speechModel: SpeechModelPane(model: model)
+                        case .cleanup: CleanupPane(model: model)
+                        case .words: WordsPane(model: model)
+                        case .permissions: PermissionsPane(model: model)
+                        }
+                    }
+                    .padding(.leading, 20)
+                    .padding(.trailing, 4)
+                    .padding(.vertical, 20)
+                    // A fixed width, 16 pt short of the scroll view and pinned left, so a scroll bar appearing or
+                    // disappearing (Cloud's rows overflow, Local's don't) never shifts the pane sideways.
+                    .frame(width: max(0, geometry.size.width - 16), alignment: .leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .scrollBounceBehavior(.basedOnSize)
+                .task(id: model.revealsHistorySettings) {
+                    guard model.revealsHistorySettings else { return }
+                    // One layout pass first, so the group has a place to scroll to.
+                    await Task.yield()
+                    withAnimation(GlassTheme.snap) { scroller.scrollTo(GeneralPane.historyGroupID, anchor: .top) }
+                    model.revealsHistorySettings = false
+                }
+            }
+        }
+    }
 }
 
-/// The sidebar: five panes 2 pt apart under the window controls, the status line at its foot.
+/// The sidebar: History and five panes 2 pt apart under the window controls, the status line at its foot.
 private struct SettingsSidebar: View {
     let model: SettingsModel
 
