@@ -342,7 +342,8 @@ Depth comes from one translucent shell and the lit top edge.
 - **History rows** (`app-history-row`): 10 pt corners.
 - **Keycaps and the cleanup rules editor** (`app-inner`, `GlassTheme.innerRadius`): 8 pt corners.
 - **Circles:** status dots (8 pt), status icons (20 pt), the shortcut recorder's clear button (18 pt) and the key field's eye button (20 pt).
-- **Menu bar icon:** an 18 × 18 pt template image (macOS tints it for the menu bar) holding a 16 × 9 pt pill outline drawn at 1.5 pt.
+- **Menu bar icon:** a 28 × 18 pt template image (macOS tints it for the menu bar): an 18 × 6 pt pill outline at 1 pt with a 2 pt line through it that fades to 15% past both ends. It is the Rillo logo's menu bar mark (website repo, `brand/menubar/`).
+- **App icon:** `Rillo/Assets.xcassets/AppIcon.appiconset`, copied from the website repo's `brand/icon/Rillo.iconset`. Change it there and copy it again; never edit it here.
 
 ## Components
 
@@ -439,7 +440,8 @@ Each control is drawn by the app in Glass colours and reports to VoiceOver as th
 - The panel closes at once, with no animation.
 
 #### Menu bar icon
-- An 18 × 18 pt template image: a 16 × 9 pt pill outline at 1.5 pt with round caps. Ready: the outline alone. Recording: the pill filled. Cleanup off: a 6.5 pt dot at the lower right with 1.25 pt of clear space around it. Permission missing: a diagonal slash with 1.25 pt of clear space on each side.
+- A 28 × 18 pt template image, every edge on a whole point: an 18 × 6 pt pill outline at 1 pt, and a 2 pt line through its middle from 1 pt to 27 pt that is full strength along the pill and fades to 15% at both edges. Ready: the outline and line. Recording: the pill filled, the line still showing past its ends. Cleanup off: a 6.5 pt dot over the pill's lower right end with 1.25 pt of clear space around it. Permission missing: a diagonal slash through the pill's centre with 1.25 pt of clear space on each side.
+- The status item sizes itself to the image, so the icon is wider than the square system icons.
 - Each state has its own VoiceOver description, such as "Rillo, listening".
 
 #### Settings window
