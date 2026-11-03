@@ -212,22 +212,19 @@ struct CleanupPane: View {
                     Text("\(SpeechModelPane.megabytes(done, unit: false)) of \(SpeechModelPane.megabytes(total))")
                         .font(GlassTheme.small).foregroundStyle(GlassTheme.textSecondary).lineLimit(1)
                         .accessibilityLabel("Downloading, \(total > 0 ? Int(Double(done) / Double(total) * 100) : 0) percent")
-                    Button("Cancel") {
+                    SymbolButton(symbol: "xmark.circle", label: "Cancel download of \(entry.name)", tooltip: "Cancel Download") {
                         model.onCancelCleanupDownload(entry.id)
                         focusedModel = entry.id
                     }
-                    .buttonStyle(.glassSecondary)
                     .focused($focusedModel, equals: entry.id)
-                    .accessibilityLabel("Cancel download of \(entry.name)")
                 }
             } else {
-                Button("Download") {
+                SymbolButton(symbol: "arrow.down.circle", label: "Download \(entry.name), \(sizeText(entry))",
+                             tooltip: "Download (\(sizeText(entry)))") {
                     model.onDownloadCleanupModel(entry.id)
                     focusedModel = entry.id
                 }
-                .buttonStyle(.glassSecondary)
                 .focused($focusedModel, equals: entry.id)
-                .accessibilityLabel("Download \(entry.name)")
             }
         }
     }

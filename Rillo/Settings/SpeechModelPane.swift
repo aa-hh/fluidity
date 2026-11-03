@@ -570,7 +570,7 @@ struct ProgressTrack: View {
 }
 
 /// A 28 pt circle button holding one SF Symbol, with a spoken label and a hover tooltip.
-private struct SymbolButton: View {
+struct SymbolButton: View {
     let symbol: String
     let label: String
     let tooltip: String
