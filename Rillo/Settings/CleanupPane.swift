@@ -53,7 +53,7 @@ struct CleanupPane: View {
             Group {
                 if shownPlace == .local {
                     localModels
-                    infoLine("This model learned its cleanup style from examples, so it has no rules to edit. It still uses your word list.")
+                    infoLine("Local models learned their cleanup style from examples, so they have no rules to edit.")
                     infoLine("Text stays on this Mac. Your Cerebras key stays saved for when you switch back.")
                 } else {
                     infoLine("Text goes to Cerebras's US servers, which keep nothing.")
