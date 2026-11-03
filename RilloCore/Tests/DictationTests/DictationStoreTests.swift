@@ -285,16 +285,22 @@ func shortAudioIsPaddedToAReadableFLAC(sampleCount: Int) async throws {
     #expect(folders.names(in: folders.recordings).isEmpty)
 }
 
-// Turns red if a history file that does not read is overwritten by the next save instead of moved aside.
-@Test func anUnreadableHistoryFileIsKeptAside() async throws {
+// Turns red if a history file that does not decode, or cannot be opened at all, is overwritten by the next
+// save instead of moved aside.
+@Test(arguments: [false, true])
+func anUnreadableHistoryFileIsKeptAside(unopenable: Bool) async throws {
     let folders = Folders()
     try FileManager.default.createDirectory(at: folders.base, withIntermediateDirectories: true)
-    try Data("not json".utf8).write(to: folders.base.appending(path: "history.json"))
+    let file = folders.base.appending(path: "history.json")
+    try Data("not json".utf8).write(to: file)
+    if unopenable { try FileManager.default.setAttributes([.posixPermissions: 0o200], ofItemAtPath: file.path) }
+    defer { try? FileManager.default.setAttributes([.posixPermissions: 0o644], ofItemAtPath: file.path) }
     let history = HistoryStore(folder: folders.base)
 
     try await history.add(record(), audio: nil)
 
     let aside = try #require(folders.names(in: folders.base).first { $0.hasPrefix("history-unreadable-") })
+    try FileManager.default.setAttributes([.posixPermissions: 0o644], ofItemAtPath: folders.base.appending(path: aside).path)
     #expect(try String(contentsOf: folders.base.appending(path: aside), encoding: .utf8) == "not json")
     #expect(await HistoryStore(folder: folders.base).items().count == 1)
 }
@@ -340,10 +346,10 @@ func shortAudioIsPaddedToAReadableFLAC(sampleCount: Int) async throws {
     let now = startedAt.addingTimeInterval(40 * 86_400)
     try await history.add(record(0), audio: nil)
 
-    #expect(try await history.changeRetention(RetentionRules(), .history, to: .month, keepOlder: nil, now: now) == .ask(count: 1))
-    #expect(try await history.changeRetention(RetentionRules(), .history, to: .year, keepOlder: nil, now: now)
+    #expect(await history.changeRetention(RetentionRules(), .history, to: .month, keepOlder: nil, now: now) == .ask(count: 1))
+    #expect(await history.changeRetention(RetentionRules(), .history, to: .year, keepOlder: nil, now: now)
         == .applied(RetentionRules().keepingHistory(for: .year, now: now, keepOlder: true)))
-    let deleted = try await history.changeRetention(RetentionRules(), .history, to: .month, keepOlder: false, now: now)
+    let deleted = await history.changeRetention(RetentionRules(), .history, to: .month, keepOlder: false, now: now)
     #expect(deleted == .applied(RetentionRules().keepingHistory(for: .month, now: now, keepOlder: false)))
     #expect(await history.items().isEmpty)
 }

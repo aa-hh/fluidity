@@ -94,7 +94,8 @@ final class HistoryPlayer {
         }
         time = player.currentTime
         let heard = timeline.word(at: time)
-        if heard != heardWord { heardWord = heard }
+        // Paused at the start, nothing is being heard.
+        if heard != heardWord { heardWord = isPlaying || time > 0 ? heard : nil }
     }
 
     nonisolated private static func levels(of url: URL, count: Int) -> [Float] {

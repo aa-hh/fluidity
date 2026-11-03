@@ -119,14 +119,15 @@ public actor HistoryStore {
     /// Newest first.
     public func items() -> [HistoryItem] {
         if let loaded { return loaded }
-        guard let data = try? Data(contentsOf: historyURL) else {
+        guard files.fileExists(atPath: historyURL.path) else {
             loaded = []
             return []
         }
-        let read = try? decoder.decode([HistoryItem].self, from: data)
+        let read = (try? Data(contentsOf: historyURL)).flatMap { try? decoder.decode([HistoryItem].self, from: $0) }
         unreadable = read == nil
-        loaded = read ?? []
-        return loaded ?? []
+        let items = read ?? []
+        loaded = items
+        return items
     }
 
     /// Adds a dictation, with its recording when `audio` is given. A recording that fails to write leaves the text saved.
@@ -199,16 +200,17 @@ public actor HistoryStore {
     }
 
     /// Applies `period` and purges, unless it is shorter and leaves items already past it while the user has not yet
-    /// answered whether to keep them (`keepOlder` nil): then it reports how many, for the caller to ask.
+    /// answered whether to keep them (`keepOlder` nil): then it reports how many, for the caller to ask. A purge that
+    /// cannot write still applies the period; the next purge tries again.
     public func changeRetention(
         _ rules: RetentionRules, _ kind: RetentionKind, to period: Retention, keepOlder: Bool?, now: Date
-    ) throws -> RetentionChange {
+    ) -> RetentionChange {
         if keepOlder == nil, rules.period(kind).isLonger(than: period), let cutoff = period.cutoff(now: now) {
             let older = kind == .history ? count(olderThan: cutoff) : recordingCount(olderThan: cutoff)
             if older > 0 { return .ask(count: older) }
         }
         let changed = rules.keeping(kind, for: period, now: now, keepOlder: keepOlder ?? true)
-        try purge(changed, now: now)
+        try? purge(changed, now: now)
         return .applied(changed)
     }
 

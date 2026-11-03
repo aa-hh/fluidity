@@ -339,8 +339,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Saves a new period, or asks through `retentionQuestion` whether to keep what a shorter one leaves past it;
     /// the answer comes back here as `keepOlder`.
     private func changeRetention(_ kind: RetentionKind, to period: Retention, keepOlder: Bool?) async {
-        let change = try? await store.history.changeRetention(settings.retention, kind, to: period, keepOlder: keepOlder, now: .now)
-        switch change {
+        switch await store.history.changeRetention(settings.retention, kind, to: period, keepOlder: keepOlder, now: .now) {
         case .ask(let count):
             settingsModel.retentionQuestion = RetentionQuestion(kind: kind, period: period, count: count)
         case .applied(let rules):
@@ -348,8 +347,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             settingsModel.keepHistory = rules.keepHistory
             settingsModel.keepRecordings = rules.keepRecordings
             await reloadRecords()
-        case nil:
-            break
         }
     }
 
