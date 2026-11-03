@@ -21,8 +21,9 @@ skipped by the caller.
   one over the drive's.
 - **Keep the file names as the recordings already on the drive are:** the
   training scripts read the clip id as the uppercase text after the last `_`.
-- **The history file only feeds the popover.** A failure writing it never
-  fails a save, so the caller never saves a dictation twice.
+- **History belongs to `HistoryStore`.** A failure there never fails a save,
+  so the caller never saves a dictation twice. Recordings kept for the History
+  page go there, never into these training folders.
 
 ## Map
 

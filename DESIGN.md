@@ -48,6 +48,8 @@ colors:
   app-state-attention-dark: "#FFB020"
   app-state-destructive-light: "#C83230"
   app-state-destructive-dark: "#FF6B66"
+  app-change-added-light: "#146E40"
+  app-change-added-dark: "#3EDC8A"
   app-live-light: "#FFE4B8"
   app-live-dark: "#FFE4B8"
   app-control-knob-light: "#FFFFFF"
@@ -205,8 +207,8 @@ components:
     backgroundColor: "{colors.app-window-light}"
     textColor: "{colors.app-text-primary-light}"
     rounded: "{rounded.app-window}"
-    width: "848px"
-    height: "600px"
+    width: "1200px"
+    height: "680px"
   first-run-window:
     backgroundColor: "{colors.app-window-light}"
     textColor: "{colors.app-text-primary-light}"
@@ -265,6 +267,7 @@ Light and Dark are equals, so every role has a `-light` and a `-dark` key, named
 - **Primary action** (`app-action-primary`, `app-action-on-primary`): the one filled button (Continue and Done on the first-run window) and the toggle's on track; near-black in Light, ivory-white in Dark.
 - **Live** (`app-live`): the pill's warm ivory, and the only "live" light in the app: the listening status dot and the live lit top edge. The code holds one value (`GlassTheme.live`) for both appearances; the two keys carry the same hex.
 - **States** (`app-state-done`, `app-state-attention`, `app-state-destructive`): the Dark done and attention values are the pill's mint and amber; the Light values are darker versions of the same hues. Destructive red marks field errors.
+- **Changes** (`app-change-added`, with `app-state-destructive` for removals): the History page's marks for words cleanup added or rewrote, green and underlined, and removed, red and struck through, each on an 8% (Light) or 12% (Dark) tint of its own colour. `app-state-done-light` is too low for text, so Light green is darker: 5.56:1 on its tint.
 - **Controls** (`app-control-knob`, `app-focus-ring`): the toggle knob when off, and the focus ring (near-black in Light, ivory in Dark).
 
 Every text pair passes 4.5:1 over the blurred desktop in both appearances. The lowest Light pair is secondary text on the sidebar, 4.68:1 (5.04:1 on the window); the lowest Dark pair is 7.27:1. `app-state-done-light` reaches only 4.11:1 on the window, so it colours icons and never text.
@@ -301,7 +304,7 @@ SF Pro Rounded for anything you click or scan, matching the capsule controls; SF
 - **Scaling rule:** distances copied from the Dynamic Island are in island points and scale by the pill's height ÷ 36.67 (the island's resting height). The retry gap, the shake distance and the merge blur all follow it.
 
 ### App surfaces
-- **Settings window:** 848 × 600 pt. The sidebar (`app-size-sidebar`, `GlassTheme.sidebarWidth`) has 12 pt padding at the sides and bottom and 52 pt at the top, which leaves room for the system window buttons. Five panes sit 2 pt apart (General, Speech model, Cleanup, Words, Permissions), each a 28 pt capsule with a 16 pt SF Symbol (`gearshape`, `mic`, `sparkles`, `book`, `lock`), an 8 pt gap and 8 pt side padding. At its foot, the status line: an 8 pt status dot, the short status in `app-label`, then the dictation key's name in `app-small` secondary text at the right, 8 pt gaps and side padding; it becomes a button with a hover capsule when a fix exists. The content pane has 20 pt padding and 16 pt between the title and each group. Switching panes is a 130 ms cross-fade; Command-1 to 5 and the up and down arrows change pane.
+- **App window:** opens at 1200 × 680 pt and resizes down to 1040 × 640 pt. The sidebar (`app-size-sidebar`, `GlassTheme.sidebarWidth`) has 12 pt padding at the sides and bottom and 52 pt at the top, which leaves room for the system window buttons. Six items sit 2 pt apart (History, General, Speech model, Cleanup, Words, Permissions), each a 28 pt capsule with a 16 pt SF Symbol (`clock.arrow.circlepath`, `gearshape`, `mic`, `sparkles`, `book`, `lock`), an 8 pt gap and 8 pt side padding. At its foot, the status line: an 8 pt status dot, the short status in `app-label`, then the dictation key's name in `app-small` secondary text at the right, 8 pt gaps and side padding; it becomes a button with a hover capsule when a fix exists. The content pane has 20 pt padding and 16 pt between the title and each group. Switching panes is a 130 ms cross-fade; Command-1 to 6 and the up and down arrows change pane.
 - **Groups:** a section header (title, then description 2 pt below, both inset 4 pt), then a raised panel 8 pt below holding the rows. The Cleanup pane has no section header.
 - **Rows:** at least 44 pt tall (`app-size-row-min`, `GlassTheme.rowMinHeight`), 8 pt top and bottom and 12 pt side padding, 12 pt between the text and the control at the right end, a 1 pt rule between rows. Title and detail sit 2 pt apart. A row may carry a 20 pt leading status icon 12 pt before the text, and an error line between the title and detail.
 - **Controls:** 28 pt tall (`app-size-control-m`, `GlassTheme.controlHeight`); toggles 38 × 22 pt; the General pane's rows are Dictation key, Paste last transcript, Microphone, Live words and Launch at login, followed by the Speech to text section (tiles and preview panel, below). The settings panes have no filled button; the only primary buttons are Continue and Done on the first-run window.

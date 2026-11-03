@@ -2,6 +2,9 @@ import RilloCore
 import SwiftUI
 
 struct GeneralPane: View {
+    /// The History group, which the History page scrolls to.
+    static let historyGroupID = "history"
+
     let model: SettingsModel
 
     var body: some View {
@@ -73,6 +76,8 @@ struct GeneralPane: View {
                 // The preview sets the row's height; the Cleanup tile stretches to meet it.
                 .fixedSize(horizontal: false, vertical: true)
             }
+            HistoryGroup(model: model)
+                .id(Self.historyGroupID)
         }
     }
 
@@ -161,5 +166,155 @@ private struct CleanupTile: View {
             .padding(12)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
+    }
+}
+
+/// What Rillo keeps for the History page: how long, whether recordings are saved, and the space it takes.
+private struct HistoryGroup: View {
+    let model: SettingsModel
+    @State private var confirmsDeleteRecordings = false
+    @State private var confirmsDeleteAll = false
+
+    var body: some View {
+        let usage = model.historyUsage
+        VStack(alignment: .leading, spacing: 8) {
+            SectionHeader(title: "History", description: "What Rillo keeps on this Mac for the History page.")
+            GlassPanel {
+                GlassRow(title: "Keep history", detail: keepHistoryDetail(usage)) {
+                    RetentionMenu(label: "Keep history", choices: Retention.historyChoices, selection: model.keepHistory,
+                                  limit: nil) { model.changeRetention(.history, to: $0) }
+                }
+                GlassRule()
+                GlassRow(title: "Save recordings", detail: "Keeps the sound of each dictation so you can play it back.") {
+                    Toggle("Save recordings", isOn: Binding(get: { model.saveRecordings }, set: { model.changeSaveRecordings($0) }))
+                        .toggleStyle(GlassToggleStyle())
+                        .labelsHidden()
+                }
+                GlassRule()
+                GlassRow(title: "Keep recordings", detail: keepRecordingsDetail(usage)) {
+                    RetentionMenu(label: "Keep recordings", choices: Retention.recordingChoices, selection: model.keepRecordings,
+                                  limit: model.keepHistory) { model.changeRetention(.recordings, to: $0) }
+                        .disabled(!model.saveRecordings)
+                }
+                GlassRule()
+                GlassRow(title: "Space used", detail: spaceUsed(usage)) {
+                    HStack(spacing: 8) {
+                        Button("Delete Recordings…") { confirmsDeleteRecordings = true }
+                            .buttonStyle(.glassSecondary)
+                            .disabled(usage.recordingCount == 0)
+                        Button("Delete All History…") { confirmsDeleteAll = true }
+                            .buttonStyle(.glassSecondary)
+                            .disabled(usage.dictationCount == 0)
+                    }
+                }
+            }
+        }
+        // Only the buttons answer: the binding may be cleared before a button's action runs.
+        .alert(retentionTitle, isPresented: Binding(get: { model.retentionQuestion != nil }, set: { _ in })) {
+            Button("Delete \(model.retentionQuestion?.count.formatted() ?? "")", role: .destructive) {
+                model.answerRetentionQuestion(keepOlder: false)
+            }
+            Button("Keep", role: .cancel) { model.answerRetentionQuestion(keepOlder: true) }
+                .keyboardShortcut(.defaultAction)
+        } message: {
+            Text("Keep them, or delete them now? The new setting applies to \(model.retentionQuestion?.kind == .recordings ? "recordings" : "dictations") from now on.")
+        }
+        .alert("Delete all \(usage.recordingCount.formatted()) \(usage.recordingCount == 1 ? "recording" : "recordings")?",
+               isPresented: $confirmsDeleteRecordings) {
+            Button("Delete", role: .destructive) { model.onDeleteRecordings() }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This frees \(Self.bytes(usage.recordingBytes)). The dictations' text stays.")
+        }
+        .alert("Delete all \(usage.dictationCount.formatted()) \(usage.dictationCount == 1 ? "dictation" : "dictations")?",
+               isPresented: $confirmsDeleteAll) {
+            Button("Delete All", role: .destructive) { model.onDeleteAllHistory() }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text(deleteAllMessage(usage))
+        }
+    }
+
+    /// "900 dictations are older than 3 months".
+    private var retentionTitle: String {
+        guard let question = model.retentionQuestion else { return "" }
+        let noun = question.kind == .history ? "dictation" : "recording"
+        let count = question.count
+        return "\(count.formatted()) \(noun)\(count == 1 ? " is" : "s are") older than \(question.period.title.lowercased())"
+    }
+
+    private func keepHistoryDetail(_ usage: HistoryUsage) -> String {
+        let base = "Raw transcript and pasted text of each dictation."
+        guard let perYear = Self.perYear(usage.textBytes, count: usage.dictationCount, usage) else { return base }
+        return "\(base) About \(Self.bytes(perYear)) a year at your pace."
+    }
+
+    private func keepRecordingsDetail(_ usage: HistoryUsage) -> String {
+        guard model.saveRecordings else {
+            let note = "Turn on Save recordings to choose."
+            guard usage.recordingCount > 0, model.keepRecordings != .forever else { return note }
+            return "\(note) Saved ones are still deleted at \(model.keepRecordings.title.lowercased())."
+        }
+        guard usage.recordingCount > 0 else { return "How long each recording stays on this Mac." }
+        let each = "About \(Self.bytes(usage.recordingBytes / usage.recordingCount)) each."
+        guard let perYear = Self.perYear(usage.recordingBytes, count: usage.recordingCount, usage) else { return each }
+        return "\(each) Forever uses about \(Self.bytes(perYear)) a year at your pace."
+    }
+
+    private func spaceUsed(_ usage: HistoryUsage) -> String {
+        let text = "Text \(Self.bytes(usage.textBytes))"
+        return usage.recordingCount > 0 ? "\(text), recordings \(Self.bytes(usage.recordingBytes))." : "\(text)."
+    }
+
+    private func deleteAllMessage(_ usage: HistoryUsage) -> String {
+        let what = usage.recordingBytes > 0
+            ? "Their text and \(Self.bytes(usage.recordingBytes)) of recordings are deleted from this Mac."
+            : "Their text is deleted from this Mac."
+        let shared = model.isContributor ? " Dictations you've already shared for training aren't affected." : ""
+        return "\(what) This can't be undone.\(shared)"
+    }
+
+    /// Bytes a year of `bytes` spread over `count` items, at the user's dictations a year.
+    private static func perYear(_ bytes: Int, count: Int, _ usage: HistoryUsage) -> Int? {
+        guard count > 0, let pace = usage.dictationsPerYear else { return nil }
+        return Int(Double(bytes) / Double(count) * pace)
+    }
+
+    private static func bytes(_ count: Int) -> String {
+        count.formatted(.byteCount(style: .file))
+    }
+}
+
+/// A pop-up of retention periods. Periods longer than `limit` are greyed under a "Longer than Keep history" heading.
+private struct RetentionMenu: View {
+    let label: String
+    let choices: [Retention]
+    let selection: Retention
+    let limit: Retention?
+    let choose: (Retention) -> Void
+
+    var body: some View {
+        let tooLong = choices.filter { limit.map($0.isLonger) ?? false }
+        Menu {
+            if !tooLong.isEmpty {
+                Section("Longer than Keep history") {
+                    ForEach(tooLong, id: \.self) { Button($0.title) {}.disabled(true) }
+                }
+            }
+            ForEach(choices.filter { !tooLong.contains($0) }, id: \.self) { choice in
+                Toggle(choice.title, isOn: Binding(get: { selection == choice }, set: { if $0 { choose(choice) } }))
+            }
+        } label: {
+            HStack(spacing: 8) {
+                Text(selection.title)
+                Image(systemName: "chevron.up.chevron.down").font(.system(size: 10, weight: .semibold))
+            }
+        }
+        .menuIndicator(.hidden)
+        .menuStyle(.button)
+        .buttonStyle(.glassSecondary)
+        .fixedSize()
+        .accessibilityLabel(label)
+        .accessibilityValue(selection.title)
     }
 }

@@ -4,11 +4,12 @@ import Observation
 import SwiftUI
 
 enum SettingsPane: String, CaseIterable, Identifiable {
-    case general, speechModel, cleanup, words, permissions
+    case history, general, speechModel, cleanup, words, permissions
 
     var id: Self { self }
     var title: String {
         switch self {
+        case .history: "History"
         case .general: "General"
         case .speechModel: "Speech model"
         case .cleanup: "Cleanup"
@@ -18,6 +19,7 @@ enum SettingsPane: String, CaseIterable, Identifiable {
     }
     var symbol: String {
         switch self {
+        case .history: "clock.arrow.circlepath"
         case .general: "gearshape"
         case .speechModel: "mic"
         case .cleanup: "sparkles"
@@ -43,6 +45,13 @@ struct ShortcutProblem: Equatable {
     }
 }
 
+/// A shortened period that leaves dictations or recordings already past it; a sheet asks whether to keep them.
+struct RetentionQuestion: Equatable {
+    let kind: RetentionKind
+    let period: Retention
+    let count: Int
+}
+
 /// What the settings window, the popover's status row and the first-run check show.
 /// The app shell writes the state properties; the windows call the `on…` closures for
 /// the user's changes. Views hold no logic beyond this.
@@ -59,6 +68,8 @@ final class SettingsModel {
     var isMicLive: Bool { menuBarState == .recording }
 
     var pane: SettingsPane = .general
+    /// Set to scroll the General pane to its History group; the pane clears it.
+    var revealsHistorySettings = false
 
     // MARK: General
 
@@ -76,6 +87,16 @@ final class SettingsModel {
     var chosenMicrophoneName: String {
         microphones.first { $0.uid == chosenMicrophone }?.name ?? "Automatic"
     }
+
+    // MARK: History
+
+    var keepHistory: Retention = .forever
+    var saveRecordings = false
+    var keepRecordings: Retention = .thirtyDays
+    var historyUsage = HistoryUsage()
+    /// Shown in the Delete All sheet: dictations already shared for training aren't affected.
+    var isContributor = false
+    var retentionQuestion: RetentionQuestion?
 
     // MARK: Cleanup
 
@@ -123,6 +144,12 @@ final class SettingsModel {
     var onLaunchAtLoginChange: (Bool) -> Void = { _ in }
     var onLiveWordsChange: (LiveWords) -> Void = { _ in }
     var onMicrophoneChange: (String?) -> Void = { _ in }
+    var onSaveRecordingsChange: (Bool) -> Void = { _ in }
+    /// The user picked a period. `keepOlder` is nil until the user has answered whether to keep what is already
+    /// past a shorter one; the shell asks by setting `retentionQuestion` when there is any.
+    var onRetentionChange: (RetentionKind, Retention, _ keepOlder: Bool?) -> Void = { _, _, _ in }
+    var onDeleteRecordings: () -> Void = {}
+    var onDeleteAllHistory: () -> Void = {}
     var onCleanupEnabledChange: (Bool) -> Void = { _ in }
     var onCleanupPlaceChange: (CleanupPlace) -> Void = { _ in }
     /// The user entered a key; the shell saves it and marks any saved key `.accepted` without checking it.
@@ -173,6 +200,26 @@ final class SettingsModel {
     func changeMicrophone(_ uid: String?) {
         chosenMicrophone = uid
         onMicrophoneChange(uid)
+    }
+
+    func showHistorySettings() {
+        pane = .general
+        revealsHistorySettings = true
+    }
+
+    func changeSaveRecordings(_ on: Bool) {
+        saveRecordings = on
+        onSaveRecordingsChange(on)
+    }
+
+    func changeRetention(_ kind: RetentionKind, to period: Retention) {
+        onRetentionChange(kind, period, nil)
+    }
+
+    func answerRetentionQuestion(keepOlder: Bool) {
+        guard let question = retentionQuestion else { return }
+        retentionQuestion = nil
+        onRetentionChange(question.kind, question.period, keepOlder)
     }
 
     func changeSpeechModel(_ id: SpeechModelID) {

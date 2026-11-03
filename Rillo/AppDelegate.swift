@@ -36,8 +36,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private let settingsModel: SettingsModel
     private let popoverModel = PopoverModel()
+    private let historyModel = HistoryModel()
     private let firstRunModel = FirstRunModel()
-    private lazy var settingsWindow = SettingsWindow(model: settingsModel)
+    private lazy var settingsWindow = SettingsWindow(model: settingsModel, history: historyModel)
     private var firstRunWindow: FirstRunWindow?
     private var menuBarItem: MenuBarItem?
 
@@ -97,7 +98,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             finisher: FinisherAdapter(wordList: { settings.wordList }),
             paster: paste,
             watcher: EditWatchAdapter(watcher: EditWatcher(), context: { field.lastRead }),
-            store: StoreAdapter(store: store, didChange: { storeChanged.yield() }),
+            store: StoreAdapter(store: store, saveRecordings: { settings.saveRecordings }, didChange: { storeChanged.yield() }),
             permissions: permissions,
             wordListVersion: { settings.wordListVersion }
         )
@@ -123,6 +124,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         wirePill()
         wireSettings()
         wirePopover()
+        wireHistory()
         refreshSettingsModel()
         devices.watch { [unowned self] in refreshMicrophones() }
         menuBarItem = MenuBarItem(model: popoverModel, settings: settingsModel) { [unowned self] in
@@ -131,6 +133,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         Task { await self.store.watchMounts() }
+        Task {
+            // Retention runs at launch and once a day after.
+            while !Task.isCancelled {
+                try? await self.store.history.purge(self.settings.retention, now: .now)
+                await self.reloadRecords()
+                try? await Task.sleep(for: .seconds(24 * 60 * 60))
+            }
+        }
         Task { await self.loadModel() }
         Task { await self.askForPermissions() }
         Task {
@@ -295,6 +305,51 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    private func wireHistory() {
+        let history = store.history, settings = settings
+        historyModel.recordingURL = { history.recordingURL(for: $0) }
+        historyModel.onDelete = { [unowned self] id in
+            Task {
+                try? await history.delete([id])
+                await reloadRecords()
+            }
+        }
+        settingsModel.onSaveRecordingsChange = { [unowned self] on in
+            // Turning recordings off leaves the saved ones to run out at their Keep recordings period.
+            settings.saveRecordings = on
+            historyModel.saveRecordings = on
+        }
+        settingsModel.onRetentionChange = { [unowned self] kind, period, keepOlder in
+            Task { await changeRetention(kind, to: period, keepOlder: keepOlder) }
+        }
+        settingsModel.onDeleteRecordings = { [unowned self] in
+            Task {
+                try? await history.deleteRecordings()
+                await reloadRecords()
+            }
+        }
+        settingsModel.onDeleteAllHistory = { [unowned self] in
+            Task {
+                try? await history.deleteAll()
+                await reloadRecords()
+            }
+        }
+    }
+
+    /// Saves a new period, or asks through `retentionQuestion` whether to keep what a shorter one leaves past it;
+    /// the answer comes back here as `keepOlder`.
+    private func changeRetention(_ kind: RetentionKind, to period: Retention, keepOlder: Bool?) async {
+        switch await store.history.changeRetention(settings.retention, kind, to: period, keepOlder: keepOlder, now: .now) {
+        case .ask(let count):
+            settingsModel.retentionQuestion = RetentionQuestion(kind: kind, period: period, count: count)
+        case .applied(let rules):
+            settings.retention = rules
+            settingsModel.keepHistory = rules.keepHistory
+            settingsModel.keepRecordings = rules.keepRecordings
+            await reloadRecords()
+        }
+    }
+
     /// Copies `Settings`, the keychain, launch at login, the microphones and the permissions into the windows' model.
     private func refreshSettingsModel() {
         let model = settingsModel
@@ -305,6 +360,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         model.cleanupRules = settings.cleanupRules
         model.wordList = settings.wordList
         model.speechModel = settings.speechModel
+        model.saveRecordings = settings.saveRecordings
+        historyModel.saveRecordings = settings.saveRecordings
+        model.keepHistory = settings.retention.keepHistory
+        model.keepRecordings = settings.retention.keepRecordings
+        // razor: no Contributor opt-in exists yet (AA-287); a Mac keeping training data on the Space drive counts.
+        model.isContributor = FileManager.default.fileExists(atPath: DictationStore.defaultDriveRoot.path)
         let key = try? keychain.get()
         model.apiKey = key ?? ""
         model.cleanupKey = key == nil ? .noKey : .accepted
@@ -336,7 +397,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func reloadRecords() async {
-        popoverModel.records = await store.recent()
+        let items = await store.history.items()
+        popoverModel.records = items.prefix(PopoverModel.shownCount).map(\.record)
+        historyModel.items = items
+        settingsModel.historyUsage = await store.history.usage()
     }
 
     // MARK: Launch
@@ -473,7 +537,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func pasteLastDictation() {
         if PillPresenter.shared.retryHeldPaste() { return }
         Task {
-            guard let last = await self.store.recent(limit: 1).first else { return }
+            guard let last = await self.store.history.items().first?.record else { return }
             await self.paste.pasteAgain(last.textToPasteAgain)
         }
     }

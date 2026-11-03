@@ -8,18 +8,26 @@ enum GlassTheme {
     static let window = dynamic(rgba(255, 255, 255, 0.72), rgba(14, 15, 19, 0.72))
     static let sidebar = dynamic(rgba(255, 255, 255, 0.4), rgba(10, 11, 14, 0.5))
     static let raised = dynamic(rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0.06))
-    static let selected = dynamic(rgba(20, 21, 25, 0.08), rgba(255, 255, 255, 0.12))
+    static let selectedAppKit = nsDynamic(rgba(20, 21, 25, 0.08), rgba(255, 255, 255, 0.12))
+    static let selected = Color(nsColor: selectedAppKit)
     static let hover = dynamic(rgba(20, 21, 25, 0.04), rgba(255, 255, 255, 0.06))
     static let lineRule = dynamic(rgba(20, 21, 25, 0.1), rgba(255, 255, 255, 0.1))
-    static let lineStrong = dynamic(rgba(20, 21, 25, 0.22), rgba(255, 255, 255, 0.22))
-    static let textPrimary = dynamic(hex(0x1C1C1E), hex(0xF4EFE6))
+    static let lineStrongAppKit = nsDynamic(rgba(20, 21, 25, 0.22), rgba(255, 255, 255, 0.22))
+    static let lineStrong = Color(nsColor: lineStrongAppKit)
+    static let textPrimaryAppKit = nsDynamic(hex(0x1C1C1E), hex(0xF4EFE6))
+    static let textPrimary = Color(nsColor: textPrimaryAppKit)
     static let textSecondary = dynamic(hex(0x6F6A62), hex(0xA8A49C))
     static let actionPrimary = dynamic(hex(0x1C1C1E), hex(0xFFF6EA))
     static let actionOnPrimary = dynamic(hex(0xFFFFFF), hex(0x0E0F13))
     /// Icons only in Light: 4.11:1 on the window is too low for text.
     static let stateDone = dynamic(hex(0x1A8A52), hex(0x3EDC8A))
     static let stateAttention = dynamic(hex(0x9A5B00), hex(0xFFB020))
-    static let stateDestructive = dynamic(hex(0xC83230), hex(0xFF6B66))
+    static let stateDestructiveAppKit = nsDynamic(hex(0xC83230), hex(0xFF6B66))
+    static let stateDestructive = Color(nsColor: stateDestructiveAppKit)
+    /// The History page's added and rewritten words; Light is darker than `stateDone`, which is too low for text.
+    static let changeAddedAppKit = nsDynamic(hex(0x146E40), hex(0x3EDC8A))
+    static let changeRemovedTint = nsDynamic(rgba(200, 50, 48, 0.08), rgba(255, 107, 102, 0.12))
+    static let changeAddedTint = nsDynamic(rgba(20, 110, 64, 0.08), rgba(62, 220, 138, 0.12))
     static let live = Color(nsColor: hex(0xFFE4B8))
     static let controlKnob = dynamic(hex(0xFFFFFF), hex(0xD9D4CB))
     static let focusRing = dynamic(rgba(28, 28, 30, 0.6), rgba(255, 228, 184, 0.85))
@@ -68,9 +76,14 @@ enum GlassTheme {
     // MARK: Helpers
 
     private static func dynamic(_ light: NSColor, _ dark: NSColor) -> Color {
-        Color(nsColor: NSColor(name: nil) { appearance in
+        Color(nsColor: nsDynamic(light, dark))
+    }
+
+    /// For AppKit views, such as the History page's text, that need the colour itself.
+    private static func nsDynamic(_ light: NSColor, _ dark: NSColor) -> NSColor {
+        NSColor(name: nil) { appearance in
             appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua ? dark : light
-        })
+        }
     }
 
     private static func rgba(_ r: CGFloat, _ g: CGFloat, _ b: CGFloat, _ a: CGFloat) -> NSColor {
