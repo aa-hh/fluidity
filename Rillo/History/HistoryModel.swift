@@ -17,15 +17,8 @@ final class HistoryModel {
 
     var onDelete: (UUID) -> Void = { _ in }
 
-    /// The dictations whose raw transcript or pasted text holds the search words.
-    var shown: [HistoryItem] {
-        let query = query.trimmingCharacters(in: .whitespaces)
-        guard !query.isEmpty else { return items }
-        return items.filter {
-            $0.record.rawTranscript.localizedStandardContains(query)
-                || ($0.record.pastedText ?? "").localizedStandardContains(query)
-        }
-    }
+    /// The dictations the search finds.
+    var shown: [HistoryItem] { HistoryItem.search(items, for: query) }
 
     /// The chosen dictation, or the newest shown one.
     var selected: HistoryItem? {
@@ -35,11 +28,7 @@ final class HistoryModel {
 
     /// Deletes the dictation and its recording, choosing the next one down, or the one above at the end.
     func delete(_ id: UUID) {
-        let shown = shown
-        if let index = shown.firstIndex(where: { $0.record.id == id }) {
-            let next = shown.indices.contains(index + 1) ? index + 1 : index - 1
-            selection = shown.indices.contains(next) ? shown[next].record.id : nil
-        }
+        selection = HistoryItem.neighbour(of: id, in: shown)
         onDelete(id)
     }
 

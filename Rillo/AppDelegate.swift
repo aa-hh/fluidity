@@ -336,29 +336,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    /// Applies a new period. A shorter one that leaves dictations or recordings already past it first asks,
-    /// through `retentionQuestion`, whether to keep them; the answer comes back here as `keepOlder`.
-    private func changeRetention(_ kind: RetentionQuestion.Kind, to period: Retention, keepOlder: Bool?) async {
-        let now = Date.now
-        var rules = settings.retention
-        let current = kind == .history ? rules.keepHistory : rules.keepRecordings
-        if keepOlder == nil, current.isLonger(than: period), let cutoff = period.cutoff(now: now) {
-            let older = kind == .history
-                ? await store.history.count(olderThan: cutoff)
-                : await store.history.recordingCount(olderThan: cutoff)
-            if older > 0 {
-                settingsModel.retentionQuestion = RetentionQuestion(kind: kind, period: period, count: older)
-                return
-            }
+    /// Saves a new period, or asks through `retentionQuestion` whether to keep what a shorter one leaves past it;
+    /// the answer comes back here as `keepOlder`.
+    private func changeRetention(_ kind: RetentionKind, to period: Retention, keepOlder: Bool?) async {
+        let change = try? await store.history.changeRetention(settings.retention, kind, to: period, keepOlder: keepOlder, now: .now)
+        switch change {
+        case .ask(let count):
+            settingsModel.retentionQuestion = RetentionQuestion(kind: kind, period: period, count: count)
+        case .applied(let rules):
+            settings.retention = rules
+            settingsModel.keepHistory = rules.keepHistory
+            settingsModel.keepRecordings = rules.keepRecordings
+            await reloadRecords()
+        case nil:
+            break
         }
-        rules = kind == .history
-            ? rules.keepingHistory(for: period, now: now, keepOlder: keepOlder ?? true)
-            : rules.keepingRecordings(for: period, now: now, keepOlder: keepOlder ?? true)
-        settings.retention = rules
-        settingsModel.keepHistory = rules.keepHistory
-        settingsModel.keepRecordings = rules.keepRecordings
-        try? await store.history.purge(rules, now: now)
-        await reloadRecords()
     }
 
     /// Copies `Settings`, the keychain, launch at login, the microphones and the permissions into the windows' model.

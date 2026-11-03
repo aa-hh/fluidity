@@ -85,22 +85,44 @@ public struct HistoryComparison: Equatable, Sendable {
     }
 
     /// The sentence each word of `text` belongs to. A sentence ends at a line break, or after a word ending in
-    /// `.`, `?`, `!` or `…`, closing quotes and brackets aside; a list number such as "2." ends nothing.
+    /// `.`, `?`, `!` or `…`, closing quotes and brackets aside; a list number such as "2." at the start of a line
+    /// ends nothing.
     static func sentenceNumbers(_ text: String) -> [Int] {
         var numbers: [Int] = []
         var sentence = 0
         for line in text.split(whereSeparator: \.isNewline) {
             let words = TranscriptDiff.words(String(line))
             guard !words.isEmpty else { continue }
-            for word in words {
+            for (position, word) in words.enumerated() {
                 numbers.append(sentence)
                 let trimmed = word.trimmingCharacters(in: CharacterSet(charactersIn: "\"'”’)]"))
-                let isListNumber = trimmed.dropLast().allSatisfy(\.isNumber)
+                let isListNumber = position == 0 && trimmed.dropLast().allSatisfy(\.isNumber)
                 if let last = trimmed.last, ".?!…".contains(last), !isListNumber { sentence += 1 }
             }
             if numbers.last == sentence { sentence += 1 }
         }
         return numbers
+    }
+}
+
+/// When each raw transcript word was spoken, for following a recording as it plays.
+public struct TranscriptTimeline: Sendable {
+    private let words: [(index: Int, start: TimeInterval, end: TimeInterval)]
+
+    public init(timings: [WordTiming], transcript: String) {
+        let indices = WordTiming.transcriptIndices(timings, in: transcript)
+        words = zip(indices, timings).compactMap { index, timing in index.map { ($0, timing.start, timing.end) } }
+    }
+
+    /// The word being heard at `time`: the last one started, until a little after it ends, so short gaps between
+    /// words don't flicker; nil in longer silences.
+    public func word(at time: TimeInterval) -> Int? {
+        guard let word = words.last(where: { $0.start <= time }), time <= word.end + 0.3 else { return nil }
+        return word.index
+    }
+
+    public func start(ofWord index: Int) -> TimeInterval? {
+        words.first { $0.index == index }?.start
     }
 }
 

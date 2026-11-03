@@ -56,9 +56,11 @@ struct HistoryComparisonTests {
         #expect(row.raw.first?.change != nil && !rewritten.contains(row.raw.first?.change))
     }
 
-    // Turns red if a list number such as "2." splits a sentence, or a line break does not.
+    // Turns red if a list number such as "2." splits a sentence, a sentence ending in a number does not end,
+    // or a line break does not split.
     @Test(arguments: [
         ("1. Milk\n2. Eggs", ["1. Milk", "2. Eggs"]),
+        ("Meet at 3. Then lunch", ["Meet at 3.", "Then lunch"]),
         ("See you soon Thanks", ["See you soon Thanks"]),
         ("Done! Next?\nLast line", ["Done!", "Next?", "Last line"]),
     ])
@@ -73,5 +75,14 @@ struct HistoryComparisonTests {
         let timings = ["hello", "there", "world"].enumerated().map { WordTiming(word: $1, start: Double($0), end: Double($0) + 1) }
         #expect(WordTiming.transcriptIndices(timings, in: "Hello there, world.") == [0, 1, 2])
         #expect(WordTiming.transcriptIndices(timings, in: "Hello world.") == [0, nil, 1])
+    }
+
+    // Turns red if the heard word stops holding through a short gap, holds through a long silence, or a word's
+    // start is not its timing's.
+    @Test func timelineFollowsTheWordBeingHeard() {
+        let timings = [WordTiming(word: "hello", start: 0, end: 0.4), WordTiming(word: "world", start: 2, end: 2.5)]
+        let timeline = TranscriptTimeline(timings: timings, transcript: "Hello world.")
+        #expect([0.2, 0.6, 1.0, 2.1].map(timeline.word(at:)) == [0, 0, nil, 1])
+        #expect(timeline.start(ofWord: 1) == 2)
     }
 }

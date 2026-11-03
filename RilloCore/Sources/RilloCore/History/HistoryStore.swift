@@ -19,6 +19,38 @@ public struct HistoryItem: Equatable, Sendable {
     }
 }
 
+extension HistoryItem {
+    /// The items whose raw transcript or pasted text holds `query`, ignoring case and accents; all of them for none.
+    public static func search(_ items: [HistoryItem], for query: String) -> [HistoryItem] {
+        let query = query.trimmingCharacters(in: .whitespaces)
+        guard !query.isEmpty else { return items }
+        return items.filter {
+            $0.record.rawTranscript.localizedStandardContains(query) || ($0.record.pastedText ?? "").localizedStandardContains(query)
+        }
+    }
+
+    /// The item to choose once `id` is deleted: the next one down, or the one above at the end.
+    public static func neighbour(of id: UUID, in items: [HistoryItem]) -> UUID? {
+        guard let index = items.firstIndex(where: { $0.record.id == id }) else { return nil }
+        let next = items.indices.contains(index + 1) ? index + 1 : index - 1
+        return items.indices.contains(next) ? items[next].record.id : nil
+    }
+
+    /// Runs of items that started on the same calendar day, in the order given.
+    public static func byDay(_ items: [HistoryItem], calendar: Calendar = .current) -> [(day: Date, items: [HistoryItem])] {
+        var days: [(day: Date, items: [HistoryItem])] = []
+        for item in items {
+            let day = calendar.startOfDay(for: item.record.startedAt)
+            if day == days.last?.day {
+                days[days.count - 1].items.append(item)
+            } else {
+                days.append((day, [item]))
+            }
+        }
+        return days
+    }
+}
+
 extension HistoryItem: Codable {
     // Flat beside the record's own keys, so history files written as plain records still read.
     private enum Keys: String, CodingKey { case recording }
@@ -67,6 +99,8 @@ public actor HistoryStore {
     private let encoder: JSONEncoder
     private let decoder: JSONDecoder
     private var loaded: [HistoryItem]?
+    /// The history file was there but did not read (damaged, or from a newer build); it is moved aside, not overwritten.
+    private var unreadable = false
 
     public init(folder: URL = HistoryStore.defaultFolder) {
         historyURL = folder.appending(path: "history.json")
@@ -85,9 +119,14 @@ public actor HistoryStore {
     /// Newest first.
     public func items() -> [HistoryItem] {
         if let loaded { return loaded }
-        let read = (try? Data(contentsOf: historyURL)).flatMap { try? decoder.decode([HistoryItem].self, from: $0) } ?? []
-        loaded = read
-        return read
+        guard let data = try? Data(contentsOf: historyURL) else {
+            loaded = []
+            return []
+        }
+        let read = try? decoder.decode([HistoryItem].self, from: data)
+        unreadable = read == nil
+        loaded = read ?? []
+        return loaded ?? []
     }
 
     /// Adds a dictation, with its recording when `audio` is given. A recording that fails to write leaves the text saved.
@@ -159,6 +198,20 @@ public actor HistoryStore {
         }
     }
 
+    /// Applies `period` and purges, unless it is shorter and leaves items already past it while the user has not yet
+    /// answered whether to keep them (`keepOlder` nil): then it reports how many, for the caller to ask.
+    public func changeRetention(
+        _ rules: RetentionRules, _ kind: RetentionKind, to period: Retention, keepOlder: Bool?, now: Date
+    ) throws -> RetentionChange {
+        if keepOlder == nil, rules.period(kind).isLonger(than: period), let cutoff = period.cutoff(now: now) {
+            let older = kind == .history ? count(olderThan: cutoff) : recordingCount(olderThan: cutoff)
+            if older > 0 { return .ask(count: older) }
+        }
+        let changed = rules.keeping(kind, for: period, now: now, keepOlder: keepOlder ?? true)
+        try purge(changed, now: now)
+        return .applied(changed)
+    }
+
     public func usage() -> HistoryUsage {
         let recordings = (try? files.contentsOfDirectory(at: recordingsFolder, includingPropertiesForKeys: nil)) ?? []
         let all = items()
@@ -179,6 +232,11 @@ public actor HistoryStore {
         var current = items()
         edit(&current)
         try files.createDirectory(at: historyURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+        if unreadable {
+            let stamp = Date.now.formatted(.iso8601).replacing(":", with: "-")
+            try files.moveItem(at: historyURL, to: historyURL.deletingLastPathComponent().appending(path: "history-unreadable-\(stamp).json"))
+            unreadable = false
+        }
         try encoder.encode(current).write(to: historyURL, options: .atomic)
         loaded = current
     }

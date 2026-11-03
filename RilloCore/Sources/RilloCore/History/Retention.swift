@@ -33,6 +33,19 @@ public enum Retention: String, CaseIterable, Codable, Sendable {
     }
 }
 
+/// Which of the two periods a change is to.
+public enum RetentionKind: Sendable {
+    case history, recordings
+}
+
+/// What picking a new period comes to.
+public enum RetentionChange: Equatable, Sendable {
+    /// A shorter period leaves this many dictations or recordings already past it; ask whether to keep them.
+    case ask(count: Int)
+    /// The rules to save, already applied to the history.
+    case applied(RetentionRules)
+}
+
 /// The History page's retention settings. Dictations that started before an `exemptBefore` date were already past
 /// a period when the user shortened it and chose Keep; they stay until the user deletes them.
 public struct RetentionRules: Equatable, Sendable {
@@ -63,12 +76,26 @@ public struct RetentionRules: Equatable, Sendable {
         }
         rules.keepHistory = period
         guard keepRecordings.isLonger(than: period) else { return rules }
-        let longestAllowed = Retention.recordingChoices.first { !$0.isLonger(than: period) } ?? .day
-        return rules.keepingRecordings(for: longestAllowed, now: now, keepOlder: keepOlder)
+        return rules.keepingRecordings(for: keepRecordings, now: now, keepOlder: keepOlder)
+    }
+
+    /// A period choice that affects the history or the recordings.
+    public func period(_ kind: RetentionKind) -> Retention {
+        kind == .history ? keepHistory : keepRecordings
+    }
+
+    public func keeping(_ kind: RetentionKind, for period: Retention, now: Date, keepOlder: Bool) -> RetentionRules {
+        kind == .history
+            ? keepingHistory(for: period, now: now, keepOlder: keepOlder)
+            : keepingRecordings(for: period, now: now, keepOlder: keepOlder)
     }
 
     /// The rules once the user picks `period` for recordings, with the same Keep or Delete choice as history.
+    /// A period longer than Keep history is cut to the longest one that fits.
     public func keepingRecordings(for period: Retention, now: Date, keepOlder: Bool) -> RetentionRules {
+        let period = period.isLonger(than: keepHistory)
+            ? Retention.recordingChoices.first { !$0.isLonger(than: keepHistory) } ?? .day
+            : period
         var rules = self
         if keepRecordings.isLonger(than: period) {
             rules.recordingsExemptBefore = keepOlder ? period.cutoff(now: now) : nil

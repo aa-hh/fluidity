@@ -18,7 +18,7 @@ final class HistoryPlayer {
     private(set) var heardWord: Int?
 
     @ObservationIgnored private var player: AVAudioPlayer?
-    @ObservationIgnored private var words: [(index: Int, start: TimeInterval, end: TimeInterval)] = []
+    @ObservationIgnored private var timeline = TranscriptTimeline(timings: [], transcript: "")
     @ObservationIgnored private var ticker: Task<Void, Never>?
 
     /// Loads the recording at `url`, or clears the player when `url` is nil.
@@ -38,9 +38,11 @@ final class HistoryPlayer {
         duration = player.duration
         time = 0
         isLoaded = true
-        let indices = WordTiming.transcriptIndices(record.wordTimings, in: record.rawTranscript)
-        words = zip(indices, record.wordTimings).compactMap { index, timing in index.map { ($0, timing.start, timing.end) } }
-        levels = await Task.detached { Self.levels(of: url, count: 200) }.value
+        timeline = TranscriptTimeline(timings: record.wordTimings, transcript: record.rawTranscript)
+        let levels = await Task.detached { Self.levels(of: url, count: 200) }.value
+        // Another dictation may have been chosen while the levels were read.
+        guard self.player === player else { return }
+        self.levels = levels
     }
 
     func toggle() {
@@ -69,7 +71,7 @@ final class HistoryPlayer {
 
     /// Jumps to the start of a raw transcript word and plays from there.
     func play(fromWord index: Int) {
-        guard let start = words.first(where: { $0.index == index })?.start else { return }
+        guard let start = timeline.start(ofWord: index) else { return }
         seek(to: start)
         if !isPlaying { toggle() }
     }
@@ -91,9 +93,8 @@ final class HistoryPlayer {
             return
         }
         time = player.currentTime
-        // The last word started, until a little after it ends, so short gaps between words don't flicker.
-        let heard = words.last { $0.start <= time }.flatMap { time <= $0.end + 0.3 ? $0.index : nil }
-        if heard != heardWord { heardWord = isPlaying || time > 0 ? heard : nil }
+        let heard = timeline.word(at: time)
+        if heard != heardWord { heardWord = heard }
     }
 
     nonisolated private static func levels(of url: URL, count: Int) -> [Float] {

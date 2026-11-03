@@ -89,6 +89,8 @@ private struct SearchField: View {
             if !text.isEmpty {
                 Button { text = "" } label: {
                     Image(systemName: "xmark.circle.fill").foregroundStyle(GlassTheme.textSecondary)
+                        .contentShape(Circle())
+                        .glassFocusRing(Circle())
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Clear search")
@@ -139,6 +141,15 @@ private struct HistoryList: View {
             }
             .focusable()
             .focused($isFocused)
+            // The list takes arrow keys and Space as a whole, so the ring goes round it, not a row.
+            .overlay {
+                if isFocused {
+                    RoundedRectangle(cornerRadius: GlassTheme.innerRadius, style: .continuous)
+                        .strokeBorder(GlassTheme.focusRing, lineWidth: 2)
+                        .padding(3)
+                        .allowsHitTesting(false)
+                }
+            }
             .onKeyPress(.downArrow) { move(by: 1, in: shown, scroller: scroller) }
             .onKeyPress(.upArrow) { move(by: -1, in: shown, scroller: scroller) }
             .onKeyPress(.space) {
@@ -160,19 +171,7 @@ private struct HistoryList: View {
 
     /// "Today", "Yesterday", then "Monday 2 November", newest first.
     private static func days(_ items: [HistoryItem], now: Date) -> [(title: String, items: [HistoryItem])] {
-        let calendar = Calendar.current
-        var days: [(title: String, items: [HistoryItem])] = []
-        var lastDay: Date?
-        for item in items {
-            let day = calendar.startOfDay(for: item.record.startedAt)
-            if day == lastDay {
-                days[days.count - 1].items.append(item)
-            } else {
-                days.append((dayTitle(day, now: now), [item]))
-                lastDay = day
-            }
-        }
-        return days
+        HistoryItem.byDay(items).map { (dayTitle($0.day, now: now), $0.items) }
     }
 
     private static func dayTitle(_ day: Date, now: Date) -> String {

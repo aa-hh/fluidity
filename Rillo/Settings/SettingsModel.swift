@@ -47,8 +47,7 @@ struct ShortcutProblem: Equatable {
 
 /// A shortened period that leaves dictations or recordings already past it; a sheet asks whether to keep them.
 struct RetentionQuestion: Equatable {
-    enum Kind { case history, recordings }
-    let kind: Kind
+    let kind: RetentionKind
     let period: Retention
     let count: Int
 }
@@ -148,7 +147,7 @@ final class SettingsModel {
     var onSaveRecordingsChange: (Bool) -> Void = { _ in }
     /// The user picked a period. `keepOlder` is nil until the user has answered whether to keep what is already
     /// past a shorter one; the shell asks by setting `retentionQuestion` when there is any.
-    var onRetentionChange: (RetentionQuestion.Kind, Retention, _ keepOlder: Bool?) -> Void = { _, _, _ in }
+    var onRetentionChange: (RetentionKind, Retention, _ keepOlder: Bool?) -> Void = { _, _, _ in }
     var onDeleteRecordings: () -> Void = {}
     var onDeleteAllHistory: () -> Void = {}
     var onCleanupEnabledChange: (Bool) -> Void = { _ in }
@@ -213,7 +212,7 @@ final class SettingsModel {
         onSaveRecordingsChange(on)
     }
 
-    func changeRetention(_ kind: RetentionQuestion.Kind, to period: Retention) {
+    func changeRetention(_ kind: RetentionKind, to period: Retention) {
         onRetentionChange(kind, period, nil)
     }
 
