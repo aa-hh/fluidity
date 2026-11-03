@@ -203,21 +203,43 @@ struct CleanupPane: View {
         .onTapGesture { chooseLocalModel(entry.id) }
     }
 
-    /// A model not on this Mac: Download, or while downloading its progress and Cancel.
+    /// A model not on this Mac: Download, or while downloading its progress and Cancel. As in the speech pane, the
+    /// progress takes the size line's place at the same height and Cancel takes Download's, so nothing moves.
     private func availableRow(_ entry: CleanupModel) -> some View {
-        GlassRow(title: entry.name, detail: details(entry)) {
-            if case .downloading(let done, let total) = cleanupState(entry.id) {
-                HStack(spacing: 8) {
-                    ProgressTrack(fraction: total > 0 ? Double(done) / Double(total) : 0)
-                    Text("\(SpeechModelPane.megabytes(done, unit: false)) of \(SpeechModelPane.megabytes(total))")
-                        .font(GlassTheme.small).foregroundStyle(GlassTheme.textSecondary).lineLimit(1)
-                        .accessibilityLabel("Downloading, \(total > 0 ? Int(Double(done) / Double(total) * 100) : 0) percent")
-                    SymbolButton(symbol: "xmark.circle", label: "Cancel download of \(entry.name)", tooltip: "Cancel Download") {
-                        model.onCancelCleanupDownload(entry.id)
-                        focusedModel = entry.id
+        let downloading: (done: Int64, total: Int64)? = if case .downloading(let done, let total) = cleanupState(entry.id) {
+            (done, total)
+        } else {
+            nil
+        }
+        return HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(entry.name).font(GlassTheme.label).foregroundStyle(GlassTheme.textPrimary)
+                Group {
+                    if let (done, total) = downloading {
+                        HStack(spacing: 8) {
+                            ProgressTrack(fraction: total > 0 ? Double(done) / Double(total) : 0)
+                            Text("\(SpeechModelPane.megabytes(done, unit: false)) of \(SpeechModelPane.megabytes(total))")
+                                .monospacedDigit()
+                                .accessibilityLabel("Downloading, \(total > 0 ? Int(Double(done) / Double(total) * 100) : 0) percent")
+                        }
+                    } else {
+                        Text("English · \(sizeText(entry))")
                     }
-                    .focused($focusedModel, equals: entry.id)
                 }
+                .lineLimit(1)
+                .frame(height: 15)
+                Text(figures(entry)).fixedSize(horizontal: false, vertical: true)
+            }
+            .font(GlassTheme.detail)
+            .foregroundStyle(GlassTheme.textSecondary)
+            .accessibilityElement(children: .combine)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            if downloading != nil {
+                SymbolButton(symbol: "xmark.circle", label: "Cancel download of \(entry.name)", tooltip: "Cancel Download") {
+                    model.onCancelCleanupDownload(entry.id)
+                    focusedModel = entry.id
+                }
+                .focused($focusedModel, equals: entry.id)
             } else {
                 SymbolButton(symbol: "arrow.down.circle", label: "Download \(entry.name), \(sizeText(entry))",
                              tooltip: "Download (\(sizeText(entry)))") {
@@ -227,16 +249,23 @@ struct CleanupPane: View {
                 .focused($focusedModel, equals: entry.id)
             }
         }
+        .padding(.vertical, 8)
+        .padding(.horizontal, 12)
+        .frame(minHeight: GlassTheme.rowMinHeight)
     }
 
     /// "English · 1.29 GB", then the figures measured on an Apple M1.
     private func details(_ entry: CleanupModel) -> String {
+        "English · \(sizeText(entry))\n" + figures(entry)
+    }
+
+    private func figures(_ entry: CleanupModel) -> String {
         var figures = [
             entry.secondsPerDictation.map { "About \(String(format: "%.1f", $0)) s per dictation" } ?? "Speed not measured",
             entry.memoryGB.map { "\(String(format: "%.1f", $0)) GB of memory" } ?? "Memory not measured",
         ]
         if !entry.usesWordList { figures.append("Doesn't use your word list") }
-        return "English · \(sizeText(entry))\n" + figures.joined(separator: " · ")
+        return figures.joined(separator: " · ")
     }
 
     private func sizeText(_ entry: CleanupModel) -> String {
