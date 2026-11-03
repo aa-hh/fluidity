@@ -262,8 +262,8 @@ private struct HistoryDetail: View {
     @State private var comparison: HistoryComparison?
     @State private var hoveredChange: Int?
     @State private var copied: MarkedWordsText.Side?
-    /// Each side's text width: half the panel, less the rule and padding. Given to the text views exactly, so
-    /// their wrapping never depends on how SwiftUI probes them.
+    /// Each side's text width, from the detail's width. Given to the text views exactly, so their wrapping never
+    /// depends on how SwiftUI probes them.
     @State private var textWidth: CGFloat?
 
     private var record: DictationRecord { item.record }
@@ -289,9 +289,14 @@ private struct HistoryDetail: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 16)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
         }
         .scrollBounceBehavior(.basedOnSize)
+        // The scroll view's width follows the window, never its content, so the rows shrink with the window:
+        // the panel is that width less 16 pt each side, each text half of it less the rule and 12 pt padding.
+        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width in
+            textWidth = max(0, ((width - 32 - 1) / 2 - 24).rounded(.down))
+        }
         .task {
             let raw = record.rawTranscript, pasted = pasted
             // razor: the word alignment is quadratic in words; fine for dictations of a few thousand words.
@@ -385,19 +390,16 @@ private struct HistoryDetail: View {
                         onClickWord: item.recording == .saved && player.isLoaded ? { player.play(fromWord: $0) } : nil)
                         .frame(width: textWidth, alignment: .topLeading)
                         .padding(12)
-                        .frame(maxWidth: .infinity, alignment: .topLeading)
+                        .frame(minWidth: 0, maxWidth: .infinity, alignment: .topLeading)
                     Rectangle().fill(GlassTheme.lineRule).frame(width: 1).accessibilityHidden(true)
                     MarkedWordsText(words: row.pasted, side: .pasted, hoveredChange: hoveredChange, onHover: { hoveredChange = $0 })
                         .frame(width: textWidth, alignment: .topLeading)
                         .padding(12)
-                        .frame(maxWidth: .infinity, alignment: .topLeading)
+                        .frame(minWidth: 0, maxWidth: .infinity, alignment: .topLeading)
                 }
                 .accessibilityElement(children: .contain)
                 .accessibilityLabel("Sentence \(number + 1) of \(comparison.rows.count)")
             }
-        }
-        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width in
-            textWidth = max(0, ((width - 1) / 2 - 24).rounded(.down))
         }
     }
 
