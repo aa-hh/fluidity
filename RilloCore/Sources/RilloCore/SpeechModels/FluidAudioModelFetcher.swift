@@ -28,13 +28,7 @@ public struct FluidAudioModelFetcher: ModelFetching {
     }
 
     public func availableBytes() -> Int64 {
-        // The Models folder may not exist before the first download; its nearest existing parent is on the same volume.
-        var url = modelsDirectory
-        while !FileManager.default.fileExists(atPath: url.path), url.pathComponents.count > 1 {
-            url.deleteLastPathComponent()
-        }
-        let values = try? url.resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey])
-        return values?.volumeAvailableCapacityForImportantUsage ?? 0
+        freeBytes(onVolumeOf: modelsDirectory)
     }
 
     public func download(_ id: SpeechModelID, progress: @escaping @Sendable (Double) -> Void) async throws {

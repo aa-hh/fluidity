@@ -15,7 +15,7 @@ private func withDefaults(_ body: (UserDefaults) throws -> Void) rethrows {
     try body(defaults)
 }
 
-// Turns red if a fresh install starts with cleanup on without a key, rules other than the default, or a saved shortcut or word list, or reads an unknown live words, speech model or cleanup place value as anything but the default.
+// Turns red if a fresh install starts with cleanup on without a key, rules other than the default, or a saved shortcut or word list, or reads an unknown live words, speech model, cleanup place or local cleanup model value as anything but the default.
 @Test func freshSettingsUseDefaults() {
     withDefaults { defaults in
         let settings = Settings(defaults: defaults, keyStore: FakeKeychain())
@@ -33,6 +33,9 @@ private func withDefaults(_ body: (UserDefaults) throws -> Void) rethrows {
         #expect(settings.cleanupPlace == .cloud)
         defaults.set("moon", forKey: "cleanupPlace")
         #expect(settings.cleanupPlace == .cloud)
+        #expect(settings.localCleanupModel == nil)
+        defaults.set("gpt-9", forKey: "localCleanupModel")
+        #expect(settings.localCleanupModel == nil)
     }
 }
 
@@ -49,6 +52,7 @@ private func withDefaults(_ body: (UserDefaults) throws -> Void) rethrows {
         first.speechModel = .parakeetUnified
         first.microphone = "usb"
         first.cleanupPlace = .local
+        first.localCleanupModel = .s1Mini
 
         let second = Settings(defaults: defaults, keyStore: keychain)
         #expect(second.shortcut(as: TestShortcut.self) == TestShortcut(keyCode: 61, modifiers: 524_288))
@@ -59,8 +63,12 @@ private func withDefaults(_ body: (UserDefaults) throws -> Void) rethrows {
         #expect(second.speechModel == .parakeetUnified)
         #expect(second.microphone == "usb")
         #expect(second.cleanupPlace == .local)
+        #expect(second.localCleanupModel == .s1Mini)
         second.microphone = nil
-        #expect(Settings(defaults: defaults, keyStore: keychain).microphone == nil)
+        second.localCleanupModel = nil
+        let third = Settings(defaults: defaults, keyStore: keychain)
+        #expect(third.microphone == nil)
+        #expect(third.localCleanupModel == nil)
     }
 }
 

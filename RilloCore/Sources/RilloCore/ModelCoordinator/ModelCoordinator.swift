@@ -44,7 +44,7 @@ public final class ModelCoordinator {
     @ObservationIgnored private let chosenModel: () -> SpeechModelID
     @ObservationIgnored private let setChosenModel: (SpeechModelID) -> Void
     @ObservationIgnored private let engines: [SpeechModelID: any SpeechEngine]
-    @ObservationIgnored private let downloads: ModelDownloads
+    @ObservationIgnored private let downloads: ModelDownloads<SpeechModelID>
     @ObservationIgnored private let loadVoiceDetector: @Sendable () async throws -> Void
     @ObservationIgnored private let loadWordCheck: @Sendable () async throws -> Void
     @ObservationIgnored private let makeTranscriber: (any SpeechEngine, SpeechModelID) -> Transcriber
@@ -66,7 +66,7 @@ public final class ModelCoordinator {
         chosenModel: @escaping () -> SpeechModelID,
         setChosenModel: @escaping (SpeechModelID) -> Void,
         engines: [SpeechModelID: any SpeechEngine],
-        downloads: ModelDownloads,
+        downloads: ModelDownloads<SpeechModelID>,
         loadVoiceDetector: @escaping @Sendable () async throws -> Void,
         loadWordCheck: @escaping @Sendable () async throws -> Void,
         makeTranscriber: @escaping (any SpeechEngine, SpeechModelID) -> Transcriber,

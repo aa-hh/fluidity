@@ -23,7 +23,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let store: DictationStore
     private let storeChanges: AsyncStream<Void>
     private let permissions: SystemPermissions
-    private let downloads: ModelDownloads
+    private let downloads: ModelDownloads<SpeechModelID>
     private let models: ModelCoordinator
     /// The open compare window's model.
     private var compareModel: CompareModel?

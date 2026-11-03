@@ -231,6 +231,8 @@ struct SpeechModelPane: View {
             return "Couldn't download \(entry.name) because this Mac is offline. \(name(model.speechModel)) is still in use."
         case .notEnoughSpace(_, let available):
             return "Not enough space for \(entry.name): it needs \(sizeText(entry)) and this Mac has \(Self.megabytes(available)) free."
+        case .damaged:
+            return "The download of \(entry.name) was damaged. Try again."
         case .other(let description) where isOnMac(id):
             return "Couldn't delete \(entry.name): \(description)."
         case .other(let description):

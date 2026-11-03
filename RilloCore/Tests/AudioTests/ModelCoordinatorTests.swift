@@ -39,7 +39,7 @@ struct ModelCoordinatorTests {
         registered: Set<SpeechModelID> = Set(SpeechModelID.allCases),
         loadVoiceDetector: @escaping @Sendable () async throws -> Void = {},
         loadWordCheck: @escaping @Sendable () async throws -> Void = {}
-    ) -> (ModelCoordinator, ModelDownloads, ChosenModel) {
+    ) -> (ModelCoordinator, ModelDownloads<SpeechModelID>, ChosenModel) {
         let saved = ChosenModel(chosen)
         let downloads = ModelDownloads(fetcher: InstalledModels(installed: installed), network: Online())
         let all: [SpeechModelID: any SpeechEngine] = [.parakeetTDTv2: tdt, .appleBuiltIn: apple, .parakeetUnified: unified]
