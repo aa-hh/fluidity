@@ -262,6 +262,9 @@ private struct HistoryDetail: View {
     @State private var comparison: HistoryComparison?
     @State private var hoveredChange: Int?
     @State private var copied: MarkedWordsText.Side?
+    /// Each side's text width: half the panel, less the rule and padding. Given to the text views exactly, so
+    /// their wrapping never depends on how SwiftUI probes them.
+    @State private var textWidth: CGFloat?
 
     private var record: DictationRecord { item.record }
     private var pasted: String { record.textToPasteAgain }
@@ -380,16 +383,21 @@ private struct HistoryDetail: View {
                         words: row.raw, side: .raw, hoveredChange: hoveredChange,
                         heardWord: player.heardWord, onHover: { hoveredChange = $0 },
                         onClickWord: item.recording == .saved && player.isLoaded ? { player.play(fromWord: $0) } : nil)
+                        .frame(width: textWidth, alignment: .topLeading)
                         .padding(12)
                         .frame(maxWidth: .infinity, alignment: .topLeading)
                     Rectangle().fill(GlassTheme.lineRule).frame(width: 1).accessibilityHidden(true)
                     MarkedWordsText(words: row.pasted, side: .pasted, hoveredChange: hoveredChange, onHover: { hoveredChange = $0 })
+                        .frame(width: textWidth, alignment: .topLeading)
                         .padding(12)
                         .frame(maxWidth: .infinity, alignment: .topLeading)
                 }
                 .accessibilityElement(children: .contain)
                 .accessibilityLabel("Sentence \(number + 1) of \(comparison.rows.count)")
             }
+        }
+        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width in
+            textWidth = max(0, ((width - 1) / 2 - 24).rounded(.down))
         }
     }
 

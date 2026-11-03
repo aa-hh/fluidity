@@ -43,7 +43,7 @@ struct MarkedWordsText: NSViewRepresentable {
     /// Measured on a copy of the text: SwiftUI tries several widths before settling, and laying out the shown text
     /// at each would leave it at whichever width came last, spilling out of its column.
     func sizeThatFits(_ proposal: ProposedViewSize, nsView view: WordsTextView, context: Context) -> CGSize? {
-        let width = proposal.width.flatMap { $0.isFinite ? $0 : nil } ?? 300
+        let width = proposal.width.flatMap { $0.isFinite ? $0 : nil } ?? view.frame.width
         guard let text = view.textStorage else { return nil }
         let storage = NSTextStorage(attributedString: text)
         let layout = NSLayoutManager()
@@ -60,6 +60,13 @@ final class WordsTextView: NSTextView {
     private static let wordKey = NSAttributedString.Key("rillo.historyWord")
     private static let font = NSFont.systemFont(ofSize: 13)
     private static let lineSpacing: CGFloat = 5
+
+    /// The text wraps at the frame's width, set here as well as by `widthTracksTextView`, which does not always
+    /// follow a frame SwiftUI sets.
+    override func setFrameSize(_ newSize: NSSize) {
+        super.setFrameSize(newSize)
+        textContainer?.containerSize = NSSize(width: newSize.width, height: .greatestFiniteMagnitude)
+    }
 
     var onHover: (Int?) -> Void = { _ in }
     var onClickWord: ((Int) -> Void)?
