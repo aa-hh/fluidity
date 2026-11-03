@@ -7,7 +7,7 @@ import SwiftUI
 /// A right-click or Control-click shows a short system menu instead: Open, Settings and Quit.
 @MainActor
 final class MenuBarItem: NSObject {
-    private let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
+    private let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     private let panel = PopoverPanel(
         contentRect: .zero, styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: true)
     private let model: PopoverModel
