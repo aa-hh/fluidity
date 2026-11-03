@@ -15,7 +15,7 @@ private func withDefaults(_ body: (UserDefaults) throws -> Void) rethrows {
     try body(defaults)
 }
 
-// Turns red if a fresh install starts with cleanup on without a key, rules other than the default, a saved shortcut or word list, or recordings saved, or reads an unknown live words, speech model, cleanup place or retention value as anything but the default.
+// Turns red if a fresh install starts with cleanup on without a key, rules other than the default, a saved shortcut or word list, or recordings saved, or reads an unknown live words, speech model, cleanup place, local cleanup model or retention value as anything but the default.
 @Test func freshSettingsUseDefaults() {
     withDefaults { defaults in
         let settings = Settings(defaults: defaults, keyStore: FakeKeychain())
@@ -33,6 +33,9 @@ private func withDefaults(_ body: (UserDefaults) throws -> Void) rethrows {
         #expect(settings.cleanupPlace == .cloud)
         defaults.set("moon", forKey: "cleanupPlace")
         #expect(settings.cleanupPlace == .cloud)
+        #expect(settings.localCleanupModel == nil)
+        defaults.set("gpt-9", forKey: "localCleanupModel")
+        #expect(settings.localCleanupModel == nil)
         #expect(!settings.saveRecordings)
         defaults.set("decade", forKey: "keepRecordings")
         #expect(settings.retention == RetentionRules(keepHistory: .forever, keepRecordings: .thirtyDays))
@@ -52,6 +55,7 @@ private func withDefaults(_ body: (UserDefaults) throws -> Void) rethrows {
         first.speechModel = .parakeetUnified
         first.microphone = "usb"
         first.cleanupPlace = .local
+        first.localCleanupModel = .s1Mini
         first.saveRecordings = true
         let rules = RetentionRules(
             keepHistory: .threeMonths, keepRecordings: .week,
@@ -67,10 +71,14 @@ private func withDefaults(_ body: (UserDefaults) throws -> Void) rethrows {
         #expect(second.speechModel == .parakeetUnified)
         #expect(second.microphone == "usb")
         #expect(second.cleanupPlace == .local)
+        #expect(second.localCleanupModel == .s1Mini)
         #expect(second.saveRecordings)
         #expect(second.retention == rules)
         second.microphone = nil
-        #expect(Settings(defaults: defaults, keyStore: keychain).microphone == nil)
+        second.localCleanupModel = nil
+        let third = Settings(defaults: defaults, keyStore: keychain)
+        #expect(third.microphone == nil)
+        #expect(third.localCleanupModel == nil)
     }
 }
 

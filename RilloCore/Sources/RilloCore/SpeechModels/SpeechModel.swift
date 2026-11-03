@@ -45,3 +45,10 @@ public struct SpeechModel: Sendable, Identifiable {
         all.first { $0.id == id }!
     }
 }
+
+extension SpeechModelID: DownloadableModelID {
+    public var downloadBytes: Int64? {
+        guard case .download(let bytes, _, _) = SpeechModel.model(self).install else { return nil }
+        return bytes
+    }
+}

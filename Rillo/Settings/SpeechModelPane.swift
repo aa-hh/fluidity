@@ -231,6 +231,8 @@ struct SpeechModelPane: View {
             return "Couldn't download \(entry.name) because this Mac is offline. \(name(model.speechModel)) is still in use."
         case .notEnoughSpace(_, let available):
             return "Not enough space for \(entry.name): it needs \(sizeText(entry)) and this Mac has \(Self.megabytes(available)) free."
+        case .damaged:
+            return "The download of \(entry.name) was damaged. Try again."
         case .other(let description) where isOnMac(id):
             return "Couldn't delete \(entry.name): \(description)."
         case .other(let description):
@@ -533,7 +535,7 @@ private struct ModelRow<MenuItems: View>: View {
 }
 
 /// The 16 pt radio circle, filled when selected.
-private struct RadioMark: View {
+struct RadioMark: View {
     let isSelected: Bool
 
     var body: some View {
@@ -553,7 +555,7 @@ private struct RadioMark: View {
 }
 
 /// The download progress under the model name: a 48 × 4 pt bar.
-private struct ProgressTrack: View {
+struct ProgressTrack: View {
     let fraction: Double
 
     var body: some View {
@@ -568,7 +570,7 @@ private struct ProgressTrack: View {
 }
 
 /// A 28 pt circle button holding one SF Symbol, with a spoken label and a hover tooltip.
-private struct SymbolButton: View {
+struct SymbolButton: View {
     let symbol: String
     let label: String
     let tooltip: String
@@ -599,8 +601,10 @@ private struct SymbolCircle: View {
 }
 
 /// The row's More (⋯) button; the Delete key on it runs the row's delete.
-private struct MoreButton<MenuItems: View>: View {
+struct MoreButton<MenuItems: View>: View {
     let name: String
+    /// What VoiceOver says for the button; "More for <name>" when nil.
+    var label: String?
     @ViewBuilder let menu: () -> MenuItems
     let deleteKey: () -> Void
 
@@ -611,7 +615,7 @@ private struct MoreButton<MenuItems: View>: View {
             .menuIndicator(.hidden)
             .fixedSize()
             .frame(width: ModelColumns.symbolButton, height: ModelColumns.symbolButton)
-            .accessibilityLabel("More for \(name)")
+            .accessibilityLabel(label ?? "More for \(name)")
             .onKeyPress(keys: [.delete, .deleteForward]) { _ in
                 deleteKey()
                 return .handled

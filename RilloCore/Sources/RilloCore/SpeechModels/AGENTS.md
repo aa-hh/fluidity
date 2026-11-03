@@ -2,9 +2,9 @@
 
 ## Purpose
 
-The catalogue of on-device speech models, and downloading and deleting the
-optional ones. It never chooses the model the user dictates with; only the
-user does, through `Settings`.
+The catalogues of on-device speech and cleanup models, and downloading and
+deleting the optional ones. It never chooses a model; only the user does,
+through `Settings`.
 
 ## Rules
 
@@ -27,5 +27,8 @@ user does, through `Settings`.
 - `SpeechModelID`, `SpeechModel` → the model ids and the catalogue.
 - `ModelDownloads` → each model's install state, download, cancel, delete.
 - `ModelFetching` → what `ModelDownloads` needs from files and the network.
+- `DownloadableModelID` → what `ModelDownloads` needs from each catalogue's ids.
 - `FluidAudioModelFetcher` → `ModelFetching` over FluidAudio's model folders.
+- `CleanupModelID`, `CleanupModel` → the cleanup model ids and the catalogue.
+- `HuggingFaceModelFetcher` → `ModelFetching` for cleanup models, checksum-checked.
 - `TranscriptDiff` → the word-level differences between two transcripts.

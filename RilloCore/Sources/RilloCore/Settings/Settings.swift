@@ -49,6 +49,7 @@ public final class Settings: @unchecked Sendable {
         static let speechModel = "speechModel"
         static let microphone = "microphone"
         static let cleanupPlace = "cleanupPlace"
+        static let localCleanupModel = "localCleanupModel"
         static let saveRecordings = "saveRecordings"
         static let keepHistory = "keepHistory"
         static let keepRecordings = "keepRecordings"
@@ -91,6 +92,12 @@ public final class Settings: @unchecked Sendable {
     public var cleanupPlace: CleanupPlace {
         get { defaults.string(forKey: Key.cleanupPlace).flatMap(CleanupPlace.init(rawValue:)) ?? .cloud }
         set { defaults.set(newValue.rawValue, forKey: Key.cleanupPlace) }
+    }
+
+    /// The cleanup model Local uses: nil until one is chosen. Unknown saved values (from another build) read as nil.
+    public var localCleanupModel: CleanupModelID? {
+        get { defaults.string(forKey: Key.localCleanupModel).flatMap(CleanupModelID.init(rawValue:)) }
+        set { defaults.set(newValue?.rawValue, forKey: Key.localCleanupModel) }
     }
 
     /// Saved only once edited, so users who never edit the rules get a newer default.
