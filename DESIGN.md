@@ -213,7 +213,7 @@ components:
     backgroundColor: "{colors.app-window-light}"
     textColor: "{colors.app-text-primary-light}"
     rounded: "{rounded.app-window}"
-    width: "540px"
+    width: "688px"
 ---
 
 # Design System: Rillo
@@ -264,7 +264,7 @@ Light and Dark are equals, so every role has a `-light` and a `-dark` key, named
 - **Hover and selected** (`app-hover`, `app-selected`): fills laid on top of another fill. Hover on rows and buttons; selected on the current sidebar item, a pressed control, a focused words row or history row, keycaps, and the hovered Settings and Quit rows.
 - **Lines** (`app-line-rule`, `app-line-strong`): 1 pt. Rule for dividers, panel and shell outlines and resting field outlines; strong for secondary button outlines and a focused field or rules editor.
 - **Text** (`app-text-primary`, `app-text-secondary`): secondary text is tinted warm, never a neutral grey.
-- **Primary action** (`app-action-primary`, `app-action-on-primary`): the one filled button (Done on the first-run window) and the toggle's on track; near-black in Light, ivory-white in Dark.
+- **Primary action** (`app-action-primary`, `app-action-on-primary`): the one filled button (Continue and Done on the first-run window) and the toggle's on track; near-black in Light, ivory-white in Dark.
 - **Live** (`app-live`): the pill's warm ivory, and the only "live" light in the app: the listening status dot and the live lit top edge. The code holds one value (`GlassTheme.live`) for both appearances; the two keys carry the same hex.
 - **States** (`app-state-done`, `app-state-attention`, `app-state-destructive`): the Dark done and attention values are the pill's mint and amber; the Light values are darker versions of the same hues. Destructive red marks field errors.
 - **Changes** (`app-change-added`, with `app-state-destructive` for removals): the History page's marks for words cleanup added or rewrote, green and underlined, and removed, red and struck through, each on an 8% (Light) or 12% (Dark) tint of its own colour. `app-state-done-light` is too low for text, so Light green is darker: 5.56:1 on its tint.
@@ -307,9 +307,9 @@ SF Pro Rounded for anything you click or scan, matching the capsule controls; SF
 - **App window:** opens at 1200 × 680 pt and resizes down to 1040 × 640 pt. The sidebar (`app-size-sidebar`, `GlassTheme.sidebarWidth`) has 12 pt padding at the sides and bottom and 52 pt at the top, which leaves room for the system window buttons. Six items sit 2 pt apart (History, General, Speech model, Cleanup, Words, Permissions), each a 28 pt capsule with a 16 pt SF Symbol (`clock.arrow.circlepath`, `gearshape`, `mic`, `sparkles`, `book`, `lock`), an 8 pt gap and 8 pt side padding. At its foot, the status line: an 8 pt status dot, the short status in `app-label`, then the dictation key's name in `app-small` secondary text at the right, 8 pt gaps and side padding; it becomes a button with a hover capsule when a fix exists. The content pane has 20 pt padding and 16 pt between the title and each group. Switching panes is a 130 ms cross-fade; Command-1 to 6 and the up and down arrows change pane.
 - **Groups:** a section header (title, then description 2 pt below, both inset 4 pt), then a raised panel 8 pt below holding the rows. The Cleanup pane has no section header.
 - **Rows:** at least 44 pt tall (`app-size-row-min`, `GlassTheme.rowMinHeight`), 8 pt top and bottom and 12 pt side padding, 12 pt between the text and the control at the right end, a 1 pt rule between rows. Title and detail sit 2 pt apart. A row may carry a 20 pt leading status icon 12 pt before the text, and an error line between the title and detail.
-- **Controls:** 28 pt tall (`app-size-control-m`, `GlassTheme.controlHeight`); toggles 38 × 22 pt; the General pane's rows are Dictation key, Paste last transcript, Microphone, Live words and Launch at login, followed by the Speech to text section (tiles and preview panel, below). The settings panes have no filled button; the only primary button is Done on the first-run window.
+- **Controls:** 28 pt tall (`app-size-control-m`, `GlassTheme.controlHeight`); toggles 38 × 22 pt; the General pane's rows are Dictation key, Paste last transcript, Microphone, Live words and Launch at login, followed by the Speech to text section (tiles and preview panel, below). The settings panes have no filled button; the only primary buttons are Continue and Done on the first-run window.
 - **Menu bar popover:** 280 pt wide. Top to bottom: the status row, at least 38 pt tall with 16 pt side and 8 pt top and bottom padding and 8 pt gaps, with an optional detail line and an optional secondary fix button, both inset 16 pt; a rule; the history, up to 20 dictations in a list at most 400 pt tall, inset 6 pt, each row with 10 pt corners and 10 pt side, 8 pt top and bottom padding, or when empty a message with 16 pt padding; a rule; then the Microphone, Settings… and Quit rows as 28 pt capsules with 10 pt side padding, inset 6 pt. No model line. The panel opens 4 pt below the menu bar button, centred on it, and is kept 8 pt inside the screen.
-- **First-run window:** 540 pt wide and as tall as its content; 20 pt side, 44 pt top and 20 pt bottom padding, 16 pt between blocks. Top to bottom: the title, a one-line body 4 pt below; one raised panel of three rows (Microphone, Accessibility, Speech model, the last with a progress bar inset 44 pt left, 12 pt right and 10 pt from the bottom); the dictation key group at 40% opacity until both permissions are allowed; the Done button at the right.
+- **First-run window:** 688 pt wide, so the settings panes fit at their settings width, and as tall as the step on show; 20 pt side, 44 pt top and 20 pt bottom padding, 16 pt between blocks. Three steps, one at a time, each opening with a title and a one-line body 4 pt below. Step 1: one raised panel of two rows (Microphone, Accessibility), then the dictation key group at 40% opacity until both permissions are allowed. Step 2: while the first launch's download runs, a raised panel with the Speech model row and a progress bar inset 44 pt left, 12 pt right and 10 pt from the bottom; then the Speech model pane. Step 3: the Cleanup pane. The footer: "Step 1 of 3" in `app-small` secondary text at the left; Back (secondary, from step 2) and Continue, or Done on step 3, at the right.
 - **Speech model pane:** two raised tables, On this Mac and Available to download, that share their columns so names and figures line up. Each opens with a 28 pt header row (`app-size-model-header`), then 48 pt model rows (`app-size-model-row`). The First word and Updates every columns are 76 pt wide (`app-size-model-figure`) and Live vs final is 84 pt (`app-size-model-live-vs-final`), 8 pt apart. A model downloading shows a 48 × 4 pt capsule bar under its name (`app-size-progress-track-w`, `app-size-progress-track-h`).
 - **Spacing:** there is no spacing scale in code; gaps are bare numbers. Most are 8, 12 or 16 pt; inner insets and message gaps are 6 pt, the popover rows and quiet buttons use 10 pt, icon buttons are 24 pt, and words rows are at least 36 pt.
 - **Other sizes:** the Cleanup key field is 254 pt wide with 12 pt inner padding; the cleanup rules editor is 140 pt tall with 8 pt padding; the shortcut recorder is 160 pt wide with 5 pt inner padding and 4 pt gaps.
@@ -388,7 +388,7 @@ Each control is drawn by the app in Glass colours and reports to VoiceOver as th
 
 #### Buttons
 - 28 pt tall, text in `app-label`. Primary and secondary have 16 pt side padding, quiet 10 pt. All three lay `app-hover` over their fill on hover and `app-selected` when pressed.
-- **Primary** (`button-primary`): `app-action-primary` fill. Only Done on the first-run window uses it.
+- **Primary** (`button-primary`): `app-action-primary` fill. Only Continue and Done on the first-run window use it.
 - **Secondary** (`button-secondary`): `app-raised` fill with a 1 pt `app-line-strong` outline.
 - **Quiet** (`button-quiet`): no fill or outline at rest.
 
@@ -433,7 +433,7 @@ Each control is drawn by the app in Glass colours and reports to VoiceOver as th
 #### Menu bar popover
 - `popover`: shell material, system shadow, resting lit top edge; the edge goes live while the mic is live.
 - Status row: 8 pt dot, status in `app-label`, hint in `app-small` secondary text at the right ("Let go to paste" while holding, "Tap <key> to stop" hands-free, "Tap or hold <key>" when ready), then the optional detail line and fix button.
-- History row (`history-row`): the transcript in `app-transcript`, at most 2 lines; a meta line "<App> · <time>" in `app-detail` secondary text, kept to one line (cut in the middle when too long) so the row never changes height; a "Click to paste" tooltip on the row; an optional note in `app-small` ("Not pasted", "Raw transcript · …"). A 24 pt copy button is always visible and shows an `app-state-done` checkmark for 260 ms after a copy. Fill: `app-hover` on hover (`history-row-hover`), animated over 130 ms, `app-selected` when focused. Arrows move, Return pastes, Command-C copies.
+- History row (`history-row`): the transcript in `app-transcript`, at most 2 lines; a meta line "<App> · <time>" in `app-detail` secondary text, kept to one line (cut in the middle when too long) so the row never changes height; a "Click to copy" tooltip on the row, since a click anywhere on it copies; an optional note in `app-small` ("Not pasted", "Raw transcript · …"). A 24 pt copy button is always visible and shows an `app-state-done` checkmark for 260 ms after a copy. Fill: `app-hover` on hover (`history-row-hover`), animated over 130 ms, `app-selected` when focused. Arrows move, Return pastes, Command-C copies.
 - Microphone row, above Settings…: a 16 pt `mic` symbol, "Microphone: " and the saved choice ("Automatic" or the microphone's name, never what Automatic picked) in `app-label`, the `chevron.up.chevron.down` chevron in secondary text at the right, 8 pt gaps; hover as Settings…. It opens the same menu as the Settings row. VoiceOver: "Microphone", value the saved choice.
 - Settings… (⌘,) and Quit Rillo (⌘Q) rows: 28 pt capsules, shortcut in `app-small` secondary text, `app-selected` on hover with no animation.
 - The panel closes at once, with no animation.
@@ -457,9 +457,9 @@ Each control is drawn by the app in Glass colours and reports to VoiceOver as th
 - It plays when the panel scrolls at least half into view, when Live words, Cleanup or the speech model changes, and on Play again; it stops drawing once scrolled out of view. Under Reduce Motion it shows the pasted sentence in the box and no pill.
 
 #### First-run window
-- `first-run-window`: laid out as in Layout, on the shell with a system shadow and a resting lit top edge that goes live while the mic is live.
-- The Speech model row's icon is info while downloading, done when ready and attention on error.
-- The dictation key group is disabled until both permissions are allowed. Done is the default button for Return.
+- `first-run-window`: laid out as in Layout, on the shell with a system shadow and a resting lit top edge that goes live while the mic is live. It floats above every other window, other apps' included.
+- The Speech model row's icon is info while downloading and attention on error; the row goes once the model is ready.
+- The dictation key group and Continue are disabled until both permissions are allowed. Continue, then Done, is the default button for Return. Steps cross-fade over 130 ms (`GlassTheme.snap`). Closing the window early is allowed; Settings holds the same panes.
 
 #### Motion
 - 130 ms ease-in-out for hover, press, the toggle and the pane cross-fade (`GlassTheme.snap`); 260 ms hold for the copy checkmark (`GlassTheme.hold`).

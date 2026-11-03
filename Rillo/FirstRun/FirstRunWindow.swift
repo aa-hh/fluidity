@@ -1,8 +1,9 @@
 import AppKit
 import SwiftUI
 
-/// The first-run check: one 540 pt window with Microphone, Accessibility and the speech model,
-/// then the dictation key, which unlocks once both permissions are allowed. No tour.
+/// The first-run check, one step at a time in a 688 pt window: Microphone, Accessibility and the dictation key,
+/// then the Speech model pane, then the Cleanup pane. It floats above every other window; closing it early is
+/// fine, since Settings holds the same panes. No tour.
 @MainActor
 final class FirstRunWindow {
     let model: FirstRunModel
@@ -41,6 +42,8 @@ final class FirstRunWindow {
         window.backgroundColor = .clear
         window.isMovableByWindowBackground = true
         window.isReleasedWhenClosed = false
+        // Above other apps' windows too, so System Settings or the app the user was in never hides it.
+        window.level = .floating
         window.contentView = hosting
         window.center()
         return window
@@ -50,23 +53,48 @@ final class FirstRunWindow {
 struct FirstRunView: View {
     let model: FirstRunModel
     let settings: SettingsModel
+    /// Starts on the first step; the preview passes another.
+    @State var step = Step.permissions
+
+    enum Step: String, CaseIterable {
+        case permissions, speechModel, cleanup
+    }
 
     private var bothAllowed: Bool { settings.microphone == .granted && settings.accessibility == .granted }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Set up Rillo").font(GlassTheme.title).foregroundStyle(GlassTheme.textPrimary)
-                    .accessibilityAddTraits(.isHeader)
-                Text("Allow two things, then choose your dictation key.")
-                    .font(GlassTheme.body).foregroundStyle(GlassTheme.textSecondary)
+            Group {
+                switch step {
+                case .permissions: permissionsStep
+                case .speechModel: speechModelStep
+                case .cleanup: cleanupStep
+                }
             }
+            .transition(.opacity)
+            footer
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 44)
+        .padding(.bottom, 20)
+        .frame(width: 688)
+        .glassShell(isLive: settings.isMicLive)
+        .focusEffectDisabled()
+        .ignoresSafeArea()
+        .onChange(of: bothAllowed) { _, allowed in
+            if allowed { AccessibilityNotification.Announcement("Both allowed. Choose your dictation key.").post() }
+        }
+    }
+
+    // MARK: Steps
+
+    private var permissionsStep: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            heading("Set up Rillo", "Allow two things, then choose your dictation key.")
             GlassPanel {
                 PermissionRow(model: settings, permission: .microphone)
                 GlassRule()
                 PermissionRow(model: settings, permission: .accessibility)
-                GlassRule()
-                speechModelRow
             }
             VStack(alignment: .leading, spacing: 8) {
                 SectionHeader(title: "Your dictation key",
@@ -82,34 +110,73 @@ struct FirstRunView: View {
             .disabled(!bothAllowed)
             .opacity(bothAllowed ? 1 : 0.4)
             .accessibilityHint(bothAllowed ? "" : "Available once Microphone and Accessibility are allowed")
-            HStack {
-                Spacer()
-                Button("Done", action: model.onDone)
-                    .buttonStyle(.glassPrimary)
-                    .disabled(!bothAllowed)
-                    .keyboardShortcut(.defaultAction)
-            }
-        }
-        .padding(.horizontal, 20)
-        .padding(.top, 44)
-        .padding(.bottom, 20)
-        .frame(width: 540)
-        .glassShell(isLive: settings.isMicLive)
-        .focusEffectDisabled()
-        .ignoresSafeArea()
-        .onChange(of: bothAllowed) { _, allowed in
-            if allowed { AccessibilityNotification.Announcement("Both allowed. Choose your dictation key.").post() }
         }
     }
 
-    private var speechModelRow: some View {
+    private var speechModelStep: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            heading("Choose a speech model", "It turns your voice into text, on this Mac. You can switch later in Settings.")
+            if !model.isModelReady {
+                GlassPanel { launchDownloadRow }
+            }
+            SpeechModelPane(model: settings)
+        }
+    }
+
+    private var cleanupStep: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            heading("Clean up what you say", "Optional. Leave it off and Rillo pastes exactly what it heard.")
+            CleanupPane(model: settings)
+        }
+    }
+
+    private func heading(_ title: String, _ body: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title).font(GlassTheme.title).foregroundStyle(GlassTheme.textPrimary)
+                .accessibilityAddTraits(.isHeader)
+            Text(body).font(GlassTheme.body).foregroundStyle(GlassTheme.textSecondary)
+        }
+    }
+
+    // MARK: Footer
+
+    private var footer: some View {
+        let steps = Step.allCases, index = steps.firstIndex(of: step) ?? 0
+        return HStack(spacing: 8) {
+            Text("Step \(index + 1) of \(steps.count)")
+                .font(GlassTheme.small).foregroundStyle(GlassTheme.textSecondary)
+            Spacer()
+            if index > 0 {
+                Button("Back") { go(to: steps[index - 1]) }.buttonStyle(.glassSecondary)
+            }
+            if index + 1 < steps.count {
+                Button("Continue") { go(to: steps[index + 1]) }
+                    .buttonStyle(.glassPrimary)
+                    .disabled(!bothAllowed)
+                    .keyboardShortcut(.defaultAction)
+            } else {
+                Button("Done", action: model.onDone)
+                    .buttonStyle(.glassPrimary)
+                    .keyboardShortcut(.defaultAction)
+            }
+        }
+    }
+
+    private func go(to next: Step) {
+        withAnimation(GlassTheme.snap) { step = next }
+    }
+
+    // MARK: Launch download
+
+    /// The first launch downloads and loads the chosen model before anything is picked; this row follows it.
+    private var launchDownloadRow: some View {
         VStack(spacing: 0) {
-            GlassRow(title: "Speech model", detail: speechModelDetail) {
-                StatusIcon(kind: model.modelError != nil ? .attention : model.isModelReady ? .done : .info)
+            GlassRow(title: "Speech model", detail: launchDownloadDetail) {
+                StatusIcon(kind: model.modelError != nil ? .attention : .info)
             } trailing: {
                 EmptyView()
             }
-            if !model.isModelReady && model.modelError == nil && model.modelProgress < 1 {
+            if model.modelError == nil && model.modelProgress < 1 {
                 ProgressView(value: model.modelProgress)
                     .progressViewStyle(.linear)
                     .tint(GlassTheme.textSecondary)
@@ -121,9 +188,8 @@ struct FirstRunView: View {
         }
     }
 
-    private var speechModelDetail: String {
+    private var launchDownloadDetail: String {
         if let error = model.modelError { return error }
-        if model.isModelReady { return "Ready" }
         if model.modelProgress >= 1 { return "Getting Parakeet ready…" }
         return "Downloading Parakeet · \(Int(model.modelProgress * 100))%"
     }

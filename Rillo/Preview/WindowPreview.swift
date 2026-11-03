@@ -6,7 +6,8 @@ import SwiftUI
 /// `RILLO_PREVIEW=settings|popover|firstrun`, optionally `RILLO_PREVIEW_APPEARANCE=light|dark`.
 /// Prints the window number so `screencapture -l <number>` can capture it.
 /// With `RILLO_PREVIEW_OUT=<path.png>`, `settings` (with `RILLO_PREVIEW_PANE` and
-/// `RILLO_PREVIEW_STATE=default|downloading|failed|ready`) and `compare`
+/// `RILLO_PREVIEW_STATE=default|downloading|failed|ready`), `firstrun` (`RILLO_PREVIEW_STATE=permissions|speechModel|cleanup`)
+/// and `compare`
 /// (`RILLO_PREVIEW_STATE=idle|notOnThisMac|result`) draw into a window never shown,
 /// write it as a PNG and quit.
 @MainActor
@@ -32,6 +33,8 @@ enum WindowPreview {
             case "settings":
                 if let pane = environment["RILLO_PREVIEW_PANE"].flatMap(SettingsPane.init(rawValue:)) { settings.pane = pane }
                 renderSettings(settings, history: history, state: state, to: out)
+            case "firstrun":
+                renderFirstRun(settings, step: FirstRunView.Step(rawValue: state) ?? .permissions, to: out)
             case "compare":
                 Task { await renderCompare(state: state, to: out) }
             default:
@@ -91,6 +94,20 @@ enum WindowPreview {
         render(view, size: NSSize(width: 1200, height: 680), to: path) {
             if state == "failed" { settings.downloadFailure = (.parakeetUnified, .offline) }
         }
+    }
+
+    /// The first-run window on one step, with the launch download half done.
+    private static func renderFirstRun(_ settings: SettingsModel, step: FirstRunView.Step, to path: String) {
+        settings.accessibility = .granted
+        settings.speechModel = .parakeetTDTv2
+        settings.modelStates = [.parakeetTDTv2: .notInstalled, .appleBuiltIn: .partOfMacOS, .parakeetUnified: .notInstalled]
+        settings.modelsInUse = [.parakeetTDTv2]
+        settings.isPreparingModel = true
+        let model = FirstRunModel()
+        model.modelProgress = 0.52
+        retained.append(model)
+        let view = NSHostingView(rootView: FirstRunView(model: model, settings: settings, step: step))
+        render(view, size: view.fittingSize, to: path) {}
     }
 
     private static func renderCompare(state: String, to path: String) async {
