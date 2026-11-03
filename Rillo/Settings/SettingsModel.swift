@@ -96,8 +96,6 @@ final class SettingsModel {
     var cleanupModelStates: [CleanupModelID: ModelState] = [:]
     /// The last cleanup model download or delete that failed, and why.
     var cleanupDownloadFailure: (CleanupModelID, DownloadFailure)? = nil
-    /// The chosen local model the user deleted, until another is chosen; named in the Cleanup switch's detail.
-    var deletedCleanupModel: CleanupModelID?
 
     // MARK: Words
 
@@ -203,7 +201,6 @@ final class SettingsModel {
 
     func changeLocalCleanupModel(_ id: CleanupModelID) {
         localCleanupModel = id
-        deletedCleanupModel = nil
         onLocalCleanupModelChange(id)
     }
 

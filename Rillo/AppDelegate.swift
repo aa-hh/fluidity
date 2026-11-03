@@ -181,16 +181,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
         Task {
-            for await (states, failure, finished) in Observations({
-                (self.cleanupDownloads.states, self.cleanupDownloads.failure, self.cleanupDownloads.lastFinished)
-            }) {
+            for await (states, failure) in Observations({ (self.cleanupDownloads.states, self.cleanupDownloads.failure) }) {
                 self.settingsModel.cleanupModelStates = states
                 self.settingsModel.cleanupDownloadFailure = failure.map { ($0.model, $0.reason) }
-                // The first model downloaded while none is chosen becomes the chosen one.
-                if let finished {
-                    if self.settings.localCleanupModel == nil { self.chooseLocalCleanupModel(finished) }
-                    self.cleanupDownloads.clearLastFinished()
-                }
             }
         }
         Task {
@@ -262,17 +255,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         model.onDownloadCleanupModel = { cleanupDownloads.download($0) }
         model.onCancelCleanupDownload = { cleanupDownloads.cancelDownload($0) }
         model.onDeleteCleanupModel = { id in
+            // Deleting the chosen model is allowed; the choice stays saved and the pane says its model is gone.
             do {
                 try cleanupDownloads.delete(id)
             } catch {
                 Self.log.error("Deleting \(id.rawValue, privacy: .public) was refused: \(String(describing: error), privacy: .public)")
-                return
             }
-            // Deleting the chosen model is allowed; Local then has no model until the user picks or downloads one.
-            guard cleanupDownloads.states[id] == .notInstalled, settings.localCleanupModel == id else { return }
-            settings.localCleanupModel = nil
-            model.localCleanupModel = nil
-            model.deletedCleanupModel = id
         }
         model.onWordListChange = { settings.wordList = $0 }
         let models = models
@@ -343,12 +331,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         model.cleanupKey = key == nil ? .noKey : .accepted
         refreshMicrophones()
         refreshPermissions()
-    }
-
-    private func chooseLocalCleanupModel(_ id: CleanupModelID) {
-        settings.localCleanupModel = id
-        settingsModel.localCleanupModel = id
-        settingsModel.deletedCleanupModel = nil
     }
 
     /// Resolves the device to record from and prepares the input on it, resets a saved choice whose microphone is

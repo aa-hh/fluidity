@@ -20,6 +20,8 @@ struct CleanupPane: View {
     @State private var switchCount = 0
     /// The download failure note shows only for a failure that happened while the pane was open.
     @State private var shownFailure: String?
+    /// A delete the user confirmed, announced only once its model is gone.
+    @State private var pendingDelete: (id: CleanupModelID, announcement: String)?
     @FocusState private var focusedModel: CleanupModelID?
 
     var body: some View {
@@ -70,8 +72,14 @@ struct CleanupPane: View {
         .onChange(of: model.cleanupRules) { _, rules in
             if rules != model.defaultCleanupRules { rulesBeforeRestore = nil }
         }
+        .onChange(of: model.cleanupModelStates) {
+            guard let pending = pendingDelete, !isOnMac(pending.id) else { return }
+            pendingDelete = nil
+            AccessibilityNotification.Announcement(pending.announcement).post()
+        }
         .onChange(of: failureKey) { _, key in
             shownFailure = key
+            pendingDelete = nil
             if let failure = model.cleanupDownloadFailure {
                 AccessibilityNotification.Announcement(failureText(failure.0, failure.1)).post()
             }
@@ -82,11 +90,14 @@ struct CleanupPane: View {
         if model.cleanupPlace == .local {
             if !model.isCleanupEnabled { return "Off. Rillo pastes the raw transcript." }
             // razor: says plainly that Local doesn't run yet; drop the second sentence once local cleanup runs.
-            if let chosen = model.localCleanupModel, isOnMac(chosen) {
-                return "\(CleanupModel.model(chosen).name) is ready. Local cleanup isn't switched on in this build yet, so Rillo pastes the raw transcript."
+            if let chosen = model.localCleanupModel {
+                let name = CleanupModel.model(chosen).name
+                return isOnMac(chosen)
+                    ? "\(name) is ready. Local cleanup isn't switched on in this build yet, so Rillo pastes the raw transcript."
+                    : "\(name) is no longer on this Mac. Rillo pastes the raw transcript until you choose or download a model, or switch to Cloud."
             }
-            if let deleted = model.deletedCleanupModel {
-                return "You deleted \(CleanupModel.model(deleted).name). Rillo pastes the raw transcript until you download a model or switch to Cloud."
+            if CleanupModel.all.contains(where: { isOnMac($0.id) }) {
+                return "Choose a model below to use local cleanup. Until then Rillo pastes the raw transcript."
             }
             return "Download a model below to use local cleanup. Until then Rillo pastes the raw transcript."
         }
@@ -267,8 +278,8 @@ struct CleanupPane: View {
         alert.beginSheetModal(for: window) { response in
             guard response == .alertSecondButtonReturn else { return }
             MainActor.assumeIsolated {
+                pendingDelete = (entry.id, "\(entry.name) deleted")
                 onDelete(entry.id)
-                AccessibilityNotification.Announcement("\(entry.name) deleted").post()
             }
         }
     }
@@ -280,7 +291,8 @@ struct CleanupPane: View {
     private func failureText(_ id: CleanupModelID, _ failure: DownloadFailure) -> String {
         switch failure {
         case .offline: "You're offline. Connect and try again."
-        case .notEnoughSpace(let needed, _): "Not enough space: \(SpeechModelPane.megabytes(needed)) more is needed."
+        case .notEnoughSpace(_, let available):
+            "Not enough space: \(CleanupModel.model(id).name) needs \(sizeText(CleanupModel.model(id))) and this Mac has \(SpeechModelPane.megabytes(available)) free."
         case .damaged: "The download was damaged. Try again."
         case .other(let message) where isOnMac(id): "Couldn't delete \(CleanupModel.model(id).name): \(message)."
         case .other(let message): "The download failed: \(message)"
