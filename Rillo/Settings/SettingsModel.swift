@@ -91,6 +91,13 @@ final class SettingsModel {
     var apiKey = ""
     var cleanupRules = Settings.defaultCleanupRules
     let defaultCleanupRules = Settings.defaultCleanupRules
+    /// The cleanup model Local uses; nil until one is chosen.
+    var localCleanupModel: CleanupModelID?
+    var cleanupModelStates: [CleanupModelID: ModelState] = [:]
+    /// The last cleanup model download or delete that failed, and why.
+    var cleanupDownloadFailure: (CleanupModelID, DownloadFailure)? = nil
+    /// The chosen local model the user deleted, until another is chosen; named in the Cleanup switch's detail.
+    var deletedCleanupModel: CleanupModelID?
 
     // MARK: Words
 
@@ -128,6 +135,10 @@ final class SettingsModel {
     /// The user entered a key; the shell saves it and marks any saved key `.accepted` without checking it.
     var onAPIKeySubmit: (String) -> Void = { _ in }
     var onCleanupRulesChange: (String) -> Void = { _ in }
+    var onLocalCleanupModelChange: (CleanupModelID) -> Void = { _ in }
+    var onDownloadCleanupModel: (CleanupModelID) -> Void = { _ in }
+    var onCancelCleanupDownload: (CleanupModelID) -> Void = { _ in }
+    var onDeleteCleanupModel: (CleanupModelID) -> Void = { _ in }
     var onWordListChange: ([String]) -> Void = { _ in }
     var onSpeechModelChange: (SpeechModelID) -> Void = { _ in }
     var onDownloadModel: (SpeechModelID) -> Void = { _ in }
@@ -188,6 +199,12 @@ final class SettingsModel {
     func changeCleanupPlace(_ place: CleanupPlace) {
         cleanupPlace = place
         onCleanupPlaceChange(place)
+    }
+
+    func changeLocalCleanupModel(_ id: CleanupModelID) {
+        localCleanupModel = id
+        deletedCleanupModel = nil
+        onLocalCleanupModelChange(id)
     }
 
     func changeCleanupRules(_ rules: String) {

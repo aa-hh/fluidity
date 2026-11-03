@@ -535,7 +535,7 @@ private struct ModelRow<MenuItems: View>: View {
 }
 
 /// The 16 pt radio circle, filled when selected.
-private struct RadioMark: View {
+struct RadioMark: View {
     let isSelected: Bool
 
     var body: some View {
@@ -555,7 +555,7 @@ private struct RadioMark: View {
 }
 
 /// The download progress under the model name: a 48 × 4 pt bar.
-private struct ProgressTrack: View {
+struct ProgressTrack: View {
     let fraction: Double
 
     var body: some View {
@@ -601,8 +601,10 @@ private struct SymbolCircle: View {
 }
 
 /// The row's More (⋯) button; the Delete key on it runs the row's delete.
-private struct MoreButton<MenuItems: View>: View {
+struct MoreButton<MenuItems: View>: View {
     let name: String
+    /// What VoiceOver says for the button; "More for <name>" when nil.
+    var label: String?
     @ViewBuilder let menu: () -> MenuItems
     let deleteKey: () -> Void
 
@@ -613,7 +615,7 @@ private struct MoreButton<MenuItems: View>: View {
             .menuIndicator(.hidden)
             .fixedSize()
             .frame(width: ModelColumns.symbolButton, height: ModelColumns.symbolButton)
-            .accessibilityLabel("More for \(name)")
+            .accessibilityLabel(label ?? "More for \(name)")
             .onKeyPress(keys: [.delete, .deleteForward]) { _ in
                 deleteKey()
                 return .handled

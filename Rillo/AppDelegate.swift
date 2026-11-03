@@ -24,6 +24,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let storeChanges: AsyncStream<Void>
     private let permissions: SystemPermissions
     private let downloads: ModelDownloads<SpeechModelID>
+    private let cleanupDownloads: ModelDownloads<CleanupModelID>
     private let models: ModelCoordinator
     /// The open compare window's model.
     private var compareModel: CompareModel?
@@ -110,6 +111,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         self.store = store
         self.storeChanges = storeChanges
         self.downloads = downloads
+        cleanupDownloads = ModelDownloads(fetcher: HuggingFaceModelFetcher(), network: NetworkMonitor())
         self.models = models
         self.paste = paste
         hotkey = Hotkey(key: settings.dictationKey, pasteAgainKey: settings.pasteAgainKey)
@@ -179,6 +181,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
         Task {
+            for await (states, failure, finished) in Observations({
+                (self.cleanupDownloads.states, self.cleanupDownloads.failure, self.cleanupDownloads.lastFinished)
+            }) {
+                self.settingsModel.cleanupModelStates = states
+                self.settingsModel.cleanupDownloadFailure = failure.map { ($0.model, $0.reason) }
+                // The first model downloaded while none is chosen becomes the chosen one.
+                if let finished {
+                    if self.settings.localCleanupModel == nil { self.chooseLocalCleanupModel(finished) }
+                    self.cleanupDownloads.clearLastFinished()
+                }
+            }
+        }
+        Task {
             for await (inUse, inCompare, failure, preparing) in Observations({
                 (self.models.modelsInUse, self.models.modelsInCompare, self.models.switchFailure, self.models.isPreparing)
             }) {
@@ -242,6 +257,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             controller.refreshMenuBar()
         }
         model.onCleanupRulesChange = { settings.cleanupRules = $0 }
+        model.onLocalCleanupModelChange = { settings.localCleanupModel = $0 }
+        let cleanupDownloads = cleanupDownloads
+        model.onDownloadCleanupModel = { cleanupDownloads.download($0) }
+        model.onCancelCleanupDownload = { cleanupDownloads.cancelDownload($0) }
+        model.onDeleteCleanupModel = { id in
+            do {
+                try cleanupDownloads.delete(id)
+            } catch {
+                Self.log.error("Deleting \(id.rawValue, privacy: .public) was refused: \(String(describing: error), privacy: .public)")
+                return
+            }
+            // Deleting the chosen model is allowed; Local then has no model until the user picks or downloads one.
+            guard cleanupDownloads.states[id] == .notInstalled, settings.localCleanupModel == id else { return }
+            settings.localCleanupModel = nil
+            model.localCleanupModel = nil
+            model.deletedCleanupModel = id
+        }
         model.onWordListChange = { settings.wordList = $0 }
         let models = models
         model.onSpeechModelChange = { models.choose($0) }
@@ -303,6 +335,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         model.isCleanupEnabled = settings.isCleanupEnabled
         model.cleanupPlace = settings.cleanupPlace
         model.cleanupRules = settings.cleanupRules
+        model.localCleanupModel = settings.localCleanupModel
         model.wordList = settings.wordList
         model.speechModel = settings.speechModel
         let key = try? keychain.get()
@@ -310,6 +343,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         model.cleanupKey = key == nil ? .noKey : .accepted
         refreshMicrophones()
         refreshPermissions()
+    }
+
+    private func chooseLocalCleanupModel(_ id: CleanupModelID) {
+        settings.localCleanupModel = id
+        settingsModel.localCleanupModel = id
+        settingsModel.deletedCleanupModel = nil
     }
 
     /// Resolves the device to record from and prepares the input on it, resets a saved choice whose microphone is

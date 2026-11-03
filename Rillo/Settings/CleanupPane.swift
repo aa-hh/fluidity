@@ -1,3 +1,4 @@
+import AppKit
 import RilloCore
 import SwiftUI
 
@@ -17,6 +18,9 @@ struct CleanupPane: View {
     @State private var contentShown = true
     /// Lets a newer switch cancel the rest of an older one.
     @State private var switchCount = 0
+    /// The download failure note shows only for a failure that happened while the pane was open.
+    @State private var shownFailure: String?
+    @FocusState private var focusedModel: CleanupModelID?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -66,13 +70,25 @@ struct CleanupPane: View {
         .onChange(of: model.cleanupRules) { _, rules in
             if rules != model.defaultCleanupRules { rulesBeforeRestore = nil }
         }
+        .onChange(of: failureKey) { _, key in
+            shownFailure = key
+            if let failure = model.cleanupDownloadFailure {
+                AccessibilityNotification.Announcement(failureText(failure.0, failure.1)).post()
+            }
+        }
     }
 
     private var switchDetail: String {
         if model.cleanupPlace == .local {
-            return model.isCleanupEnabled
-                ? "Download a model below to use local cleanup. Until then Rillo pastes the raw transcript."
-                : "Off. Rillo pastes the raw transcript."
+            if !model.isCleanupEnabled { return "Off. Rillo pastes the raw transcript." }
+            // razor: says plainly that Local doesn't run yet; drop the second sentence once local cleanup runs.
+            if let chosen = model.localCleanupModel, isOnMac(chosen) {
+                return "\(CleanupModel.model(chosen).name) is ready. Local cleanup isn't switched on in this build yet, so Rillo pastes the raw transcript."
+            }
+            if let deleted = model.deletedCleanupModel {
+                return "You deleted \(CleanupModel.model(deleted).name). Rillo pastes the raw transcript until you download a model or switch to Cloud."
+            }
+            return "Download a model below to use local cleanup. Until then Rillo pastes the raw transcript."
         }
         return switch model.cleanupKey {
         case .noKey: "Add a Cerebras key below to turn cleanup on."
@@ -107,26 +123,181 @@ struct CleanupPane: View {
         }
     }
 
-    // razor: placeholder rows until the cleanup model list and downloads land (AA-457); Download stays unavailable.
+    // MARK: Local models
+
     private var localModels: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            SectionHeader(title: "Available to download", description: "Download a model before you choose it.")
-            GlassPanel {
-                localModelRow("Qwen3.5 2B, tuned for dictation")
-                GlassRule()
-                localModelRow("S1-mini by Superwhisper")
+        let onMac = CleanupModel.all.filter { isOnMac($0.id) }
+        let available = CleanupModel.all.filter { !isOnMac($0.id) }
+        return VStack(alignment: .leading, spacing: 16) {
+            if !onMac.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    SectionHeader(title: "On this Mac", description: "Choose the model local cleanup uses.")
+                    GlassPanel {
+                        ForEach(Array(onMac.enumerated()), id: \.element.id) { index, entry in
+                            if index > 0 { GlassRule() }
+                            onMacRow(entry, takesFocus: index == 0)
+                        }
+                    }
+                    .accessibilityElement(children: .contain)
+                    .accessibilityLabel("On this Mac")
+                    // A failed delete leaves its model here, so its note shows under this table.
+                    if let failure = shownCleanupFailure, isOnMac(failure.0) { failureMessage(failure.0, failure.1) }
+                }
+            }
+            if !available.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    SectionHeader(title: "Available to download", description: "Download a model before you choose it.")
+                    GlassPanel {
+                        ForEach(Array(available.enumerated()), id: \.element.id) { index, entry in
+                            if index > 0 { GlassRule() }
+                            availableRow(entry)
+                        }
+                    }
+                    if let failure = shownCleanupFailure, !isOnMac(failure.0) { failureMessage(failure.0, failure.1) }
+                }
+            }
+            Text("Measured on an Apple M1.")
+                .font(GlassTheme.small)
+                .foregroundStyle(GlassTheme.textSecondary)
+                .padding(.horizontal, 4)
+        }
+    }
+
+    /// A downloaded model: the radio, its details, "In use" when chosen, and the More menu with Delete.
+    private func onMacRow(_ entry: CleanupModel, takesFocus: Bool) -> some View {
+        let isChosen = entry.id == model.localCleanupModel
+        let noneChosen = !CleanupModel.all.contains { $0.id == model.localCleanupModel && isOnMac($0.id) }
+        return GlassRow(title: entry.name, detail: details(entry)) {
+            Button { chooseLocalModel(entry.id) } label: { RadioMark(isSelected: isChosen) }
+                .buttonStyle(.plain)
+                .focusable(isChosen || (noneChosen && takesFocus))
+                .focused($focusedModel, equals: entry.id)
+                .onKeyPress(.downArrow) { stepLocalModel(by: 1) }
+                .onKeyPress(.upArrow) { stepLocalModel(by: -1) }
+                .accessibilityLabel(entry.name)
+                .accessibilityAddTraits(isChosen ? [.isSelected] : [])
+        } trailing: {
+            HStack(spacing: 8) {
+                if isChosen {
+                    Text("In use").font(GlassTheme.small).foregroundStyle(GlassTheme.textSecondary)
+                }
+                MoreButton(name: entry.name, label: "More options for \(entry.name)") {
+                    Button("Delete Model…") { confirmDelete(entry) }
+                } deleteKey: {
+                    confirmDelete(entry)
+                }
+            }
+        }
+        .contentShape(Rectangle())
+        .onTapGesture { chooseLocalModel(entry.id) }
+    }
+
+    /// A model not on this Mac: Download, or while downloading its progress and Cancel.
+    private func availableRow(_ entry: CleanupModel) -> some View {
+        GlassRow(title: entry.name, detail: details(entry)) {
+            if case .downloading(let done, let total) = cleanupState(entry.id) {
+                HStack(spacing: 8) {
+                    ProgressTrack(fraction: total > 0 ? Double(done) / Double(total) : 0)
+                    Text("\(SpeechModelPane.megabytes(done, unit: false)) of \(SpeechModelPane.megabytes(total))")
+                        .font(GlassTheme.small).foregroundStyle(GlassTheme.textSecondary).lineLimit(1)
+                        .accessibilityLabel("Downloading, \(total > 0 ? Int(Double(done) / Double(total) * 100) : 0) percent")
+                    Button("Cancel") {
+                        model.onCancelCleanupDownload(entry.id)
+                        focusedModel = entry.id
+                    }
+                    .buttonStyle(.glassSecondary)
+                    .focused($focusedModel, equals: entry.id)
+                    .accessibilityLabel("Cancel download of \(entry.name)")
+                }
+            } else {
+                Button("Download") {
+                    model.onDownloadCleanupModel(entry.id)
+                    focusedModel = entry.id
+                }
+                .buttonStyle(.glassSecondary)
+                .focused($focusedModel, equals: entry.id)
+                .accessibilityLabel("Download \(entry.name)")
             }
         }
     }
 
-    private func localModelRow(_ name: String) -> some View {
-        GlassRow(title: name, detail: "English · 1.4 GB") {
-            Button("Download") {}
-                .buttonStyle(.glassSecondary)
-                .disabled(true)
-                .help("Local models can't be downloaded in this build yet.")
+    /// "English · 1.29 GB", then the figures measured on an Apple M1.
+    private func details(_ entry: CleanupModel) -> String {
+        var figures = [
+            entry.secondsPerDictation.map { "About \(String(format: "%.1f", $0)) s per dictation" } ?? "Speed not measured",
+            entry.memoryGB.map { "\(String(format: "%.1f", $0)) GB of memory" } ?? "Memory not measured",
+        ]
+        if !entry.usesWordList { figures.append("Doesn't use your word list") }
+        return "English · \(sizeText(entry))\n" + figures.joined(separator: " · ")
+    }
+
+    private func sizeText(_ entry: CleanupModel) -> String {
+        ByteCountFormatter.string(fromByteCount: entry.totalBytes, countStyle: .file)
+    }
+
+    private func chooseLocalModel(_ id: CleanupModelID) {
+        guard id != model.localCleanupModel else { return }
+        model.changeLocalCleanupModel(id)
+        focusedModel = id
+    }
+
+    /// The arrow keys move the choice between the models on this Mac.
+    private func stepLocalModel(by offset: Int) -> KeyPress.Result {
+        let ids = CleanupModel.all.map(\.id).filter(isOnMac)
+        guard let chosen = model.localCleanupModel, let index = ids.firstIndex(of: chosen) else {
+            if let first = ids.first { chooseLocalModel(first) }
+            return .handled
+        }
+        let next = index + offset
+        if ids.indices.contains(next) { chooseLocalModel(ids[next]) }
+        return .handled
+    }
+
+    private func confirmDelete(_ entry: CleanupModel) {
+        guard let window = NSApp.keyWindow else { return }
+        let size = sizeText(entry)
+        let alert = NSAlert()
+        alert.messageText = "Delete \(entry.name)?"
+        alert.informativeText = "This frees \(size). You can download it again."
+        alert.addButton(withTitle: "Cancel")
+        let delete = alert.addButton(withTitle: "Delete")
+        delete.hasDestructiveAction = true
+        delete.keyEquivalent = ""
+        let onDelete = model.onDeleteCleanupModel
+        alert.beginSheetModal(for: window) { response in
+            guard response == .alertSecondButtonReturn else { return }
+            MainActor.assumeIsolated {
+                onDelete(entry.id)
+                AccessibilityNotification.Announcement("\(entry.name) deleted").post()
+            }
         }
     }
+
+    private func failureMessage(_ id: CleanupModelID, _ failure: DownloadFailure) -> some View {
+        FieldMessage(kind: .error, text: failureText(id, failure)).padding(.horizontal, 4)
+    }
+
+    private func failureText(_ id: CleanupModelID, _ failure: DownloadFailure) -> String {
+        switch failure {
+        case .offline: "You're offline. Connect and try again."
+        case .notEnoughSpace(let needed, _): "Not enough space: \(SpeechModelPane.megabytes(needed)) more is needed."
+        case .damaged: "The download was damaged. Try again."
+        case .other(let message) where isOnMac(id): "Couldn't delete \(CleanupModel.model(id).name): \(message)."
+        case .other(let message): "The download failed: \(message)"
+        }
+    }
+
+    private var failureKey: String? {
+        model.cleanupDownloadFailure.map { "\($0.0.rawValue) \($0.1)" }
+    }
+
+    private var shownCleanupFailure: (CleanupModelID, DownloadFailure)? {
+        failureKey == shownFailure ? model.cleanupDownloadFailure : nil
+    }
+
+    private func cleanupState(_ id: CleanupModelID) -> ModelState { model.cleanupModelStates[id] ?? .notInstalled }
+
+    private func isOnMac(_ id: CleanupModelID) -> Bool { cleanupState(id) == .installed }
 
     private func infoLine(_ text: String) -> some View {
         HStack(alignment: .top, spacing: 6) {
