@@ -128,7 +128,7 @@ struct PopoverView: View {
             }
         }
         // Five two-line rows show; the rest scroll.
-        .frame(maxHeight: 376)
+        .frame(maxHeight: 416)
         .fixedSize(horizontal: false, vertical: true)
     }
 
@@ -146,8 +146,8 @@ struct PopoverView: View {
     }
 }
 
-/// One past dictation. The whole row pastes it again; Copy is always visible, so no
-/// action needs a hover.
+/// One past dictation. A click anywhere on the row copies it, so a click never sends text into
+/// another app; Return pastes it again. The copy icon is always visible, so no action needs a hover.
 private struct HistoryRow: View {
     let record: DictationRecord
     let now: Date
@@ -160,8 +160,8 @@ private struct HistoryRow: View {
     private var text: String { record.pastedText ?? record.rawTranscript }
 
     var body: some View {
-        HStack(alignment: .center, spacing: 8) {
-            Button(action: paste) {
+        Button(action: copy) {
+            HStack(alignment: .center, spacing: 8) {
                 VStack(alignment: .leading, spacing: 2) {
                     // 13 pt on a 17 pt line: the font's own line is 16 pt.
                     Text(text)
@@ -191,15 +191,7 @@ private struct HistoryRow: View {
                             .frame(height: 14)
                     }
                 }
-                .contentShape(Rectangle())
-                .glassFocusRing(RoundedRectangle(cornerRadius: GlassTheme.innerRadius, style: .continuous))
-            }
-            .buttonStyle(.plain)
-            .help("Click to paste")
-            .accessibilityLabel("Paste again: \(text), \(meta)")
-            .accessibilityAction(named: "Copy", copy)
 
-            Button(action: copy) {
                 Group {
                     if isCopied {
                         StatusIcon(kind: .done)
@@ -210,19 +202,21 @@ private struct HistoryRow: View {
                     }
                 }
                 .frame(width: 28, height: 28)
-                .contentShape(Circle())
-                .glassFocusRing(Circle())
             }
-            .buttonStyle(.plain)
-            .accessibilityLabel(isCopied ? "Copied" : "Copy")
+            .padding(.leading, 10)
+            .padding(.trailing, 6)
+            .padding(.vertical, 12)
+            .background {
+                RoundedRectangle(cornerRadius: GlassTheme.innerRadius, style: .continuous)
+                    .fill(isFocused || isCopied ? GlassTheme.selected : isHovering ? GlassTheme.hover : .clear)
+            }
+            .contentShape(RoundedRectangle(cornerRadius: GlassTheme.innerRadius, style: .continuous))
+            .glassFocusRing(RoundedRectangle(cornerRadius: GlassTheme.innerRadius, style: .continuous))
         }
-        .padding(.leading, 10)
-        .padding(.trailing, 6)
-        .padding(.vertical, 8)
-        .background {
-            RoundedRectangle(cornerRadius: GlassTheme.innerRadius, style: .continuous)
-                .fill(isFocused || isCopied ? GlassTheme.selected : isHovering ? GlassTheme.hover : .clear)
-        }
+        .buttonStyle(.plain)
+        .help("Click to copy")
+        .accessibilityLabel(isCopied ? "Copied: \(text)" : "Copy: \(text), \(meta)")
+        .accessibilityAction(named: "Paste again", paste)
         .onHover { isHovering = $0 }
         .animation(GlassTheme.snap, value: isHovering)
     }
