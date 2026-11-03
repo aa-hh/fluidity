@@ -32,9 +32,15 @@ struct WordsPane: View {
                             .focused($addFieldFocused)
                             .onSubmit { add() }
                             .accessibilityLabel("Add a word or name")
+                            .disabled(!model.isCleanupActive)
                         Button("Add") { add() }
                             .buttonStyle(.glassSecondary)
-                            .disabled(trimmed.isEmpty)
+                            .disabled(trimmed.isEmpty || !model.isCleanupActive)
+                    }
+                    // Speech-to-text ignores the list; only cleanup reads it.
+                    if !model.isCleanupActive {
+                        FieldMessage(kind: .info, text: "Your words only work with cleanup on. Turn on Cloud cleanup to add words.")
+                            .padding(.horizontal, 6)
                     }
                     if let duplicate {
                         FieldMessage(kind: .error, text: "\u{201C}\(duplicate)\u{201D} is already in your words.")
@@ -80,7 +86,7 @@ struct WordsPane: View {
 
     private func add() {
         let word = trimmed
-        guard !word.isEmpty else { return }
+        guard !word.isEmpty, model.isCleanupActive else { return }
         if let existing = model.wordList.first(where: { $0.caseInsensitiveCompare(word) == .orderedSame }) {
             duplicate = existing
             return
