@@ -40,10 +40,17 @@ struct MarkedWordsText: NSViewRepresentable {
         view.update(words: words, side: side, hoveredChange: hoveredChange, heardWord: heardWord)
     }
 
+    /// Measured on a copy of the text: SwiftUI tries several widths before settling, and laying out the shown text
+    /// at each would leave it at whichever width came last, spilling out of its column.
     func sizeThatFits(_ proposal: ProposedViewSize, nsView view: WordsTextView, context: Context) -> CGSize? {
-        let width = proposal.width ?? 300
-        guard let container = view.textContainer, let layout = view.layoutManager else { return nil }
-        container.size = NSSize(width: width, height: .greatestFiniteMagnitude)
+        let width = proposal.width.flatMap { $0.isFinite ? $0 : nil } ?? 300
+        guard let text = view.textStorage else { return nil }
+        let storage = NSTextStorage(attributedString: text)
+        let layout = NSLayoutManager()
+        let container = NSTextContainer(size: NSSize(width: width, height: .greatestFiniteMagnitude))
+        container.lineFragmentPadding = 0
+        layout.addTextContainer(container)
+        storage.addLayoutManager(layout)
         layout.ensureLayout(for: container)
         return CGSize(width: width, height: ceil(layout.usedRect(for: container).height))
     }
