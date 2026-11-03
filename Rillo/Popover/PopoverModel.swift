@@ -6,7 +6,10 @@ import Observation
 @MainActor
 @Observable
 final class PopoverModel {
-    /// Newest first, as `DictationStore.recent()` returns them.
+    /// The popover lists only the newest few; the History page has the rest.
+    static let shownCount = 20
+
+    /// Newest first, as `HistoryStore.items()` returns them.
     var records: [DictationRecord] = []
 
     /// Clicking a row, or Return on it: paste that dictation again.

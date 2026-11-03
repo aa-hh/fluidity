@@ -48,6 +48,8 @@ colors:
   app-state-attention-dark: "#FFB020"
   app-state-destructive-light: "#C83230"
   app-state-destructive-dark: "#FF6B66"
+  app-change-added-light: "#146E40"
+  app-change-added-dark: "#3EDC8A"
   app-live-light: "#FFE4B8"
   app-live-dark: "#FFE4B8"
   app-control-knob-light: "#FFFFFF"
@@ -265,6 +267,7 @@ Light and Dark are equals, so every role has a `-light` and a `-dark` key, named
 - **Primary action** (`app-action-primary`, `app-action-on-primary`): the one filled button (Done on the first-run window) and the toggle's on track; near-black in Light, ivory-white in Dark.
 - **Live** (`app-live`): the pill's warm ivory, and the only "live" light in the app: the listening status dot and the live lit top edge. The code holds one value (`GlassTheme.live`) for both appearances; the two keys carry the same hex.
 - **States** (`app-state-done`, `app-state-attention`, `app-state-destructive`): the Dark done and attention values are the pill's mint and amber; the Light values are darker versions of the same hues. Destructive red marks field errors.
+- **Changes** (`app-change-added`, with `app-state-destructive` for removals): the History page's marks for words cleanup added or rewrote, green and underlined, and removed, red and struck through, each on an 8% (Light) or 12% (Dark) tint of its own colour. `app-state-done-light` is too low for text, so Light green is darker: 5.56:1 on its tint.
 - **Controls** (`app-control-knob`, `app-focus-ring`): the toggle knob when off, and the focus ring (near-black in Light, ivory in Dark).
 
 Every text pair passes 4.5:1 over the blurred desktop in both appearances. The lowest Light pair is secondary text on the sidebar, 4.68:1 (5.04:1 on the window); the lowest Dark pair is 7.27:1. `app-state-done-light` reaches only 4.11:1 on the window, so it colours icons and never text.

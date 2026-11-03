@@ -3,15 +3,15 @@ import Foundation
 import RilloCore
 import Testing
 
-/// A temporary folder holding the drive root, the holding root and the history file of one store.
+/// A temporary folder holding the drive root, the holding root and the history of one store.
 private struct Folders {
     let base = FileManager.default.temporaryDirectory.appending(path: "DictationStoreTests-\(UUID().uuidString)")
     var drive: URL { base.appending(path: "drive") }
     var holding: URL { base.appending(path: "holding") }
-    var history: URL { base.appending(path: "history.json") }
+    var recordings: URL { base.appending(path: "recordings") }
 
     func store(mounts: any MountObserving = NoMounts()) -> DictationStore {
-        DictationStore(driveRoot: drive, holdingRoot: holding, historyURL: history, mounts: mounts)
+        DictationStore(driveRoot: drive, holdingRoot: holding, history: HistoryStore(folder: base), mounts: mounts)
     }
 
     func mountDrive() throws { try FileManager.default.createDirectory(at: drive, withIntermediateDirectories: true) }
@@ -67,7 +67,7 @@ private func record(_ offset: TimeInterval = 0, id: UUID = UUID()) -> DictationR
 
 private let tone: [Float] = (0..<16_000).map { sinf(Float($0) * 0.1) * 0.5 }
 
-// Turns red if save names the audio file or day file differently, writes anything but 16 kHz mono FLAC,
+// Turns red if save names the audio file or day file differently, writes anything but 16 kHz mono 16-bit FLAC,
 // or writes other than exactly one line.
 @Test func saveWritesFLACAndOneLineOnTheDrive() async throws {
     let folders = Folders()
@@ -83,6 +83,7 @@ private let tone: [Float] = (0..<16_000).map { sinf(Float($0) * 0.1) * 0.5 }
     #expect(audio.fileFormat.settings[AVFormatIDKey] as? UInt32 == kAudioFormatFLAC)
     #expect(audio.fileFormat.sampleRate == 16_000)
     #expect(audio.fileFormat.channelCount == 1)
+    #expect(audio.fileFormat.streamDescription.pointee.mFormatFlags == kAppleLosslessFormatFlag_16BitSourceData)
     #expect(audio.length == AVAudioFramePosition(tone.count))
     #expect(!FileManager.default.fileExists(atPath: folders.holding.path))
 }
@@ -168,7 +169,7 @@ func shortAudioIsPaddedToAReadableFLAC(sampleCount: Int) async throws {
     expected[1].finalText = "Hello, world."
     expected[1].watchStopReason = .focusLost
     #expect(try folders.lines(folders.drive.appending(path: "2026-10-22.jsonl")) == expected)
-    #expect(await store.recent() == expected.reversed())
+    #expect(await store.history.items().map(\.record) == expected.reversed())
 }
 
 // Turns red if a final text that arrives while the drive is unmounted is lost, or lands as a second line.
@@ -214,12 +215,12 @@ func shortAudioIsPaddedToAReadableFLAC(sampleCount: Int) async throws {
 
     #expect(try folders.lines(folders.drive.appending(path: "2026-10-22.jsonl")) == [failed])
     #expect(folders.names(in: folders.drive).filter { $0.hasSuffix(".flac") }.count == 1)
-    #expect(await store.recent().isEmpty)
-    #expect(await folders.store().recent().isEmpty)
+    #expect(await store.history.items().isEmpty)
+    #expect(await folders.store().history.items().isEmpty)
 }
 
-// Turns red if the history keeps more than 20, orders oldest first, or lives only in memory.
-@Test func recentReturnsTheLastTwentyNewestFirstAfterARestart() async throws {
+// Turns red if the history drops any dictation, orders oldest first, or lives only in memory.
+@Test func historyKeepsEveryDictationNewestFirstAfterARestart() async throws {
     let folders = Folders()
     try folders.mountDrive()
     let records = (0..<25).map { record(TimeInterval($0)) }
@@ -228,5 +229,86 @@ func shortAudioIsPaddedToAReadableFLAC(sampleCount: Int) async throws {
 
     let restarted = folders.store()
 
-    #expect(await restarted.recent() == Array(records.reversed().prefix(20)))
+    #expect(await restarted.history.items().map(\.record) == records.reversed())
+}
+
+// Turns red if a recording is saved without being asked for, lands among the training files, or is not 16-bit.
+@Test func keepRecordingSavesTheHistoryCopyApartFromTrainingData() async throws {
+    let folders = Folders()
+    try folders.mountDrive()
+    let store = folders.store()
+    let kept = record(0), notKept = record(1)
+
+    try await store.save(record: kept, audio: tone, keepRecording: true)
+    try await store.save(record: notKept, audio: tone)
+
+    #expect(await store.history.items().map(\.recording) == [nil, .saved])
+    #expect(folders.names(in: folders.recordings) == ["\(kept.id.uuidString).flac"])
+    #expect(folders.names(in: folders.drive).filter { $0.hasSuffix(".flac") }.count == 2)
+    let audio = try AVAudioFile(forReading: store.history.recordingURL(for: kept.id))
+    #expect(audio.fileFormat.streamDescription.pointee.mFormatFlags == kAppleLosslessFormatFlag_16BitSourceData)
+}
+
+// Turns red if a history file written before recordings existed, a plain list of records, stops reading.
+@Test func historyReadsTheOlderPlainRecordFormat() async throws {
+    let folders = Folders()
+    let records = [record(1), record(0)]
+    let encoder = JSONEncoder()
+    encoder.dateEncodingStrategy = .iso8601
+    try FileManager.default.createDirectory(at: folders.base, withIntermediateDirectories: true)
+    try encoder.encode(records).write(to: folders.base.appending(path: "history.json"))
+
+    #expect(await HistoryStore(folder: folders.base).items() == records.map { HistoryItem(record: $0) })
+}
+
+// Turns red if deleting a dictation leaves its recording, deletes another dictation, or Delete Recordings
+// takes the text with it.
+@Test func deletesTakeRecordingsWithThem() async throws {
+    let folders = Folders()
+    let history = HistoryStore(folder: folders.base)
+    let first = record(0), second = record(1), third = record(2)
+    for saved in [first, second, third] { try await history.add(saved, audio: tone) }
+
+    try await history.delete([second.id])
+    #expect(await history.items().map(\.record) == [third, first])
+    #expect(folders.names(in: folders.recordings).count == 2)
+
+    try await history.deleteRecordings()
+    #expect(await history.items().map(\.record) == [third, first])
+    #expect(await history.items().allSatisfy { $0.recording == nil })
+    #expect(await history.usage().recordingCount == 0)
+}
+
+// Turns red if purge deletes a dictation inside its period or one the user chose to keep, keeps one past it,
+// or deletes text when only its recording is past its period.
+@Test func purgeFollowsEachPeriodAndItsExemption() async throws {
+    let folders = Folders()
+    let history = HistoryStore(folder: folders.base)
+    let now = startedAt.addingTimeInterval(100 * 86_400)
+    func daysOld(_ days: Double) -> DictationRecord { record(100 * 86_400 - days * 86_400) }
+    let exempt = daysOld(60), pastHistory = daysOld(40), pastRecording = daysOld(10), fresh = daysOld(2)
+    for saved in [exempt, pastHistory, pastRecording, fresh] { try await history.add(saved, audio: tone) }
+    let rules = RetentionRules(keepHistory: .month, keepRecordings: .sevenDays, historyExemptBefore: now.addingTimeInterval(-50 * 86_400))
+
+    try await history.purge(rules, now: now)
+
+    let items = await history.items()
+    #expect(items.map(\.record.id) == [fresh.id, pastRecording.id, exempt.id])
+    #expect(items.map(\.recording) == [.saved, .expired(.sevenDays), .expired(.sevenDays)])
+    #expect(folders.names(in: folders.recordings) == ["\(fresh.id.uuidString).flac"])
+}
+
+// Turns red if shortening with Keep stops exempting what is already past the period, Delete keeps an exemption,
+// lengthening drops one, or Keep recordings stays longer than Keep history.
+@Test func retentionChangesSetExemptionsAndKeepRecordingsWithinHistory() {
+    let now = startedAt
+    let shortened = RetentionRules().keepingHistory(for: .threeMonths, now: now, keepOlder: true)
+    #expect(shortened.historyExemptBefore == Retention.threeMonths.cutoff(now: now))
+    #expect(RetentionRules().keepingHistory(for: .threeMonths, now: now, keepOlder: false).historyExemptBefore == nil)
+    #expect(shortened.keepingHistory(for: .year, now: now, keepOlder: false).historyExemptBefore == shortened.historyExemptBefore)
+
+    let tight = RetentionRules(keepRecordings: .year).keepingHistory(for: .sixMonths, now: now, keepOlder: true)
+    #expect(tight.keepRecordings == .threeMonths)
+    #expect(tight.recordingsExemptBefore == Retention.threeMonths.cutoff(now: now))
+    #expect(RetentionRules().keepingHistory(for: .month, now: now, keepOlder: true).keepRecordings == .thirtyDays)
 }

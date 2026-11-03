@@ -96,7 +96,7 @@ struct PopoverView: View {
     private var emptyHistory: some View {
         VStack(alignment: .leading, spacing: 2) {
             Text("Nothing dictated yet.").font(GlassTheme.label).foregroundStyle(GlassTheme.textPrimary)
-            Text("Hold \(settings.dictationKey.description) and speak. Your last \(DictationStore.historyLimit) dictations show here.")
+            Text("Hold \(settings.dictationKey.description) and speak. Your last \(PopoverModel.shownCount) dictations show here.")
                 .font(GlassTheme.detail).foregroundStyle(GlassTheme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -186,7 +186,7 @@ private struct HistoryRow: View {
                         }
                     }
                     .frame(height: 16)
-                    if let note, !isCopied {
+                    if let note = record.pasteNote, !isCopied {
                         Text(note).font(GlassTheme.small).foregroundStyle(GlassTheme.textSecondary)
                             .frame(height: 14)
                     }
@@ -231,18 +231,7 @@ private struct HistoryRow: View {
     private var meta: String {
         let elapsed = now.timeIntervalSince(record.startedAt)
         let when = elapsed < 60 ? "just now" : Self.relative.localizedString(for: record.startedAt, relativeTo: now)
-        return [Self.appName(record.app), when].compactMap { $0 }.joined(separator: " · ")
-    }
-
-    private var note: String? {
-        if !record.pasteLanded { return "Not pasted" }
-        guard let reason = record.fallbackReason else { return nil }
-        let why = switch reason {
-        case .slow: "cleanup too slow"
-        case .offline: "offline"
-        case .unparseable, .cutOff, .wordsNotInTranscript, .lengthOutOfRange, .answeredInstead: "cleanup didn't pass its check"
-        }
-        return "Raw transcript · \(why)"
+        return [record.appName, when].compactMap { $0 }.joined(separator: " · ")
     }
 
     private static let relative: RelativeDateTimeFormatter = {
@@ -250,14 +239,6 @@ private struct HistoryRow: View {
         formatter.unitsStyle = .short
         return formatter
     }()
-
-    private static func appName(_ bundleID: String?) -> String? {
-        guard let bundleID, let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) else {
-            return nil
-        }
-        let name = FileManager.default.displayName(atPath: url.path(percentEncoded: false))
-        return name.hasSuffix(".app") ? String(name.dropLast(4)) : name
-    }
 }
 
 /// The design library's `Icon/Copy`: two overlapping rounded squares, drawn in a 16 pt box.

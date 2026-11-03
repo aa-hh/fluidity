@@ -23,13 +23,15 @@ public enum TranscriptDiff {
         text.split(whereSeparator: \.isWhitespace).map(String.init)
     }
 
-    public static func differences(_ left: String, _ right: String) -> [Difference] {
+    /// Words count as matching when their `key`s are equal; the History page ignores case and punctuation.
+    public static func differences(_ left: String, _ right: String, key: (String) -> String = { $0 }) -> [Difference] {
         let a = words(left), b = words(right)
+        let keyA = a.map(key), keyB = b.map(key)
         // lengths[i][j] = longest common subsequence of a[i...] and b[j...].
         var lengths = [[Int]](repeating: [Int](repeating: 0, count: b.count + 1), count: a.count + 1)
         for i in stride(from: a.count - 1, through: 0, by: -1) {
             for j in stride(from: b.count - 1, through: 0, by: -1) {
-                lengths[i][j] = a[i] == b[j] ? lengths[i + 1][j + 1] + 1 : max(lengths[i + 1][j], lengths[i][j + 1])
+                lengths[i][j] = keyA[i] == keyB[j] ? lengths[i + 1][j + 1] + 1 : max(lengths[i + 1][j], lengths[i][j + 1])
             }
         }
         var result: [Difference] = []
@@ -41,7 +43,7 @@ public enum TranscriptDiff {
                 leftWords: start.left..<i, rightWords: start.right..<j))
         }
         while i < a.count || j < b.count {
-            if i < a.count, j < b.count, a[i] == b[j] {
+            if i < a.count, j < b.count, keyA[i] == keyB[j] {
                 closeRun()
                 i += 1
                 j += 1

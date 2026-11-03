@@ -18,12 +18,11 @@ public actor DictationStore {
     public static let defaultDriveRoot = URL(filePath: "/Volumes/Space/rillo-data", directoryHint: .isDirectory)
     public static let defaultHoldingRoot = URL.applicationSupportDirectory
         .appending(path: "Rillo/holding", directoryHint: .isDirectory)
-    public static let defaultHistoryURL = URL.applicationSupportDirectory.appending(path: "Rillo/history.json")
-    public static let historyLimit = 20
 
+    /// The History page's dictations and recordings; every save with a transcript lands there too.
+    public nonisolated let history: HistoryStore
     private let driveRoot: URL
     private let holdingRoot: URL
-    private let historyURL: URL
     private let mounts: any MountObserving
     private let files = FileManager.default
     private let encoder: JSONEncoder
@@ -32,12 +31,12 @@ public actor DictationStore {
     public init(
         driveRoot: URL = DictationStore.defaultDriveRoot,
         holdingRoot: URL = DictationStore.defaultHoldingRoot,
-        historyURL: URL = DictationStore.defaultHistoryURL,
+        history: HistoryStore = HistoryStore(),
         mounts: any MountObserving = WorkspaceMountObserver()
     ) {
         self.driveRoot = driveRoot
         self.holdingRoot = holdingRoot
-        self.historyURL = historyURL
+        self.history = history
         self.mounts = mounts
         encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
@@ -47,8 +46,9 @@ public actor DictationStore {
     }
 
     /// Writes the audio and the record's line. Call it only for dictations into non-secure fields:
-    /// the controller skips secure fields, and this store saves whatever it is given.
-    public func save(record: DictationRecord, audio: [Float]) throws {
+    /// the controller skips secure fields, and this store saves whatever it is given. `keepRecording` also saves the
+    /// audio for the History page.
+    public func save(record: DictationRecord, audio: [Float], keepRecording: Bool = false) async throws {
         let wroteToDrive = isDriveMounted && (try? write(record, audio: audio, under: driveRoot)) != nil
         if !wroteToDrive {
             try files.createDirectory(at: holdingRoot, withIntermediateDirectories: true)
@@ -57,11 +57,11 @@ public actor DictationStore {
         // A failed final pass saves no transcript: kept for training, but a blank history row would paste nothing.
         guard !record.rawTranscript.isEmpty else { return }
         // The dictation is already saved; a history failure must not make the caller save it again.
-        try? updateHistory { $0.insert(record, at: 0) }
+        try? await history.add(record, audio: keepRecording ? audio : nil)
     }
 
     /// Sets the final text and why watching stopped on the saved record, rewriting its line in place.
-    public func updateFinalText(id: UUID, finalText: String?, stopReason: WatchStopReason?) throws {
+    public func updateFinalText(id: UUID, finalText: String?, stopReason: WatchStopReason?) async throws {
         let change = { (record: inout DictationRecord) in
             record.finalText = finalText
             record.watchStopReason = stopReason
@@ -77,7 +77,7 @@ public actor DictationStore {
             }
             updated = found ?? updated
         }
-        if updated == nil, var record = readHistory().first(where: { $0.id == id }) {
+        if updated == nil, var record = await history.items().first(where: { $0.record.id == id })?.record {
             // The line is on a drive that is not mounted. A held copy replaces it when the drive mounts.
             change(&record)
             try files.createDirectory(at: holdingRoot, withIntermediateDirectories: true)
@@ -85,14 +85,7 @@ public actor DictationStore {
             updated = record
         }
         guard let updated else { throw DictationStoreError.recordNotFound(id) }
-        try? updateHistory { history in
-            if let index = history.firstIndex(where: { $0.id == id }) { history[index] = updated }
-        }
-    }
-
-    /// The most recent saved dictations, newest first, for the popover.
-    public func recent(limit: Int = DictationStore.historyLimit) -> [DictationRecord] {
-        Array(readHistory().prefix(limit))
+        try? await history.replace(updated)
     }
 
     /// Moves held dictations to the drive now and after every volume mount, until the stream ends or the task is cancelled.
@@ -147,26 +140,30 @@ public actor DictationStore {
     }
 
     private func write(_ record: DictationRecord, audio: [Float], under root: URL) throws {
-        try writeFLAC(audio, to: root.appending(path: audioFileName(for: record)))
+        try Self.writeFLAC(audio, to: root.appending(path: audioFileName(for: record)))
         try append(line(for: record), to: root.appending(path: dayFileName(for: record)))
     }
 
     /// macOS's FLAC encoder writes an unreadable file from fewer samples than one 4608-sample block.
     static let shortestFLAC = 4_608
 
-    private func writeFLAC(_ audio: [Float], to url: URL) throws {
+    /// 16-bit: the encoder takes its source depth from the samples it is handed, and float samples give 24-bit
+    /// files about a third larger with nothing a 16 kHz speech clip needs.
+    static func writeFLAC(_ audio: [Float], to url: URL) throws {
         let samples = audio + repeatElement(0, count: max(0, Self.shortestFLAC - audio.count))
         let settings: [String: Any] = [
             AVFormatIDKey: kAudioFormatFLAC,
             AVSampleRateKey: 16_000,
             AVNumberOfChannelsKey: 1,
         ]
-        let file = try AVAudioFile(forWriting: url, settings: settings, commonFormat: .pcmFormatFloat32, interleaved: false)
+        let file = try AVAudioFile(forWriting: url, settings: settings, commonFormat: .pcmFormatInt16, interleaved: false)
         defer { file.close() }
         guard let buffer = AVAudioPCMBuffer(pcmFormat: file.processingFormat, frameCapacity: AVAudioFrameCount(samples.count)),
-              let channel = buffer.floatChannelData?[0]
+              let channel = buffer.int16ChannelData?[0]
         else { throw DictationStoreError.audioBufferUnavailable }
-        samples.withUnsafeBufferPointer { channel.update(from: $0.baseAddress!, count: samples.count) }
+        for (index, sample) in samples.enumerated() {
+            channel[index] = Int16((min(max(sample, -1), 1) * Float(Int16.max)).rounded())
+        }
         buffer.frameLength = AVAudioFrameCount(samples.count)
         try file.write(from: buffer)
     }
@@ -229,19 +226,5 @@ public actor DictationStore {
 
     private func size(of url: URL) -> Int? {
         (try? files.attributesOfItem(atPath: url.path))?[.size] as? Int
-    }
-
-    // MARK: - History
-
-    private func readHistory() -> [DictationRecord] {
-        guard let data = try? Data(contentsOf: historyURL) else { return [] }
-        return (try? decoder.decode([DictationRecord].self, from: data)) ?? []
-    }
-
-    private func updateHistory(_ change: (inout [DictationRecord]) -> Void) throws {
-        var history = readHistory()
-        change(&history)
-        try files.createDirectory(at: historyURL.deletingLastPathComponent(), withIntermediateDirectories: true)
-        try encoder.encode(Array(history.prefix(Self.historyLimit))).write(to: historyURL, options: .atomic)
     }
 }

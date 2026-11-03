@@ -3,16 +3,22 @@ import ApplicationServices
 import Foundation
 import os
 
-/// `DictationStoring` over `DictationStore`. `didChange` runs after every save or update, for the
-/// popover's list of recent dictations.
+/// `DictationStoring` over `DictationStore`. `saveRecordings` says whether the History page keeps this
+/// dictation's audio; `didChange` runs after every save or update, for the popover and the History page.
 public struct StoreAdapter: DictationStoring {
     private static let log = Logger(subsystem: "com.rillo.app", category: "DictationStore")
 
     private let store: DictationStore
+    private let saveRecordings: @Sendable () -> Bool
     private let didChange: @Sendable () -> Void
 
-    public init(store: DictationStore, didChange: @escaping @Sendable () -> Void = {}) {
+    public init(
+        store: DictationStore,
+        saveRecordings: @escaping @Sendable () -> Bool = { false },
+        didChange: @escaping @Sendable () -> Void = {}
+    ) {
         self.store = store
+        self.saveRecordings = saveRecordings
         self.didChange = didChange
     }
 
@@ -25,7 +31,9 @@ public struct StoreAdapter: DictationStoring {
             WordTiming(word: $0.word, start: max(0, $0.start - shift), end: max(0, $0.end - shift))
         }
         do {
-            try await store.save(record: record, audio: Array(recording.samples.dropFirst(AudioCapture.leadInSamples)))
+            try await store.save(
+                record: record, audio: Array(recording.samples.dropFirst(AudioCapture.leadInSamples)),
+                keepRecording: saveRecordings())
         } catch {
             Self.log.error("Saving dictation \(record.id) failed: \(String(describing: error), privacy: .public)")
         }

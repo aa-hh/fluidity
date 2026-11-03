@@ -18,7 +18,7 @@ run without the app, the microphone or the speech model.
   ADR. Its revision is pinned to the one ADR 0002 measured.
 - **Every test belongs to one of four test targets,** so the runner can
   select one with `--filter` and run them as parallel jobs:
-  - `DictationTests`: DictationController, Hotkey, DictationStore, the `Wiring/` adapters
+  - `DictationTests`: DictationController, Hotkey, DictationStore, `Wiring/` adapters
   - `AudioTests`: AudioCapture, Transcriber, ModelCoordinator
   - `CleanupTests`: CleanupClient, Settings, Finisher, SpeechModels
   - `FieldTests`: FocusedField, Paster, EditWatcher
@@ -29,7 +29,7 @@ run without the app, the microphone or the speech model.
 
 - `RilloCore` → the library target the app imports.
 - `Sources/RilloCore/<Part>/` → one folder per part, named as ADR 0001 (`DictationController`, `Hotkey`, `AudioCapture`, `Transcriber`, `CleanupClient`, `Settings`, `FocusedField`, `Finisher`, `Paster`, `EditWatcher`, `DictationStore`); a part's traps live in its own `AGENTS.md`.
-- `SpeechModels/`, `ModelCoordinator/` → the model catalogue and downloads; engine switching and unloads.
+- `SpeechModels/`, `ModelCoordinator/`, `History/` → model catalogue, downloads; engine switching, unloads; History page storage.
 - `Sources/RilloCore/Wiring/` → adapters from each part to the protocol `DictationController` asks for, built by the app.
 - `DictationRecord` → the saved record of one dictation, shared by every part.
 - `RilloTestSupport` → helpers all four test targets share, such as `ManualClock`.

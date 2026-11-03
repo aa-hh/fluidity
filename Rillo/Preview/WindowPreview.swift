@@ -23,13 +23,15 @@ enum WindowPreview {
         default: break
         }
         let settings = sampleSettings()
-        retained.append(settings)
+        let history = HistoryModel()
+        history.items = sampleHistory()
+        retained.append(contentsOf: [settings, history] as [AnyObject])
         if let out = environment["RILLO_PREVIEW_OUT"] {
             let state = environment["RILLO_PREVIEW_STATE"] ?? ""
             switch which {
             case "settings":
                 if let pane = environment["RILLO_PREVIEW_PANE"].flatMap(SettingsPane.init(rawValue:)) { settings.pane = pane }
-                renderSettings(settings, state: state, to: out)
+                renderSettings(settings, history: history, state: state, to: out)
             case "compare":
                 Task { await renderCompare(state: state, to: out) }
             default:
@@ -40,7 +42,7 @@ enum WindowPreview {
         let number: Int?
         switch which {
         case "settings":
-            let window = SettingsWindow(model: settings)
+            let window = SettingsWindow(model: settings, history: history)
             window.show()
             retained.append(window)
             number = window.windowNumber
@@ -75,7 +77,7 @@ enum WindowPreview {
 
     /// The Speech model pane's sample states. A failure is set after the first layout,
     /// because the pane shows only failures that happen while it is open.
-    private static func renderSettings(_ settings: SettingsModel, state: String, to path: String) {
+    private static func renderSettings(_ settings: SettingsModel, history: HistoryModel, state: String, to path: String) {
         settings.speechModel = .parakeetTDTv2
         settings.modelStates = [.parakeetTDTv2: .installed, .appleBuiltIn: .partOfMacOS, .parakeetUnified: .notInstalled]
         switch state {
@@ -85,8 +87,8 @@ enum WindowPreview {
             settings.readyModel = .parakeetUnified
         default: break
         }
-        let view = NSHostingView(rootView: SettingsView(model: settings))
-        render(view, size: NSSize(width: 848, height: 600), to: path) {
+        let view = NSHostingView(rootView: SettingsView(model: settings, history: history))
+        render(view, size: NSSize(width: 1200, height: 680), to: path) {
             if state == "failed" { settings.downloadFailure = (.parakeetUnified, .offline) }
         }
     }
@@ -183,6 +185,19 @@ enum WindowPreview {
         settings.accessibility = .denied
         settings.menuBarState = .permissionMissing(.accessibility)
         return settings
+    }
+
+    /// The History page's sample: the dictation from the design, cleaned, then the popover's samples.
+    private static func sampleHistory() -> [HistoryItem] {
+        let raw = "um so I think we should uh move the meeting to Thursday no wait Friday at three pm and send the the notes to Priya"
+        let words = TranscriptDiff.words(raw)
+        let cleaned = DictationRecord(
+            id: UUID(), startedAt: Date(timeIntervalSinceNow: -120), app: "com.apple.mail", rawTranscript: raw,
+            cleanedText: "I think we should move the meeting to Friday at 3 PM and send the notes to Priya.",
+            pastedText: "I think we should move the meeting to Friday at 3 PM and send the notes to Priya.",
+            wordTimings: words.enumerated().map { WordTiming(word: $1, start: Double($0) * 0.3, end: Double($0) * 0.3 + 0.25) },
+            pasteLanded: true, modelVersion: "parakeet-tdt-0.6b-v2", wordListVersion: "0000")
+        return [HistoryItem(record: cleaned)] + sampleRecords().map { HistoryItem(record: $0) }
     }
 
     private static func sampleRecords() -> [DictationRecord] {
