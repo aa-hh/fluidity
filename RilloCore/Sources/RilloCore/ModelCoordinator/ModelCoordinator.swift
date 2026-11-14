@@ -46,7 +46,6 @@ public final class ModelCoordinator {
     @ObservationIgnored private let engines: [SpeechModelID: any SpeechEngine]
     @ObservationIgnored private let downloads: ModelDownloads<SpeechModelID>
     @ObservationIgnored private let loadVoiceDetector: @Sendable () async throws -> Void
-    @ObservationIgnored private let loadWordCheck: @Sendable () async throws -> Void
     @ObservationIgnored private let makeTranscriber: (any SpeechEngine, SpeechModelID) -> Transcriber
     @ObservationIgnored private let makeCompareSession: (@escaping (SpeechModelID) -> Transcriber) -> CompareSession
     /// Models a switch is loading.
@@ -59,7 +58,6 @@ public final class ModelCoordinator {
 
     /// - Parameters:
     ///   - loadVoiceDetector: loads Silero for the voice check, before every model's load, Parakeet TDT v2 included.
-    ///   - loadWordCheck: loads CTC 110M for the word-list recheck, which every model other than Parakeet TDT v2 needs on its own.
     ///   - makeTranscriber: builds a transcriber on an engine, for dictation and for each compare column.
     ///   - makeCompareSession: builds a compare session over the shared microphone with the given transcriber factory.
     public init(
@@ -68,7 +66,6 @@ public final class ModelCoordinator {
         engines: [SpeechModelID: any SpeechEngine],
         downloads: ModelDownloads<SpeechModelID>,
         loadVoiceDetector: @escaping @Sendable () async throws -> Void,
-        loadWordCheck: @escaping @Sendable () async throws -> Void,
         makeTranscriber: @escaping (any SpeechEngine, SpeechModelID) -> Transcriber,
         makeCompareSession: @escaping (@escaping (SpeechModelID) -> Transcriber) -> CompareSession
     ) {
@@ -83,7 +80,6 @@ public final class ModelCoordinator {
         self.engines = engines
         self.downloads = downloads
         self.loadVoiceDetector = loadVoiceDetector
-        self.loadWordCheck = loadWordCheck
         self.makeTranscriber = makeTranscriber
         self.makeCompareSession = makeCompareSession
         transcriber = makeTranscriber(engines[chosen]!, chosen)
@@ -101,21 +97,16 @@ public final class ModelCoordinator {
             // The first launch downloads Parakeet TDT v2 here, outside `ModelDownloads`.
             downloads.refreshInstalled()
         }
-        let isTDT = dictationModel == .parakeetTDTv2
-        let stepCount = isTDT ? 2 : 3
+        let stepCount = 2
         let needsDownload = downloads.states[dictationModel] == .notInstalled
         let report: @Sendable (Int, Double?) -> Void = { step, downloaded in
             progress(ModelLoadProgress(step: step, stepCount: stepCount, needsDownload: needsDownload, downloaded: downloaded))
         }
         report(0, nil)
-        // Silero, then for every model but Parakeet TDT v2 CTC, load inside the load the final pass waits for.
-        let loadVoiceDetector = loadVoiceDetector, loadWordCheck = loadWordCheck
+        // Silero loads inside the load the final pass waits for.
+        let loadVoiceDetector = loadVoiceDetector
         let before: @Sendable () async throws -> Void = {
             try await loadVoiceDetector()
-            if !isTDT {
-                report(1, nil)
-                try await loadWordCheck()
-            }
             report(stepCount - 1, nil)
         }
         try await transcriber.prepare(before: before, progress: { report(stepCount - 1, $0) })
@@ -217,15 +208,12 @@ public final class ModelCoordinator {
         for id in wanted where isOnMac(id) && compareLoads[id] == nil && !compareLoading.contains(id) {
             guard let engine = engines[id] else { continue }
             compareLoading.insert(id)
-            let loadVoiceDetector = loadVoiceDetector, loadWordCheck = loadWordCheck
+            let loadVoiceDetector = loadVoiceDetector
             Task {
                 var result = LoadResult.loaded
                 do {
-                    // Other models still need Silero for the voice check and CTC for the recheck, as in `prepare`.
-                    if id != .parakeetTDTv2 {
-                        try await loadVoiceDetector()
-                        try await loadWordCheck()
-                    }
+                    // Other models still need Silero for the voice check, as in `prepare`.
+                    if id != .parakeetTDTv2 { try await loadVoiceDetector() }
                     try await engine.load { _ in }
                 } catch {
                     result = .failed(String(describing: error))

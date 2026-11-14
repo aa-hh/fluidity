@@ -52,7 +52,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             settings: settings)
         let fluid = FluidAudioEngine()
         let engines: [SpeechModelID: any SpeechEngine] = [
-            .parakeetTDTv2: fluid, .appleBuiltIn: AppleSpeechEngine(), .parakeetUnified: UnifiedEngine(),
+            .parakeetTDTv2: fluid, .appleBuiltIn: AppleSpeechEngine(),
+            .fluidSpeechPro: FluidSpeechProEngine(folder: FluidAudioModelFetcher.folder(of: .fluidSpeechPro)!),
         ]
         let downloads = ModelDownloads(fetcher: FluidAudioModelFetcher(), network: NetworkMonitor())
         let settingsModel = SettingsModel(shortcuts: settings)
@@ -70,8 +71,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             engines: engines,
             downloads: downloads,
             loadVoiceDetector: { try await fluid.loadVoiceDetector() },
-            loadWordCheck: { try await fluid.loadWordCheck() },
-            makeTranscriber: { Transcriber(engine: $0, model: $1, voiceDetector: fluid, rechecker: fluid) },
+            makeTranscriber: { Transcriber(engine: $0, model: $1, voiceDetector: fluid) },
             makeCompareSession: { CompareSession(audio: AudioCaptureAdapter(capture: audioCapture), makeTranscriber: $0) })
         let field = FieldContextAdapter(field: FocusedField())
         let paste = PasteAdapter(
@@ -91,9 +91,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
         controller = DictationController(
             audio: audio,
-            // The word list feeds cleanup only: the speech recheck swapped common words for listed names
-            // ("sounds" became "Sonos") and no FluidAudio threshold stopped it.
-            transcriber: TranscriberAdapter(transcriber: models.transcriber, wordList: { [] }),
+            // The word list feeds cleanup only: a speech-side recheck swapped common words for listed names (ADR 0005).
+            transcriber: TranscriberAdapter(transcriber: models.transcriber),
             cleanup: cleanup,
             field: field,
             finisher: FinisherAdapter(wordList: { settings.wordList }),

@@ -54,11 +54,15 @@ struct SpeechModelPane: View {
             }
             Button("Compare Models…") { model.onCompare(model.speechModel, compareDefaultRight) }
                 .buttonStyle(.glassSecondary)
-            Text("Measured on an Apple M1. * Compared with the final text of \(name(.parakeetTDTv2)). Your speech never leaves this Mac, whichever model you pick.")
-                .font(GlassTheme.small)
-                .foregroundStyle(GlassTheme.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-                .padding(.horizontal, 4)
+            // Each licence's credit line follows the footnote it shares a style with.
+            ForEach(["Measured on an Apple M1. * Compared with the final text of \(name(.parakeetTDTv2)). Your speech never leaves this Mac, whichever model you pick."]
+                    + SpeechModel.all.compactMap(\.credit), id: \.self) { line in
+                Text(line)
+                    .font(GlassTheme.small)
+                    .foregroundStyle(GlassTheme.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, 4)
+            }
         }
         .onChange(of: model.modelStates) {
             guard let pending = pendingDelete, state(pending.id) == .notInstalled else { return }
@@ -365,7 +369,6 @@ private struct LiveVsFinalInfo: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(GlassTheme.selected, in: RoundedRectangle(cornerRadius: 8))
             paragraph("The column counts how many live words change in the final text: 1.6% is about 2 words in 100. Lower means what you read while talking is closer to what gets pasted. It does not measure the final text itself.")
-            paragraph("Parakeet Unified also rewrites words already on screen less often: in 14% of its updates, against 36% for Parakeet TDT v2.")
             Text("Measured on an Apple M1.").font(GlassTheme.small).foregroundStyle(GlassTheme.textSecondary)
         }
         .foregroundStyle(GlassTheme.textPrimary)

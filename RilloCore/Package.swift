@@ -8,12 +8,11 @@ let package = Package(
         .library(name: "RilloCore", targets: ["RilloCore"]),
     ],
     dependencies: [
-        // Pinned to the revision the live-words spike measured (ADR 0002).
-        // No traits: speech-to-text and voice detection only, no TTS or diarizer.
+        // Fluid Voice's copy of FluidAudio, pinned: the only one that loads Fluid Speech Pro (ADR 0005).
+        // It declares no traits, so text-to-speech and the diarizer can't be left out.
         .package(
-            url: "https://github.com/FluidInference/FluidAudio.git",
-            revision: "1b0ed50d686873128a4129b3510ce3914c849bab",
-            traits: []
+            url: "https://github.com/altic-dev/FluidAudio.git",
+            revision: "386f7195670b77f2954c7ee143ec63fcb50b6c3b"
         ),
     ],
     targets: [

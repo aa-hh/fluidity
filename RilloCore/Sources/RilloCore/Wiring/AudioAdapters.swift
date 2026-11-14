@@ -55,12 +55,10 @@ public struct AudioCaptureAdapter: AudioCapturing {
 /// `RawTranscript.transcriptionTime` is not passed on: the controller times the final pass itself.
 public final class TranscriberAdapter: Transcribing {
     private let transcriber: Transcriber
-    private let wordList: @Sendable () -> [String]
     private let lastPreview = Mutex<Task<Void, Never>?>(nil)
 
-    public init(transcriber: Transcriber, wordList: @escaping @Sendable () -> [String]) {
+    public init(transcriber: Transcriber) {
         self.transcriber = transcriber
-        self.wordList = wordList
     }
 
     /// Feeds `audio` to the transcriber and relays its live preview. When the caller stops reading,
@@ -93,10 +91,8 @@ public final class TranscriberAdapter: Transcribing {
 
     public func transcribe(_ recording: DictationController.Recording) async throws -> DictationController.Transcript {
         await endLastPreview()
-        let raw = try await transcriber.finish(recording: recording.samples, wordList: wordList())
-        return DictationController.Transcript(
-            text: raw.text, modelVersion: raw.model.rawValue, wordTimings: raw.wordTimings,
-            wordListRecheck: raw.wordListRecheckTime)
+        let raw = try await transcriber.finish(recording: recording.samples)
+        return DictationController.Transcript(text: raw.text, modelVersion: raw.model.rawValue, wordTimings: raw.wordTimings)
     }
 
     public func cancel() async {

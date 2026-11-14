@@ -1,4 +1,3 @@
-import FluidAudio
 import Foundation
 
 /// The speech model that turns 16 kHz mono audio into text.
@@ -24,28 +23,14 @@ public protocol VoiceDetecting: Sendable {
     func hasSpeech(in audio: [Float]) async throws -> Bool
 }
 
-/// The word-list recheck: swaps in terms from the user's word list where the audio supports them.
-public protocol WordListRechecking: Sendable {
-    /// A cheap check for whether any word in the transcript could be a word-list term.
-    func hasCandidates(in transcript: Transcript, wordList: [String]) async -> Bool
-    func recheck(_ transcript: Transcript, audio: [Float], wordList: [String]) async -> Transcript
-}
-
 /// One pass of the speech model over a recording.
 public struct Transcript: Sendable {
     public var text: String
     public var wordTimings: [WordTiming]
-    /// The speech model's own token timings, which the word-list recheck needs.
-    var tokenTimings: [TokenTiming]
 
     public init(text: String, wordTimings: [WordTiming]) {
-        self.init(text: text, wordTimings: wordTimings, tokenTimings: [])
-    }
-
-    init(text: String, wordTimings: [WordTiming], tokenTimings: [TokenTiming]) {
         self.text = text
         self.wordTimings = wordTimings
-        self.tokenTimings = tokenTimings
     }
 }
 
@@ -55,8 +40,6 @@ public struct RawTranscript: Sendable {
     public var wordTimings: [WordTiming]
     /// Seconds the final pass took.
     public var transcriptionTime: TimeInterval
-    /// Seconds the candidate check and the recheck took together; nil when the recheck did not run.
-    public var wordListRecheckTime: TimeInterval?
     /// The model the final pass ran on.
     public var model: SpeechModelID
 }
@@ -69,7 +52,6 @@ public actor Transcriber {
     private var engine: any SpeechEngine
     private var model: SpeechModelID
     private let voiceDetector: any VoiceDetecting
-    private let rechecker: any WordListRechecking
     private let clock: any Clock<Duration>
 
     private var recording: [Float] = []
@@ -82,7 +64,7 @@ public actor Transcriber {
     private var ticker: Task<Void, Never>?
     /// The preview pass on the engine, possibly left over from a recording that already ended.
     private var runningPass: Task<Void, Never>?
-    /// Set while a final pass or its recheck is on the engine; a new recording's preview passes wait until it clears.
+    /// Set while a final pass is on the engine; a new recording's preview passes wait until it clears.
     private var finalPassRunning = false
     /// The model load `prepare` started. The final pass waits for it, so a dictation made just after launch is not lost.
     private var loading: Task<Void, any Error>?
@@ -105,13 +87,11 @@ public actor Transcriber {
         engine: any SpeechEngine,
         model: SpeechModelID = .parakeetTDTv2,
         voiceDetector: any VoiceDetecting,
-        rechecker: any WordListRechecking,
         clock: any Clock<Duration> = ContinuousClock()
     ) {
         self.engine = engine
         self.model = model
         self.voiceDetector = voiceDetector
-        self.rechecker = rechecker
         self.clock = clock
     }
 
@@ -203,7 +183,7 @@ public actor Transcriber {
     }
 
     /// Ends the live preview and runs the final pass on `recording`, which includes the tail after release.
-    public func finish(recording: [Float], wordList: [String] = []) async throws -> RawTranscript {
+    public func finish(recording: [Float]) async throws -> RawTranscript {
         endPreviews()
         // Set before the first wait, so a switch cannot swap the engine under this final pass.
         finalPassRunning = true
@@ -236,22 +216,10 @@ public actor Transcriber {
             transcript = try await pass.value
         }
 
-        var wordListRecheckTime: TimeInterval?
-        if !wordList.isEmpty {
-            var rechecked = false
-            let elapsed = await clock.measure {
-                guard await rechecker.hasCandidates(in: transcript, wordList: wordList) else { return }
-                transcript = await rechecker.recheck(transcript, audio: recording, wordList: wordList)
-                rechecked = true
-            }
-            if rechecked { wordListRecheckTime = elapsed.seconds }
-        }
-
         return RawTranscript(
             text: transcript.text,
             wordTimings: transcript.wordTimings,
             transcriptionTime: transcriptionTime.seconds,
-            wordListRecheckTime: wordListRecheckTime,
             model: model
         )
     }

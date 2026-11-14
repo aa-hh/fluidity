@@ -13,9 +13,9 @@ run without the app, the microphone or the speech model.
 - **The real speech model, microphone, clipboard and network never run in
   tests.** A test that downloads or loads a model is a bug. Timing code takes
   `any Clock<Duration>`; tests inject `ManualClock`, never real time.
-- **FluidAudio is imported with no traits:** speech-to-text and voice
-  detection only, no text-to-speech or diarizer. Turning a trait on needs an
-  ADR. Its revision is pinned to the one ADR 0002 measured.
+- **FluidAudio is Fluid Voice's copy, pinned to ADR 0005's revision.** Its
+  text-to-speech and diarizer build in unused. Changing the copy or revision
+  needs an ADR.
 - **Every test belongs to one of four test targets,** so the runner can
   select one with `--filter` and run them as parallel jobs:
   - `DictationTests`: DictationController, Hotkey, DictationStore, `Wiring/` adapters

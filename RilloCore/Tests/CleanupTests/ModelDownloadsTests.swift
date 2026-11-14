@@ -95,7 +95,7 @@ private func until(_ condition: () -> Bool, sourceLocation: SourceLocation = #_s
 
 @MainActor
 @Suite struct ModelDownloadsTests {
-    let unifiedBytes: Int64 = 565_000_000
+    let proBytes: Int64 = 652_475_761
 
     func make(
         _ fetcher: FakeModelFetcher, online: Bool = true, inUse: Set<SpeechModelID> = [.parakeetTDTv2]
@@ -111,14 +111,14 @@ private func until(_ condition: () -> Bool, sourceLocation: SourceLocation = #_s
         await until { fetcher.isHolding }
     }
 
-    func startUnified(_ downloads: ModelDownloads<SpeechModelID>, _ fetcher: FakeModelFetcher) async {
-        await start(.parakeetUnified, downloads, fetcher)
+    func startPro(_ downloads: ModelDownloads<SpeechModelID>, _ fetcher: FakeModelFetcher) async {
+        await start(.fluidSpeechPro, downloads, fetcher)
     }
 
     // Turns red if Apple's model reads as downloadable, or the fetcher's installed check is not used at launch.
     @Test func freshStatesComeFromTheFetcher() {
         let downloads = make(FakeModelFetcher(installed: [.parakeetTDTv2]))
-        #expect(downloads.states == [.parakeetTDTv2: .installed, .appleBuiltIn: .partOfMacOS, .parakeetUnified: .notInstalled])
+        #expect(downloads.states == [.parakeetTDTv2: .installed, .appleBuiltIn: .partOfMacOS, .fluidSpeechPro: .notInstalled])
     }
 
     // Turns red if a model an engine downloaded after launch keeps reading as not downloaded,
@@ -127,27 +127,27 @@ private func until(_ condition: () -> Bool, sourceLocation: SourceLocation = #_s
         let fetcher = FakeModelFetcher(installed: [])
         let downloads = make(fetcher)
         #expect(downloads.states[.parakeetTDTv2] == .notInstalled)
-        await startUnified(downloads, fetcher)
+        await startPro(downloads, fetcher)
         fetcher.install(.parakeetTDTv2)
         downloads.refreshInstalled()
         #expect(downloads.states[.parakeetTDTv2] == .installed)
-        #expect(downloads.states[.parakeetUnified] == .downloading(downloadedBytes: 0, totalBytes: unifiedBytes))
+        #expect(downloads.states[.fluidSpeechPro] == .downloading(downloadedBytes: 0, totalBytes: proBytes))
     }
 
     // Turns red if progress stops mapping the fraction onto the catalogue size.
     @Test func progressShowsTheFractionOfTheCatalogueBytes() async {
         let fetcher = FakeModelFetcher()
         let downloads = make(fetcher)
-        await startUnified(downloads, fetcher)
+        await startPro(downloads, fetcher)
         fetcher.report(0.5)
-        await until { downloads.states[.parakeetUnified] == .downloading(downloadedBytes: unifiedBytes / 2, totalBytes: unifiedBytes) }
+        await until { downloads.states[.fluidSpeechPro] == .downloading(downloadedBytes: proBytes / 2, totalBytes: proBytes) }
     }
 
     // Turns red if a finished download, of a speech or a cleanup model, is not marked installed or not reported as just finished.
     @Test(arguments: [Catalogue.speech, .cleanup])
     func finishingInstallsAndReportsTheModel(_ catalogue: Catalogue) async {
         switch catalogue {
-        case .speech: await finishes(SpeechModelID.parakeetUnified)
+        case .speech: await finishes(SpeechModelID.fluidSpeechPro)
         case .cleanup: await finishes(CleanupModelID.s1Mini)
         }
     }
@@ -166,10 +166,10 @@ private func until(_ condition: () -> Bool, sourceLocation: SourceLocation = #_s
     @Test func cancelRemovesFilesWithoutAFailure() async {
         let fetcher = FakeModelFetcher()
         let downloads = make(fetcher)
-        await startUnified(downloads, fetcher)
-        downloads.cancelDownload(.parakeetUnified)
-        await until { downloads.states[.parakeetUnified] == .notInstalled }
-        #expect(fetcher.removed == [.parakeetUnified])
+        await startPro(downloads, fetcher)
+        downloads.cancelDownload(.fluidSpeechPro)
+        await until { downloads.states[.fluidSpeechPro] == .notInstalled }
+        #expect(fetcher.removed == [.fluidSpeechPro])
         #expect(downloads.failure == nil)
     }
 
@@ -179,7 +179,7 @@ private func until(_ condition: () -> Bool, sourceLocation: SourceLocation = #_s
     func aFailedDownloadIsReportedAndCleanedUp(_ catalogue: Catalogue, _ reason: DownloadFailure) async {
         let error: any Error = reason == .offline ? URLError(.notConnectedToInternet) : DamagedDownload(file: "model.safetensors")
         switch catalogue {
-        case .speech: await fails(SpeechModelID.parakeetUnified, with: error, as: reason)
+        case .speech: await fails(SpeechModelID.fluidSpeechPro, with: error, as: reason)
         case .cleanup: await fails(CleanupModelID.rilloCleanup2B, with: error, as: reason)
         }
     }
@@ -199,9 +199,9 @@ private func until(_ condition: () -> Bool, sourceLocation: SourceLocation = #_s
     @Test func tooLittleSpaceRefusesBeforeDownloading() {
         let fetcher = FakeModelFetcher(available: 500_000_000)
         let downloads = make(fetcher)
-        downloads.download(.parakeetUnified)
-        #expect(downloads.failure?.reason == .notEnoughSpace(neededBytes: unifiedBytes - 500_000_000, availableBytes: 500_000_000))
-        #expect(downloads.states[.parakeetUnified] == .notInstalled)
+        downloads.download(.fluidSpeechPro)
+        #expect(downloads.failure?.reason == .notEnoughSpace(neededBytes: proBytes - 500_000_000, availableBytes: 500_000_000))
+        #expect(downloads.states[.fluidSpeechPro] == .notInstalled)
         #expect(fetcher.downloads.isEmpty)
     }
 
@@ -209,11 +209,11 @@ private func until(_ condition: () -> Bool, sourceLocation: SourceLocation = #_s
     @Test func runningOutOfSpaceMidDownloadReportsTheFreeSpaceLeft() async {
         let fetcher = FakeModelFetcher()
         let downloads = make(fetcher)
-        await startUnified(downloads, fetcher)
+        await startPro(downloads, fetcher)
         fetcher.available = 20_000_000
         fetcher.fail(CocoaError(.fileWriteOutOfSpace))
         await until { downloads.failure != nil }
-        #expect(downloads.failure?.reason == .notEnoughSpace(neededBytes: unifiedBytes, availableBytes: 20_000_000))
+        #expect(downloads.failure?.reason == .notEnoughSpace(neededBytes: proBytes, availableBytes: 20_000_000))
     }
 
     // Turns red if Download can fetch a model in use, which the launch load may be downloading into the same folder.
@@ -229,9 +229,9 @@ private func until(_ condition: () -> Bool, sourceLocation: SourceLocation = #_s
     @Test func aSecondDownloadWhileDownloadingIsIgnored() async {
         let fetcher = FakeModelFetcher()
         let downloads = make(fetcher)
-        await startUnified(downloads, fetcher)
-        downloads.download(.parakeetUnified)
-        #expect(fetcher.downloads == [.parakeetUnified])
+        await startPro(downloads, fetcher)
+        downloads.download(.fluidSpeechPro)
+        #expect(fetcher.downloads == [.fluidSpeechPro])
     }
 
     // Turns red if a model in use (chosen, or still dictating while a switch loads), part of macOS, still downloading
@@ -241,21 +241,21 @@ private func until(_ condition: () -> Bool, sourceLocation: SourceLocation = #_s
         let fetcher = FakeModelFetcher(installed: [.parakeetTDTv2])
         let downloads = make(fetcher, inUse: [.parakeetTDTv2, .appleBuiltIn])
         #expect(throws: DeleteRefusal.inUse) { try downloads.delete(.parakeetTDTv2) }
-        downloads.inUse = [.parakeetUnified, .parakeetTDTv2]
+        downloads.inUse = [.fluidSpeechPro, .parakeetTDTv2]
         #expect(throws: DeleteRefusal.inUse) { try downloads.delete(.parakeetTDTv2) }
         downloads.inUse = [.appleBuiltIn]
         #expect(throws: DeleteRefusal.partOfMacOS) { try downloads.delete(.appleBuiltIn) }
-        await startUnified(downloads, fetcher)
-        #expect(throws: DeleteRefusal.downloading) { try downloads.delete(.parakeetUnified) }
+        await startPro(downloads, fetcher)
+        #expect(throws: DeleteRefusal.downloading) { try downloads.delete(.fluidSpeechPro) }
         fetcher.complete()
-        await until { downloads.states[.parakeetUnified] == .installed }
+        await until { downloads.states[.fluidSpeechPro] == .installed }
 
-        downloads.setOpenInCompare([.parakeetUnified])
-        #expect(throws: DeleteRefusal.openInCompare) { try downloads.delete(.parakeetUnified) }
+        downloads.setOpenInCompare([.fluidSpeechPro])
+        #expect(throws: DeleteRefusal.openInCompare) { try downloads.delete(.fluidSpeechPro) }
         downloads.setOpenInCompare([])
-        try downloads.delete(.parakeetUnified)
-        #expect(downloads.states[.parakeetUnified] == .notInstalled)
-        #expect(fetcher.removed == [.parakeetUnified])
+        try downloads.delete(.fluidSpeechPro)
+        #expect(downloads.states[.fluidSpeechPro] == .notInstalled)
+        #expect(fetcher.removed == [.fluidSpeechPro])
 
         let cleanup = ModelDownloads(fetcher: FakeFetcher<CleanupModelID>(installed: [.s1Mini]), network: FakeNetwork(isOnline: true))
         try cleanup.delete(.s1Mini)
@@ -264,12 +264,12 @@ private func until(_ condition: () -> Bool, sourceLocation: SourceLocation = #_s
 
     // Turns red if a delete whose files could not be removed marks the model not installed, or says nothing.
     @Test func aFailedDeleteKeepsTheModelAndReportsIt() throws {
-        let fetcher = FakeModelFetcher(installed: [.parakeetTDTv2, .parakeetUnified])
+        let fetcher = FakeModelFetcher(installed: [.parakeetTDTv2, .fluidSpeechPro])
         fetcher.removeFails = true
         let downloads = make(fetcher)
-        try downloads.delete(.parakeetUnified)
-        #expect(downloads.states[.parakeetUnified] == .installed)
-        #expect(downloads.failure?.model == .parakeetUnified)
+        try downloads.delete(.fluidSpeechPro)
+        #expect(downloads.states[.fluidSpeechPro] == .installed)
+        #expect(downloads.failure?.model == .fluidSpeechPro)
         #expect(downloads.failure?.reason == .other(String(describing: FakeModelFetcher.RemoveFailed())))
     }
 

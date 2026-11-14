@@ -37,14 +37,14 @@ public struct LoadingLine: Sendable {
 
     public mutating func report(_ progress: ModelLoadProgress, at now: Duration) {
         if owned.isEmpty {
-            let two = progress.stepCount == 2
+            // The voice detector, then the speech model.
             if progress.needsDownload {
                 downloadOwned = 6
-                owned = two ? [1, 5] : [1, 2, 3]
+                owned = [1, 5]
             } else {
-                owned = two ? [2, 10] : [2, 4, 6]
+                owned = [2, 10]
             }
-            typical = two ? [.seconds(1), .seconds(30)] : [.seconds(1), .seconds(25), .seconds(30)]
+            typical = [.seconds(1), .seconds(30)]
             running = 0
             stepStart = estimateWaitsForDownload ? nil : now
             sampledAt = now

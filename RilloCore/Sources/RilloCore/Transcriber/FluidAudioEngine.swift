@@ -2,21 +2,16 @@ import FluidAudio
 import Foundation
 import OSLog
 
-private let log = Logger(subsystem: "com.rillo.app", category: "models")
-
-/// Parakeet TDT v2 for every pass, Silero voice detection, and the Parakeet CTC 110M word-list recheck, from FluidAudio.
-public actor FluidAudioEngine: SpeechEngine, VoiceDetecting, WordListRechecking {
+/// Parakeet TDT v2 for every pass and Silero voice detection, from FluidAudio.
+public actor FluidAudioEngine: SpeechEngine, VoiceDetecting {
     public enum EngineError: Error {
         case notLoaded
     }
 
     private var asr: AsrManager?
     private var vad: VadManager?
-    private var ctc: CtcModels?
-    private var boosting: (wordList: [String], session: VocabularyBoostingSession)?
     private let asrLoads = SingleFlight()
     private let vadLoads = SingleFlight()
-    private let ctcLoads = SingleFlight()
 
     public init() {}
 
@@ -26,15 +21,6 @@ public actor FluidAudioEngine: SpeechEngine, VoiceDetecting, WordListRechecking 
         try await vadLoads.run { try await self.loadVAD { _ in } }
         try await asrLoads.run { try await self.loadASR(progress: progress) }
         progress(1)
-        // CTC 110M only feeds the word-list recheck, which skips until it lands, so dictation does not wait for
-        // its Neural Engine compile (about 25 s whenever macOS has purged the saved one).
-        Task {
-            do {
-                try await self.loadWordCheck()
-            } catch {
-                log.error("CTC 110M load failed: \(String(describing: error), privacy: .public)")
-            }
-        }
     }
 
     /// FluidAudio counts each model file's download as 0 to 0.5 of its fraction and the compile as 0.5 to 1.
@@ -55,7 +41,9 @@ public actor FluidAudioEngine: SpeechEngine, VoiceDetecting, WordListRechecking 
                 progress(last)
             }
         }
-        asr = AsrManager(config: .default, models: models)
+        let asr = AsrManager()
+        try await asr.initialize(models: models)
+        self.asr = asr
     }
 
     /// Loads Silero, which every speech model needs for the voice check.
@@ -63,74 +51,49 @@ public actor FluidAudioEngine: SpeechEngine, VoiceDetecting, WordListRechecking 
         try await vadLoads.run { try await self.loadVAD { _ in } }
     }
 
-    /// Loads CTC 110M, which every speech model needs for the word-list recheck.
-    public func loadWordCheck() async throws {
-        try await ctcLoads.run { try await self.loadCTC() }
-    }
-
-    private func loadCTC() async throws {
-        if ctc == nil { ctc = try await CtcModels.downloadAndLoad() }
-    }
-
     private func loadVAD(progress: @escaping @Sendable (Double) -> Void) async throws {
         guard vad == nil else { return }
         vad = try await VadManager(progressHandler: { progress($0.fractionCompleted) })
     }
 
-    /// Drops Parakeet TDT v2 only; Silero and CTC stay, since every speech model uses them.
+    /// Drops Parakeet TDT v2 only; Silero stays, since every speech model uses it.
     public func unload() async {
         asr = nil
     }
 
     public func transcribe(_ audio: [Float]) async throws -> Transcript {
         guard let asr else { throw EngineError.notLoaded }
-        var decoderState = TdtDecoderState.make(decoderLayers: await asr.decoderLayerCount)
-        let result = try await asr.transcribe(audio, decoderState: &decoderState)
-        let tokens = result.tokenTimings ?? []
-        let words = buildWordTimings(from: tokens).map {
-            WordTiming(word: $0.word, start: $0.startTime, end: $0.endTime)
-        }
-        return Transcript(text: result.text, wordTimings: words, tokenTimings: tokens)
+        return Transcript(try await asr.transcribe(audio))
     }
 
     public func hasSpeech(in audio: [Float]) async throws -> Bool {
         guard let vad else { throw EngineError.notLoaded }
         return try await vad.process(audio).contains { $0.isVoiceActive }
     }
+}
 
-    public func hasCandidates(in transcript: Transcript, wordList: [String]) async -> Bool {
-        guard let session = await session(for: wordList) else { return false }
-        return session.hasCTCRescoringCandidates(text: transcript.text, tokenTimings: transcript.tokenTimings)
+extension Transcript {
+    /// A FluidAudio Parakeet result, with word timings joined from its token timings.
+    init(_ result: ASRResult) {
+        let tokens = (result.tokenTimings ?? []).map { (text: $0.token, start: $0.startTime, end: $0.endTime) }
+        self.init(text: result.text, wordTimings: WordTiming.joining(tokens))
     }
+}
 
-    public func recheck(_ transcript: Transcript, audio: [Float], wordList: [String]) async -> Transcript {
-        guard let session = await session(for: wordList),
-              let output = await session.rescore(
-                  text: transcript.text, tokenTimings: transcript.tokenTimings, audioSamples: audio),
-              output.wasModified
-        else { return transcript }
-
-        // Word timings follow the new words only when the recheck swapped words one for one.
-        var wordTimings = transcript.wordTimings
-        let words = output.text.split(separator: " ")
-        if words.count == wordTimings.count {
-            for index in wordTimings.indices { wordTimings[index].word = String(words[index]) }
+extension WordTiming {
+    /// Joins Parakeet's word pieces into words: a piece starting with "▁" or a space starts a new word, and blank
+    /// and padding pieces are skipped. Each word runs from its first piece's start to its last piece's end.
+    public static func joining(_ tokens: [(text: String, start: TimeInterval, end: TimeInterval)]) -> [WordTiming] {
+        var words: [WordTiming] = []
+        for token in tokens where !token.text.isEmpty && token.text != "<blank>" && token.text != "<pad>" {
+            if isWordBoundary(token.text) || words.isEmpty {
+                words.append(WordTiming(word: stripWordBoundaryPrefix(token.text), start: token.start, end: token.end))
+            } else {
+                words[words.count - 1].word += token.text
+                words[words.count - 1].end = token.end
+            }
         }
-        return Transcript(text: output.text, wordTimings: wordTimings, tokenTimings: transcript.tokenTimings)
-    }
-
-    /// The boosting session for this word list, rebuilt only when the list changes.
-    private func session(for wordList: [String]) async -> VocabularyBoostingSession? {
-        if let boosting, boosting.wordList == wordList { return boosting.session }
-        guard let ctc else { return nil }
-        let vocabulary = CustomVocabularyContext(terms: wordList.map { CustomVocabularyTerm(text: $0) })
-        // With spotter rescue on, the candidate check says yes to every list of 10 terms or fewer, and false replacements rise.
-        guard let session = try? await VocabularyBoostingSession(
-            vocabulary: vocabulary,
-            ctcModels: ctc,
-            config: VocabularyRescorer.Config(spotterRescueEnabled: false)
-        ) else { return nil }
-        boosting = (wordList, session)
-        return session
+        for index in words.indices { words[index].word = words[index].word.trimmingCharacters(in: .whitespaces) }
+        return words.filter { !$0.word.isEmpty }
     }
 }

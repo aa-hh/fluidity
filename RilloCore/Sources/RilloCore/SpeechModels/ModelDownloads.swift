@@ -93,7 +93,8 @@ public final class ModelDownloads<ID: DownloadableModelID> {
         }
     }
 
-    /// Ignored for a model in use: one not on disk is being downloaded by its engine's load already.
+    /// Ignored for a model in use. Parakeet TDT v2's engine downloads it when it loads; any other model missing at
+    /// launch is not in use, since the launch falls back to TDT v2.
     public func download(_ id: ID) {
         guard !inUse.contains(id), states[id] == .notInstalled, let bytes = id.downloadBytes else { return }
         failure = nil

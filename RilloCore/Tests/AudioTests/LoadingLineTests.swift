@@ -25,15 +25,6 @@ private func close(_ a: Double, _ b: Double, within tolerance: Double = 1e-9) ->
         two.report(progress(2, of: 2), at: .milliseconds(300))
         #expect(two.fraction(at: .milliseconds(600)) == 1)
 
-        var three = LoadingLine(reduceMotion: false)
-        three.report(progress(0, of: 3), at: .zero)
-        three.report(progress(1, of: 3), at: .zero)
-        #expect(close(three.fraction(at: .milliseconds(300)) - estimate(4, typical: 25, after: 0.3), 2.0 / 12))
-        three.report(progress(2, of: 3), at: .milliseconds(300))
-        #expect(close(three.fraction(at: .milliseconds(600)) - estimate(6, typical: 30, after: 0.3), 6.0 / 12))
-        three.report(progress(3, of: 3), at: .milliseconds(600))
-        #expect(three.fraction(at: .milliseconds(900)) == 1)
-
         var download = LoadingLine(reduceMotion: false)
         download.report(progress(0, of: 2, download: true), at: .zero)
         download.report(progress(1, of: 2, download: true), at: .zero)
@@ -46,24 +37,8 @@ private func close(_ a: Double, _ b: Double, within tolerance: Double = 1e-9) ->
         #expect(download.fraction(at: .milliseconds(600)) == 1)
     }
 
-    @Test func theThreeLoadDownloadGivesEachLoadItsShare() {
-        // Changing the three-load download layout's 1, 2, 6 or 3 twelfths turns this red.
-        var line = LoadingLine(reduceMotion: false)
-        line.report(progress(0, of: 3, download: true), at: .zero)
-        line.report(progress(1, of: 3, download: true), at: .zero)
-        #expect(close(line.fraction(at: .milliseconds(300)) - estimate(2, typical: 25, after: 0.3), 1.0 / 12))
-        line.report(progress(2, of: 3, download: true), at: .milliseconds(300))
-        #expect(close(line.fraction(at: .milliseconds(800)), 3.0 / 12))
-        line.report(progress(2, of: 3, download: true, 1), at: .milliseconds(800))
-        #expect(close(line.fraction(at: .milliseconds(800)), 9.0 / 12))
-        // The speech model's estimate stops at 85% of its 3/12.
-        #expect(close(line.fraction(at: .seconds(10_000)), 9.0 / 12 + 0.85 * 3 / 12))
-        line.report(progress(3, of: 3, download: true), at: .seconds(10_000))
-        #expect(line.fraction(at: .seconds(10_000) + .milliseconds(300)) == 1)
-    }
-
     @Test func theRunningLoadFillsOnItsEstimateUpTo85Percent() {
-        // Changing the estimate's curve, its 85% ceiling, or the 1 s, 25 s or 30 s typical times, turns this red.
+        // Changing the estimate's curve, its 85% ceiling, or the 1 s or 30 s typical times, turns this red.
         var speech = LoadingLine(reduceMotion: false)
         speech.report(progress(0, of: 2), at: .zero)
         speech.report(progress(1, of: 2), at: .zero)
@@ -73,11 +48,6 @@ private func close(_ a: Double, _ b: Double, within tolerance: Double = 1e-9) ->
         var voiceDetector = LoadingLine(reduceMotion: false)
         voiceDetector.report(progress(0, of: 2), at: .zero)
         #expect(close(voiceDetector.fraction(at: .seconds(1)), 2.0 / 12 * 0.85 * (1 - exp(-3)), within: 1e-6))
-
-        var wordCheck = LoadingLine(reduceMotion: false)
-        wordCheck.report(progress(0, of: 3), at: .zero)
-        wordCheck.report(progress(1, of: 3), at: .zero)
-        #expect(close(wordCheck.fraction(at: .seconds(25)) - 2.0 / 12, 4.0 / 12 * 0.85 * (1 - exp(-3)), within: 1e-6))
     }
 
     @Test func aFinishEasesWithNoJump() {
