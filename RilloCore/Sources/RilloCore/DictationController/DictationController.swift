@@ -216,8 +216,7 @@ public final class DictationController {
             startedAt: current.startedAt,
             rawTranscript: transcript.text,
             wordTimings: transcript.wordTimings,
-            timings: StageTimings(
-                transcription: seconds(since: transcriptionStart), wordListRecheck: transcript.wordListRecheck),
+            timings: StageTimings(transcription: seconds(since: transcriptionStart)),
             modelVersion: transcript.modelVersion,
             wordListVersion: wordListVersion()
         )

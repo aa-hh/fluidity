@@ -4,9 +4,9 @@
     {
       "identity" : "fluidaudio",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/FluidInference/FluidAudio.git",
+      "location" : "https://github.com/altic-dev/FluidAudio.git",
       "state" : {
-        "revision" : "1b0ed50d686873128a4129b3510ce3914c849bab"
+        "revision" : "386f7195670b77f2954c7ee143ec63fcb50b6c3b"
       }
     }
   ],

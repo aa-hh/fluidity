@@ -99,27 +99,6 @@ final class FakeVoiceDetector: VoiceDetecting, @unchecked Sendable {
     }
 }
 
-/// The candidate check costs 4 ms and the recheck 170 ms on the clock; the recheck answers the word list.
-final class FakeRechecker: WordListRechecking, @unchecked Sendable {
-    private let candidates: Bool
-    private let clock: ManualClock
-
-    init(candidates: Bool, clock: ManualClock) {
-        self.candidates = candidates
-        self.clock = clock
-    }
-
-    func hasCandidates(in transcript: Transcript, wordList: [String]) async -> Bool {
-        await clock.advance(by: .milliseconds(4))
-        return candidates
-    }
-
-    func recheck(_ transcript: Transcript, audio: [Float], wordList: [String]) async -> Transcript {
-        await clock.advance(by: .milliseconds(170))
-        return Transcript(text: wordList.joined(separator: " "), wordTimings: transcript.wordTimings)
-    }
-}
-
 /// Records every chunk it is fed and each stream call; `partial` sends text as the engine's live words.
 /// With `finishFails`, `finishStream` throws; with `startFails`, `startStream` does. While `holdLoad` holds it,
 /// it is unloaded and `startStream` and `feed` throw not loaded, recording nothing.

@@ -3,11 +3,16 @@ import Foundation
 
 /// `ModelFetching` over FluidAudio's model folders under Application Support. Untested: it needs real files and the network.
 public struct FluidAudioModelFetcher: ModelFetching {
-    private static let unifiedConfig = StreamingModelVariant.parakeetUnified320ms.unifiedConfig!
-
     public init() {}
 
-    private var modelsDirectory: URL { MLModelConfigurationUtils.defaultModelsDirectory(for: nil) }
+    /// FluidAudio's `Application Support/FluidAudio/Models`, the parent of every model's own folder.
+    private static var modelsDirectory: URL { AsrModels.defaultCacheDirectory(for: .v2).deletingLastPathComponent() }
+
+    /// Where a downloadable model's files live; nil for Apple's model.
+    public static func folder(of id: SpeechModelID) -> URL? {
+        guard case .download(_, _, let folder) = SpeechModel.model(id).install else { return nil }
+        return modelsDirectory.appendingPathComponent(folder, isDirectory: true)
+    }
 
     public func isInstalled(_ id: SpeechModelID) -> Bool {
         switch id {
@@ -15,20 +20,13 @@ public struct FluidAudioModelFetcher: ModelFetching {
             return true
         case .parakeetTDTv2:
             return AsrModels.modelsExist(at: AsrModels.defaultCacheDirectory(for: .v2), version: .v2)
-        case .parakeetUnified:
-            let folder = modelsDirectory.appendingPathComponent(Repo.parakeetUnified.folderName, isDirectory: true)
-            let files = [
-                ModelNames.ParakeetUnified.streamingEncoderFile(precision: .int8, contextSuffix: Self.unifiedConfig.contextSuffix),
-                ModelNames.ParakeetUnified.decoderFile,
-                ModelNames.ParakeetUnified.jointDecisionFile,
-                ModelNames.ParakeetUnified.vocab,
-            ]
-            return files.allSatisfy { FileManager.default.fileExists(atPath: folder.appendingPathComponent($0).path) }
+        case .fluidSpeechPro:
+            return SpeechModel.fluidSpeechProFiles.isInstalled(in: Self.folder(of: id)!)
         }
     }
 
     public func availableBytes() -> Int64 {
-        freeBytes(onVolumeOf: modelsDirectory)
+        freeBytes(onVolumeOf: Self.modelsDirectory)
     }
 
     public func download(_ id: SpeechModelID, progress: @escaping @Sendable (Double) -> Void) async throws {
@@ -37,18 +35,13 @@ public struct FluidAudioModelFetcher: ModelFetching {
             return
         case .parakeetTDTv2:
             try await AsrModels.download(version: .v2) { progress($0.fractionCompleted) }
-        case .parakeetUnified:
-            // `loadModels` is the only download path that knows the manager's required files; the loaded models are dropped at once.
-            let manager = StreamingUnifiedAsrManager(config: Self.unifiedConfig)
-            try await manager.loadModels(to: nil) { progress($0.fractionCompleted) }
-            await manager.cleanup()
+        case .fluidSpeechPro:
+            try await SpeechModel.fluidSpeechProFiles.install(into: Self.folder(of: id)!, progress: progress)
         }
     }
 
     public func removeFiles(for id: SpeechModelID) throws {
-        guard case .download(_, _, let folder) = SpeechModel.model(id).install else { return }
-        let url = modelsDirectory.appendingPathComponent(folder, isDirectory: true)
-        guard FileManager.default.fileExists(atPath: url.path) else { return }
+        guard let url = Self.folder(of: id), FileManager.default.fileExists(atPath: url.path) else { return }
         try FileManager.default.removeItem(at: url)
     }
 }

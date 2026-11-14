@@ -52,7 +52,7 @@ private func withDefaults(_ body: (UserDefaults) throws -> Void) rethrows {
         first.cleanupRules = "Be brief."
         first.wordList = ["SwiftUI", "Cerebras"]
         first.liveWords = .above
-        first.speechModel = .parakeetUnified
+        first.speechModel = .fluidSpeechPro
         first.microphone = "usb"
         first.cleanupPlace = .local
         first.localCleanupModel = .s1Mini
@@ -68,7 +68,7 @@ private func withDefaults(_ body: (UserDefaults) throws -> Void) rethrows {
         #expect(second.cleanupRules == "Be brief.")
         #expect(second.wordList == ["SwiftUI", "Cerebras"])
         #expect(second.liveWords == .above)
-        #expect(second.speechModel == .parakeetUnified)
+        #expect(second.speechModel == .fluidSpeechPro)
         #expect(second.microphone == "usb")
         #expect(second.cleanupPlace == .local)
         #expect(second.localCleanupModel == .s1Mini)

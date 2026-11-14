@@ -122,7 +122,6 @@ public actor AppleSpeechEngine: StreamingSpeechEngine {
                 words.append(WordTiming(word: word, start: range.start.seconds, end: range.end.seconds))
             }
         }
-        // No token timings: the word-list recheck's candidate check says no, so it is skipped.
         return Transcript(text: Self.joined(finals.map { String($0.text.characters) }), wordTimings: words)
     }
 

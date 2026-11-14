@@ -77,8 +77,7 @@ struct CompareSessionTests {
             audio: microphone,
             makeTranscriber: { [clock] model in
                 Transcriber(
-                    engine: engines[model]!, model: model, voiceDetector: FakeVoiceDetector(speech: true),
-                    rechecker: FakeRechecker(candidates: false, clock: clock), clock: clock)
+                    engine: engines[model]!, model: model, voiceDetector: FakeVoiceDetector(speech: true), clock: clock)
             },
             clock: clock)
     }

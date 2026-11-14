@@ -25,7 +25,6 @@ final class FakeParts: AudioCapturing, Transcribing, CleaningUp, FieldContextRea
         var previewSink: AsyncStream<String>.Continuation?
         /// Nil makes the final pass fail.
         var rawTranscript: String? = "hello world"
-        var wordListRecheck: TimeInterval? = 0.25
         /// Read by the controller each time it builds a record.
         var wordListVersion = "words-1"
         var transcribeHangs = false
@@ -100,13 +99,13 @@ final class FakeParts: AudioCapturing, Transcribing, CleaningUp, FieldContextRea
     }
 
     func transcribe(_ recording: DictationController.Recording) async throws -> DictationController.Transcript {
-        let (text, hangs, recheck) = state.withLock { s in
+        let (text, hangs) = state.withLock { s in
             s.transcribeCalls += 1
-            return (s.rawTranscript, s.transcribeHangs, s.wordListRecheck)
+            return (s.rawTranscript, s.transcribeHangs)
         }
         if hangs { try await clock.sleep(for: .seconds(3600)) }
         guard let text else { throw Failure() }
-        return .init(text: text, modelVersion: "parakeet-v2", wordTimings: Self.wordTimings, wordListRecheck: recheck)
+        return .init(text: text, modelVersion: "parakeet-v2", wordTimings: Self.wordTimings)
     }
 
     func cancel() async { state.withLock { $0.transcriberCancels += 1 } }

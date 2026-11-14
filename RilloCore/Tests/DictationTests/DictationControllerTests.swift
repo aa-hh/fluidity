@@ -138,7 +138,7 @@ struct DictationControllerTests {
             wordTimings: FakeParts.wordTimings,
             textBeforeCursor: "Dear Sam, ", selectedText: "", textAfterCursor: " Thanks.",
             pasteLanded: true,
-            timings: StageTimings(transcription: 0, wordListRecheck: 0.25, cleanup: 0, finishing: 0, paste: 0),
+            timings: StageTimings(transcription: 0, cleanup: 0, finishing: 0, paste: 0),
             modelVersion: "parakeet-v2", wordListVersion: "words-2"))
     }
 

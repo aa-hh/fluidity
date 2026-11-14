@@ -210,29 +210,21 @@ func cancelledWatchReturnsFinalTextSoFar() async {
 
 // MARK: Transcriber
 
-private final class CountingEngine: SpeechEngine, VoiceDetecting, WordListRechecking {
-    private let state = Mutex((passes: 0, wordList: [String]?.none))
+private final class CountingEngine: SpeechEngine, VoiceDetecting {
+    private let state = Mutex(0)
     static let timings = [WordTiming(word: "hello", start: 0, end: 0.4)]
 
-    var passes: Int { state.withLock { $0.passes } }
-    var wordList: [String]? { state.withLock { $0.wordList } }
+    var passes: Int { state.withLock { $0 } }
 
     func load(progress: @escaping @Sendable (Double) -> Void) async throws {}
     func unload() async {}
 
     func transcribe(_ audio: [Float]) async throws -> Transcript {
-        state.withLock { $0.passes += 1 }
+        state.withLock { $0 += 1 }
         return Transcript(text: "hello", wordTimings: Self.timings)
     }
 
     func hasSpeech(in audio: [Float]) async throws -> Bool { true }
-
-    func hasCandidates(in transcript: Transcript, wordList: [String]) async -> Bool {
-        state.withLock { $0.wordList = wordList }
-        return true
-    }
-
-    func recheck(_ transcript: Transcript, audio: [Float], wordList: [String]) async -> Transcript { transcript }
 }
 
 private func settle() async {
@@ -244,8 +236,8 @@ func previewPassesStopWhenThePreviewIsNoLongerRead() async {
     // Leaving the transcriber's preview running after the controller stops reading it, as on Escape, turns this red.
     let clock = ManualClock()
     let engine = CountingEngine()
-    let transcriber = Transcriber(engine: engine, voiceDetector: engine, rechecker: engine, clock: clock)
-    let adapter = TranscriberAdapter(transcriber: transcriber, wordList: { [] })
+    let transcriber = Transcriber(engine: engine, voiceDetector: engine, clock: clock)
+    let adapter = TranscriberAdapter(transcriber: transcriber)
     let (audio, microphone) = AsyncStream.makeStream(of: [Float].self)
     let previews = adapter.preview(audio)
     let heard = Mutex<[String]>([])
@@ -266,7 +258,7 @@ func previewPassesStopWhenThePreviewIsNoLongerRead() async {
 }
 
 /// Records every call on the stream in the order it reached the engine.
-private final class StreamCallsEngine: StreamingSpeechEngine, VoiceDetecting, WordListRechecking {
+private final class StreamCallsEngine: StreamingSpeechEngine, VoiceDetecting {
     private let state = Mutex<[String]>([])
     var calls: [String] { state.withLock { $0 } }
     private func record(_ call: String) { state.withLock { $0.append(call) } }
@@ -285,15 +277,12 @@ private final class StreamCallsEngine: StreamingSpeechEngine, VoiceDetecting, Wo
     }
     func cancelStream() async { record("cancel") }
     func hasSpeech(in audio: [Float]) async throws -> Bool { true }
-    func hasCandidates(in transcript: Transcript, wordList: [String]) async -> Bool { false }
-    func recheck(_ transcript: Transcript, audio: [Float], wordList: [String]) async -> Transcript { transcript }
 }
 
 /// Streams two samples through the adapter's preview, then stops reading it, as the controller does on release and on Escape.
 private func streamThenStopReading(_ engine: StreamCallsEngine) async -> TranscriberAdapter {
-    let transcriber = Transcriber(
-        engine: engine, model: .parakeetUnified, voiceDetector: engine, rechecker: engine, clock: ManualClock())
-    let adapter = TranscriberAdapter(transcriber: transcriber, wordList: { [] })
+    let transcriber = Transcriber(engine: engine, model: .fluidSpeechPro, voiceDetector: engine, clock: ManualClock())
+    let adapter = TranscriberAdapter(transcriber: transcriber)
     let (audio, microphone) = AsyncStream.makeStream(of: [Float].self)
     let previews = adapter.preview(audio)
     let reader = Task { for await _ in previews {} }
@@ -324,15 +313,13 @@ func escapeCancelsTheLiveStream() async {
     #expect(engine.calls == ["start", "feed 2", "cancel"])
 }
 
-@Test func finalPassUsesTheWordListAndKeepsWordTimings() async throws {
-    // Not passing the settings word list to the final pass, or dropping its word timings or recheck time, turns this red.
+@Test func finalPassKeepsWordTimings() async throws {
+    // Dropping the final pass's word timings or its model turns this red.
     let engine = CountingEngine()
-    let transcriber = Transcriber(engine: engine, voiceDetector: engine, rechecker: engine, clock: ManualClock())
-    let adapter = TranscriberAdapter(transcriber: transcriber, wordList: { ["Rillo"] })
+    let transcriber = Transcriber(engine: engine, voiceDetector: engine, clock: ManualClock())
+    let adapter = TranscriberAdapter(transcriber: transcriber)
     let transcript = try await adapter.transcribe(.init(samples: [0.1, 0.2], sampleRate: 16_000))
-    #expect(transcript == .init(
-        text: "hello", modelVersion: "parakeet-tdt-0.6b-v2", wordTimings: CountingEngine.timings, wordListRecheck: 0))
-    #expect(engine.wordList == ["Rillo"])
+    #expect(transcript == .init(text: "hello", modelVersion: "parakeet-tdt-0.6b-v2", wordTimings: CountingEngine.timings))
 }
 
 // MARK: Hotkey

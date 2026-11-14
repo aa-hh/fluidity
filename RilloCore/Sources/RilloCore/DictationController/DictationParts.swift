@@ -108,14 +108,11 @@ extension DictationController {
         /// The speech model that made this transcript, saved in the record.
         public var modelVersion: String
         public var wordTimings: [WordTiming]
-        /// Seconds the word list recheck took, when it ran.
-        public var wordListRecheck: TimeInterval?
 
-        public init(text: String, modelVersion: String, wordTimings: [WordTiming] = [], wordListRecheck: TimeInterval? = nil) {
+        public init(text: String, modelVersion: String, wordTimings: [WordTiming] = []) {
             self.text = text
             self.modelVersion = modelVersion
             self.wordTimings = wordTimings
-            self.wordListRecheck = wordListRecheck
         }
     }
 

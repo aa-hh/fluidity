@@ -82,17 +82,17 @@ enum WindowPreview {
     /// because the pane shows only failures that happen while it is open.
     private static func renderSettings(_ settings: SettingsModel, history: HistoryModel, state: String, to path: String) {
         settings.speechModel = .parakeetTDTv2
-        settings.modelStates = [.parakeetTDTv2: .installed, .appleBuiltIn: .partOfMacOS, .parakeetUnified: .notInstalled]
+        settings.modelStates = [.parakeetTDTv2: .installed, .appleBuiltIn: .partOfMacOS, .fluidSpeechPro: .notInstalled]
         switch state {
-        case "downloading": settings.modelStates[.parakeetUnified] = .downloading(downloadedBytes: 212_000_000, totalBytes: 565_000_000)
+        case "downloading": settings.modelStates[.fluidSpeechPro] = .downloading(downloadedBytes: 212_000_000, totalBytes: 652_475_761)
         case "ready":
-            settings.modelStates[.parakeetUnified] = .installed
-            settings.readyModel = .parakeetUnified
+            settings.modelStates[.fluidSpeechPro] = .installed
+            settings.readyModel = .fluidSpeechPro
         default: break
         }
         let view = NSHostingView(rootView: SettingsView(model: settings, history: history))
         render(view, size: NSSize(width: 1200, height: 680), to: path) {
-            if state == "failed" { settings.downloadFailure = (.parakeetUnified, .offline) }
+            if state == "failed" { settings.downloadFailure = (.fluidSpeechPro, .offline) }
         }
     }
 
@@ -100,7 +100,7 @@ enum WindowPreview {
     private static func renderFirstRun(_ settings: SettingsModel, step: FirstRunView.Step, to path: String) {
         settings.accessibility = .granted
         settings.speechModel = .parakeetTDTv2
-        settings.modelStates = [.parakeetTDTv2: .notInstalled, .appleBuiltIn: .partOfMacOS, .parakeetUnified: .notInstalled]
+        settings.modelStates = [.parakeetTDTv2: .notInstalled, .appleBuiltIn: .partOfMacOS, .fluidSpeechPro: .notInstalled]
         settings.modelsInUse = [.parakeetTDTv2]
         settings.isPreparingModel = true
         let model = FirstRunModel()
@@ -117,12 +117,12 @@ enum WindowPreview {
             audio: SampleMicrophone(),
             makeTranscriber: { id in
                 let engine = id == .parakeetTDTv2 ? left : right
-                return Transcriber(engine: engine, model: id, voiceDetector: engine, rechecker: engine)
+                return Transcriber(engine: engine, model: id, voiceDetector: engine)
             })
-        session.choose(left: .parakeetTDTv2, right: state == "notOnThisMac" ? .parakeetUnified : .appleBuiltIn)
+        session.choose(left: .parakeetTDTv2, right: state == "notOnThisMac" ? .fluidSpeechPro : .appleBuiltIn)
         let model = CompareModel(session: session)
         model.dictationKey = "Right Option"
-        model.modelStates = [.parakeetTDTv2: .installed, .appleBuiltIn: .partOfMacOS, .parakeetUnified: .notInstalled]
+        model.modelStates = [.parakeetTDTv2: .installed, .appleBuiltIn: .partOfMacOS, .fluidSpeechPro: .notInstalled]
         model.loads = [.parakeetTDTv2: .loaded, .appleBuiltIn: .loaded]
         retained.append(model)
         if state == "result" {
@@ -165,7 +165,7 @@ enum WindowPreview {
     }
 
     /// A model that hears `text` in any recording, for the compare preview.
-    private struct SampleSpeech: StreamingSpeechEngine, VoiceDetecting, WordListRechecking {
+    private struct SampleSpeech: StreamingSpeechEngine, VoiceDetecting {
         let text: String
         func load(progress: @escaping @Sendable (Double) -> Void) async throws {}
         func transcribe(_ audio: [Float]) async throws -> Transcript { Transcript(text: text, wordTimings: []) }
@@ -175,8 +175,6 @@ enum WindowPreview {
         func finishStream() async throws -> Transcript { Transcript(text: text, wordTimings: []) }
         func cancelStream() async {}
         func hasSpeech(in audio: [Float]) async throws -> Bool { true }
-        func hasCandidates(in transcript: Transcript, wordList: [String]) async -> Bool { false }
-        func recheck(_ transcript: Transcript, audio: [Float], wordList: [String]) async -> Transcript { transcript }
     }
 
     /// Two seconds of silence, for the compare preview's recording.

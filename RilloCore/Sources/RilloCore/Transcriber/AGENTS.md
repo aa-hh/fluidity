@@ -12,30 +12,26 @@ owns every preview and switching rule.
   one `AsrManager`. `runningPass` can outlive its recording; later
   recordings' passes still wait for it. Preview passes also wait on
   `finalPassRunning`.
-- **The recheck needs the speech model's token timings.** A `Transcript` from
-  the public initialiser has none, so the candidate check always says no.
-  Pass the recheck the engine's transcript.
+- **No word-list recheck in speech-to-text.** On the 108 test clips it swapped
+  common words for listed names ("actually" became "Tautulli") and raised
+  errors with every model (AA-470). The word list goes to cleanup only.
 - **Streaming engines get no voice check;** their partials drive the preview.
 - **A switch waits for the launch load, the open recording and its final
   pass.** It leaves the old engine loaded for `ModelCoordinator`.
-- **Keep `spotterRescueEnabled: false`.** On, the candidate check accepts
-  every word list of 10 terms or fewer, so the recheck never skips and false
-  replacements rise.
-- **A nil `wordListRecheckTime` means the recheck was skipped,** so records
-  show how often the candidate check avoids it.
-- Word timings keep the model's words when a recheck merges or splits
-  them.
+- **FluidAudio here is Fluid Voice's copy** (`altic-dev/FluidAudio`), the only
+  one that loads Fluid Speech Pro. It has no Parakeet Unified and keeps its
+  word-timing builder private, so `Transcript(_:)` joins token timings itself.
 - **A `SpeechTranscriber` attaches to only one `SpeechAnalyzer`,** so
   `AppleSpeechEngine` builds one per stream; reuse traps.
 
 ## Map
 
-- `Transcriber` → preview passes, final pass, recheck, stage timings.
-- `SpeechEngine`, `VoiceDetecting`, `WordListRechecking` → what it needs from the models.
+- `Transcriber` → preview passes, final pass, stage timings.
+- `SpeechEngine`, `VoiceDetecting` → what it needs from the models.
 - `StreamingSpeechEngine` → an engine fed chunk by chunk, reporting partials.
 - `Transcript` → one pass's text and word timings.
 - `RawTranscript` → what `finish` returns, with stage timings.
-- `FluidAudioEngine` → all three protocols over Parakeet TDT v2, Silero and CTC 110M.
-- `UnifiedEngine` → Parakeet Unified 0.6B streaming.
+- `FluidAudioEngine` → both protocols over Parakeet TDT v2 and Silero.
+- `FluidSpeechProEngine` → Fluid Speech Pro, loaded from the folder its download filled.
 - `AppleSpeechEngine` → Apple's SpeechAnalyzer.
 - `CompareSession` → one recording through two transcribers, side by side.

@@ -10,27 +10,54 @@ public struct HuggingFaceModelFetcher: ModelFetching {
 
     private func folder(_ id: CleanupModelID) -> URL { Self.root.appending(path: id.rawValue, directoryHint: .isDirectory) }
 
-    /// Every file at its catalogue size; checksums were checked when the download finished, not at each launch.
-    public func isInstalled(_ id: CleanupModelID) -> Bool {
-        CleanupModel.model(id).files.allSatisfy { Self.size(of: folder(id).appending(path: $0.name)) == $0.bytes }
-    }
+    public func isInstalled(_ id: CleanupModelID) -> Bool { CleanupModel.model(id).source.isInstalled(in: folder(id)) }
 
     public func availableBytes() -> Int64 { freeBytes(onVolumeOf: Self.root) }
 
-    /// Downloads into a temporary folder on the same volume and moves it into place only once every file matches,
-    /// so a partial or damaged download never reads as installed.
     public func download(_ id: CleanupModelID, progress: @escaping @Sendable (Double) -> Void) async throws {
-        let model = CleanupModel.model(id)
-        let files = FileManager.default
-        try files.createDirectory(at: Self.root, withIntermediateDirectories: true)
-        let temporary = try files.url(for: .itemReplacementDirectory, in: .userDomainMask, appropriateFor: Self.root, create: true)
-        defer { try? files.removeItem(at: temporary) }
-        let total = Double(model.totalBytes)
+        try await CleanupModel.model(id).source.install(into: folder(id), progress: progress)
+    }
+
+    public func removeFiles(for id: CleanupModelID) throws {
+        let url = folder(id)
+        guard FileManager.default.fileExists(atPath: url.path) else { return }
+        try FileManager.default.removeItem(at: url)
+    }
+}
+
+/// A model's files, pinned to one commit of a Hugging Face repo, each with the size and SHA-256 a download must match.
+public struct PinnedFiles: Sendable {
+    public var repo: String
+    public var revision: String
+    /// Paths inside the repo, which may name subfolders.
+    public var files: [(name: String, bytes: Int64, sha256: String)]
+
+    public var totalBytes: Int64 { files.reduce(0) { $0 + $1.bytes } }
+
+    public func url(of file: String) -> URL {
+        URL(string: "https://huggingface.co/\(repo)/resolve/\(revision)/\(file)")!
+    }
+
+    /// Every file at its pinned size; checksums were checked when the download finished, not at each launch.
+    func isInstalled(in folder: URL) -> Bool {
+        files.allSatisfy { Self.size(of: folder.appending(path: $0.name)) == $0.bytes }
+    }
+
+    /// Downloads into a temporary folder on the same volume and moves it to `folder` only once every file matches,
+    /// so a partial or damaged download never reads as installed.
+    func install(into folder: URL, progress: @escaping @Sendable (Double) -> Void) async throws {
+        let manager = FileManager.default
+        let parent = folder.deletingLastPathComponent()
+        try manager.createDirectory(at: parent, withIntermediateDirectories: true)
+        let temporary = try manager.url(for: .itemReplacementDirectory, in: .userDomainMask, appropriateFor: parent, create: true)
+        defer { try? manager.removeItem(at: temporary) }
+        let total = Double(totalBytes)
         var finished: Int64 = 0
-        for file in model.files {
+        for file in files {
             let destination = temporary.appending(path: file.name)
+            try manager.createDirectory(at: destination.deletingLastPathComponent(), withIntermediateDirectories: true)
             let before = finished
-            try await FileDownload.run(model.url(of: file.name), to: destination) { written in
+            try await FileDownload.run(url(of: file.name), to: destination) { written in
                 progress(Double(before + written) / total)
             }
             guard Self.size(of: destination) == file.bytes, try Self.sha256(of: destination) == file.sha256 else {
@@ -39,14 +66,8 @@ public struct HuggingFaceModelFetcher: ModelFetching {
             finished += file.bytes
         }
         try Task.checkCancellation()
-        try removeFiles(for: id)
-        try files.moveItem(at: temporary, to: folder(id))
-    }
-
-    public func removeFiles(for id: CleanupModelID) throws {
-        let url = folder(id)
-        guard FileManager.default.fileExists(atPath: url.path) else { return }
-        try FileManager.default.removeItem(at: url)
+        if manager.fileExists(atPath: folder.path) { try manager.removeItem(at: folder) }
+        try manager.moveItem(at: temporary, to: folder)
     }
 
     private static func size(of url: URL) -> Int64? {
