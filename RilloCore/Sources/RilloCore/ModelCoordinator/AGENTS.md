@@ -20,8 +20,8 @@ its own, except the launch fallback when the chosen one is gone.
   one keeps the comparison from starting, by the key or by Speak Now.
 - **The in-use set reaches `ModelDownloads`,** which refuses to delete or
   download those models.
-- **The coordinator owns the launch steps** (voice detector, word check,
-  speech model) and their order, so a step reported to the pill is one the
+- **The coordinator owns the launch steps** (voice detector, speech model)
+  and their order, so a step reported to the pill is one the
   user waits for.
 
 ## Map

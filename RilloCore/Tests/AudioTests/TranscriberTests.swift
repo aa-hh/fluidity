@@ -4,6 +4,19 @@ import Foundation
 import Synchronization
 import Testing
 
+// Starting a word on a piece without "▁", keeping blank or padding pieces, or taking a word's end from its
+// first piece instead of its last, turns this red.
+@Test(arguments: [
+    ([("▁Hel", 0.0, 0.2), ("lo", 0.2, 0.4), ("▁world", 0.5, 0.9)],
+     [WordTiming(word: "Hello", start: 0, end: 0.4), WordTiming(word: "world", start: 0.5, end: 0.9)]),
+    ([("<blank>", 0.0, 0.1), ("Hi", 0.1, 0.3), ("<pad>", 0.3, 0.4), (" there", 0.4, 0.7)],
+     [WordTiming(word: "Hi", start: 0.1, end: 0.3), WordTiming(word: "there", start: 0.4, end: 0.7)]),
+    ([("▁", 0.0, 0.1), ("", 0.1, 0.2)], []),
+])
+func wordPiecesJoinIntoWords(pieces: [(String, TimeInterval, TimeInterval)], words: [WordTiming]) {
+    #expect(WordTiming.joining(pieces.map { (text: $0.0, start: $0.1, end: $0.2) }) == words)
+}
+
 @Suite(.timeLimit(.minutes(1)))
 struct TranscriberTests {
     let clock = ManualClock()

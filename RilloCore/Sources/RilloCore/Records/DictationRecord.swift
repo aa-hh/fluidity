@@ -82,7 +82,7 @@ public struct WordTiming: Codable, Equatable, Sendable {
 /// Seconds each stage took; nil for a stage that did not run.
 public struct StageTimings: Codable, Equatable, Sendable {
     public var transcription: TimeInterval?
-    /// Only in records from before AA-470, when a speech-side word-list recheck ran; the word list now goes to cleanup.
+    /// Only in records from before ADR 0005, when a speech-side word-list recheck ran.
     public var wordListRecheck: TimeInterval?
     public var cleanup: TimeInterval?
     public var finishing: TimeInterval?

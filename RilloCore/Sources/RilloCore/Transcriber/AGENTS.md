@@ -12,15 +12,13 @@ owns every preview and switching rule.
   one `AsrManager`. `runningPass` can outlive its recording; later
   recordings' passes still wait for it. Preview passes also wait on
   `finalPassRunning`.
-- **No word-list recheck in speech-to-text.** On the 108 test clips it swapped
-  common words for listed names ("actually" became "Tautulli") and raised
-  errors with every model (AA-470). The word list goes to cleanup only.
+- **No word-list recheck in speech-to-text;** it swaps common words for listed
+  names. The word list goes to cleanup only (ADR 0005).
 - **Streaming engines get no voice check;** their partials drive the preview.
 - **A switch waits for the launch load, the open recording and its final
   pass.** It leaves the old engine loaded for `ModelCoordinator`.
-- **FluidAudio here is Fluid Voice's copy** (`altic-dev/FluidAudio`), the only
-  one that loads Fluid Speech Pro. It has no Parakeet Unified and keeps its
-  word-timing builder private, so `Transcript(_:)` joins token timings itself.
+- **Fluid Voice's FluidAudio keeps its word-timing builder private,** so
+  `Transcript(_:)` joins token timings into words itself.
 - **A `SpeechTranscriber` attaches to only one `SpeechAnalyzer`,** so
   `AppleSpeechEngine` builds one per stream; reuse traps.
 

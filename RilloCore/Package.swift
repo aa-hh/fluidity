@@ -8,10 +8,8 @@ let package = Package(
         .library(name: "RilloCore", targets: ["RilloCore"]),
     ],
     dependencies: [
-        // Fluid Voice's copy of FluidAudio, pinned (AA-470): it loads Fluid Speech Pro with its own decoding,
-        // which scored 3.6% against 3.9% through FluidInference/FluidAudio. It split from that one in March 2026,
-        // so it has no Parakeet Unified and no word-list pre-check. It declares no traits, so TTS and the diarizer
-        // can't be left out.
+        // Fluid Voice's copy of FluidAudio, pinned: the only one that loads Fluid Speech Pro (ADR 0005).
+        // It declares no traits, so text-to-speech and the diarizer can't be left out.
         .package(
             url: "https://github.com/altic-dev/FluidAudio.git",
             revision: "386f7195670b77f2954c7ee143ec63fcb50b6c3b"

@@ -75,17 +75,25 @@ public actor FluidAudioEngine: SpeechEngine, VoiceDetecting {
 extension Transcript {
     /// A FluidAudio Parakeet result, with word timings joined from its token timings.
     init(_ result: ASRResult) {
+        let tokens = (result.tokenTimings ?? []).map { (text: $0.token, start: $0.startTime, end: $0.endTime) }
+        self.init(text: result.text, wordTimings: WordTiming.joining(tokens))
+    }
+}
+
+extension WordTiming {
+    /// Joins Parakeet's word pieces into words: a piece starting with "▁" or a space starts a new word, and blank
+    /// and padding pieces are skipped. Each word runs from its first piece's start to its last piece's end.
+    public static func joining(_ tokens: [(text: String, start: TimeInterval, end: TimeInterval)]) -> [WordTiming] {
         var words: [WordTiming] = []
-        for token in result.tokenTimings ?? [] where !token.token.isEmpty && token.token != "<blank>" && token.token != "<pad>" {
-            if isWordBoundary(token.token) || words.isEmpty {
-                let word = stripWordBoundaryPrefix(token.token)
-                words.append(WordTiming(word: word, start: token.startTime, end: token.endTime))
+        for token in tokens where !token.text.isEmpty && token.text != "<blank>" && token.text != "<pad>" {
+            if isWordBoundary(token.text) || words.isEmpty {
+                words.append(WordTiming(word: stripWordBoundaryPrefix(token.text), start: token.start, end: token.end))
             } else {
-                words[words.count - 1].word += token.token
-                words[words.count - 1].end = token.endTime
+                words[words.count - 1].word += token.text
+                words[words.count - 1].end = token.end
             }
         }
         for index in words.indices { words[index].word = words[index].word.trimmingCharacters(in: .whitespaces) }
-        self.init(text: result.text, wordTimings: words.filter { !$0.word.isEmpty })
+        return words.filter { !$0.word.isEmpty }
     }
 }

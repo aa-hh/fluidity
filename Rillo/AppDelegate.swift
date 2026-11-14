@@ -91,8 +91,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         )
         controller = DictationController(
             audio: audio,
-            // The word list feeds cleanup only. A speech-side recheck swapped common words for listed names
-            // ("sounds" became "Sonos"): on the 108 test clips it raised Parakeet TDT v2's errors from 3.9% to 5.0% (AA-470).
+            // The word list feeds cleanup only: a speech-side recheck swapped common words for listed names (ADR 0005).
             transcriber: TranscriberAdapter(transcriber: models.transcriber),
             cleanup: cleanup,
             field: field,
