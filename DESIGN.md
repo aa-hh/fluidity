@@ -255,7 +255,7 @@ A dark, neutral body with warm ivory light, and three state colours that replace
 
 ### Neutral
 - **Pill body** (`pill-body`): the fill of the pill and every bubble, on any background. The value exists only in the pill's shader (`PillShader.swift`).
-- **Words** (`words-ivory`): all text in the pill and bubble. Confirmed words at 94% opacity; the newest one or two, which may still change, at 50%. While the AI cleans up, words dim to 80%. `PillWordsView.swift` keeps its own copy of this value, separate from `app-text-primary-dark`, which has the same hex.
+- **Words** (`words-ivory`): all text in the pill and bubble. Confirmed words at 94% opacity; the newest one or two, which may still change, at 50% until the next preview or 0.6 s with no new one. While the AI cleans up, words dim to 80%. `PillWordsView.swift` keeps its own copy of this value, separate from `app-text-primary-dark`, which has the same hex.
 
 ### App surfaces
 Light and Dark are equals, so every role has a `-light` and a `-dark` key, named after its Figma role (`surface/window` becomes `app-window-light` and `app-window-dark`).

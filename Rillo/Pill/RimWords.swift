@@ -18,6 +18,9 @@ nonisolated struct RimWords {
     static let padX: CGFloat = 13
     static let tentative: Float = 0.5
     static let settled: Float = 0.94
+    /// Seconds with no new preview after which the newest words count as confirmed. Previews come about every
+    /// 0.4 s, and one that repeats the last never reaches the pill, so a pause would otherwise leave them light.
+    static let firmAfter: Float = 0.6
     static let appear: Float = 0.28
     static let scrollSpring: (Float, Float) = (0.78, 0.4)
     static let stagger: Float = 0.035
@@ -95,6 +98,7 @@ nonisolated struct RimWords {
     private var lineCount = 1
     private var clock: Float = 0
     private var thinkStart: Float = -1
+    private var lastHeard: Float = 0
     private var textWidth: Float = 0
     private(set) var scale: CGFloat = 1
     /// The words go in their bubble above the pill rather than in it.
@@ -156,6 +160,7 @@ nonisolated struct RimWords {
     /// any revision; new words arrive one after another and stay light until the
     /// next preview confirms them.
     mutating func hear(_ text: String, reduced: Bool) {
+        self.lastHeard = self.clock
         let heard = text.split(whereSeparator: \.isWhitespace).map(String.init)
         var live = self.words.indices.filter { !self.words[$0].gone }
         for (position, index) in live.enumerated() where position < heard.count {
@@ -290,7 +295,9 @@ nonisolated struct RimWords {
             self.scroll.step(dt)
             self.scrollUp.step(dt)
         }
+        let confirmed = self.clock - self.lastHeard > Self.firmAfter
         for index in self.words.indices {
+            if confirmed { self.words[index].tentative = false }
             if self.words[index].delay > 0 {
                 self.words[index].delay -= dt
                 if self.words[index].delay <= 0 { self.words[index].appear.target = 1 }
